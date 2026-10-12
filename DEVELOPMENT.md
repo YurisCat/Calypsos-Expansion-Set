@@ -26,6 +26,12 @@ F8 窗口新增 **Teleport to next MOD idol** 按钮，等价命令 `teleport`�
 
 最终输出 `bin/Release/net6.0/CalypsoExpansionSet.dll`，版本 0.2.6.0，SHA256 `90FDC8D1CD233864754CEB54CBF94F036C3B401387F9A1C8019914AF9CA74283`。小马手动部署后反馈“测试没什么问题”，确认生成的雕像可以传送过去。这次反馈确认手动生成与传送入口可用；没有单独确认自然实例拾取/出售、积分显示、同类型自然与手动实例共存、多只目标循环、销毁/换场景边界或真实双端同步。
 
+### 属性修改入口说明
+
+`Idols/JumpingIdol.cs` 的 `Definition` 已标明第五个参数为配置/外观 `TemplateId`，并添加 `InitialWeight`、`ConfigureData` 与 `ConfigurePrefab` 的注释示例，列出当前模板的分值、难度、持有减速、缩放和质量。原来的继承在 `IdolRegistry.Create` 中完成：先 `Instantiate(template)`，再调用 `ConfigureData`；预制体也独立克隆后调用 `ConfigurePrefab`。示例未启用覆盖，实际属性、版本和效果保持现有值。README 同步说明直接编辑入口、基础分值与最终价值的区别以及构建生效步骤。
+
+此补充只涉及源码注释和文档，`git diff --check` 通过；未重新编译、部署或新增游戏验收结果。
+
 ## 2026-10-12：0.2.5 自然池匹配与调试价值修复
 
 0.2.5 阶段已定位 0.2.4 自然候选为空的原因并修正源码；以下保留当时的编译/模拟记录，随后自然生成与调试闪退的游戏证据见上方 0.2.6 记录。

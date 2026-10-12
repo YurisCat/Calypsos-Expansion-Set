@@ -83,4 +83,12 @@ using CalypsoExpansionSet;
 
 `TemplateId` 选择克隆的配置和外观；可选 `PoolTemplateId` 选择自然池的匹配模板，未指定时沿用 `TemplateId`。两者都使用游戏雕像配置 ID，入池后仍由原版规则筛选和抽取。
 
+## 修改跳跃雕像属性
+
+直接编辑 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs) 顶部的 `Definition`。第五个参数 `7331884207844971565UL` 是 `TemplateId`，目前从 Score 模板复制基础配置和外观；`PoolTemplateId` 只决定匹配哪些自然池。
+
+文件内已留有带模板值的注释示例：取消 `ConfigureData` 块的注释，只保留需要调整的分值、难度、持有减速或缩放字段；质量等组件属性在 `ConfigurePrefab` 块中调整。没有覆盖的属性继续继承模板。抽取权重可单独设置 `InitialWeight`，不是百分比。
+
+`scoreBasePoint` 是基础分值，实例显示与出售使用的 `CurrentValue` 仍由生成后的计价流程设置。改变基础分值不会固定最终售价。实际修改属性后提升 `ContentVersion`，使用 `scripts/Build.ps1` 重新编译，手动部署并重启游戏；联机各端需更新兼容构建。完整模板属性见 [DEVELOPMENT.md](DEVELOPMENT.md#23-原版配置属性与普通雕像的资源默认值)。
+
 开发约定见 [AGENTS.md](AGENTS.md)，研究与验收记录见 [DEVELOPMENT.md](DEVELOPMENT.md)。
