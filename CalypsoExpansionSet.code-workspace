@@ -1,0 +1,58 @@
+{
+  "folders": [
+    {
+      "name": "Calypso's Expansion Set",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "dotnet.defaultSolution": "CalypsoExpansionSet.sln",
+    "files.exclude": {
+      "**/bin": true,
+      "**/obj": true
+    },
+    "search.exclude": {
+      ".local/**": true,
+      "artifacts/**": true
+    },
+    "files.watcherExclude": {
+      "**/.local/**": true
+    },
+    "terminal.integrated.env.windows": {
+      "PATH": "${workspaceFolder}/.local/dotnet;${env:PATH}",
+      "DOTNET_CLI_HOME": "${workspaceFolder}/.local/dotnet-home",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build Calypso's Expansion Set",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoProfile",
+          "-File",
+          "${workspaceFolder}/scripts/Build.ps1"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "Deploy Calypso's Expansion Set",
+        "type": "process",
+        "command": "powershell.exe",
+        "args": [
+          "-NoProfile",
+          "-File",
+          "${workspaceFolder}/scripts/Deploy.ps1"
+        ],
+        "problemMatcher": "$msCompile"
+      }
+    ]
+  }
+}

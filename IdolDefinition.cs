@@ -2,7 +2,7 @@ using Entities.Player;
 using Items;
 using UnityEngine;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 public enum IdolEffectAuthority
 {
@@ -35,12 +35,12 @@ public sealed record IdolDefinition(
     public Action<GameObject>? ConfigurePrefab { get; init; }
 }
 
-public static class MoreIdolsApi
+public static class CalypsoExpansionSetApi
 {
     public static void Register(IdolDefinition definition)
     {
-        var plugin = MoreIdolsPlugin.Instance
-            ?? throw new InvalidOperationException("Load More Idols before registering content; add a BepInDependency.");
+        var plugin = CalypsoExpansionSetPlugin.Instance
+            ?? throw new InvalidOperationException("Load Calypso's Expansion Set before registering content; add a BepInDependency.");
         plugin.Registry.Register(definition);
     }
 }

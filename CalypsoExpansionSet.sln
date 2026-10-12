@@ -1,6 +1,6 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoreIdols", "MoreIdols.csproj", "{F0AAF1F2-433E-4A76-91CF-E4909E7F61DD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalypsoExpansionSet", "CalypsoExpansionSet.csproj", "{F0AAF1F2-433E-4A76-91CF-E4909E7F61DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

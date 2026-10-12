@@ -3,7 +3,7 @@ using Items;
 using Mirror;
 using UnityEngine;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 internal sealed class RegisteredIdol
 {
@@ -119,7 +119,7 @@ internal sealed class IdolRegistry : IDisposable
 
         if (_prefabRoot == null)
         {
-            _prefabRoot = new GameObject("MoreIdols Prefab Templates");
+            _prefabRoot = new GameObject("CalypsoExpansionSet Prefab Templates");
             _prefabRoot.SetActive(false);
             UnityEngine.Object.DontDestroyOnLoad(_prefabRoot);
         }
@@ -127,7 +127,7 @@ internal sealed class IdolRegistry : IDisposable
         GameObject? prefab = null;
         try
         {
-            data.name = $"MoreIdols.{definition.Key}";
+            data.name = $"CalypsoExpansionSet.{definition.Key}";
             data.hideFlags = HideFlags.DontSave;
             data.id = definition.ConfigId;
             definition.ConfigureData?.Invoke(data);

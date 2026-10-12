@@ -4,3 +4,9 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+.local/
+artifacts/
+*.log
+*.user
+.vs/

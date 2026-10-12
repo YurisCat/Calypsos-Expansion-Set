@@ -1,4 +1,16 @@
-# MoreIdols 开发路线与已核实研究
+# Calypso's Expansion Set 开发路线与历史研究
+
+## 2026-10-12：0.2.4 改名说明
+
+项目由 More Idols 0.2.3 延续，更名为 **Calypso's Expansion Set**。当前入口是 `CalypsoExpansionSetPlugin`，程序集与命名空间是 `CalypsoExpansionSet`，BepInEx/Harmony GUID 是 `calypso.invokyr.expansionset`，公开注册入口为 `CalypsoExpansionSetApi.Register`。当前构建、部署和升级说明见 [README.md](README.md)。
+
+保留原始作者、提交历史，以及下方所有旧版本研究/验收记录中的旧名称和路径；这些记录不能当作改名后的新版本已经完成游戏实测。本次不改变跳跃效果、自然池算法、稳定配置 ID、assetId、网络消息号或协议格式。
+
+本次 Release 编译、程序集元数据及源码对照检查已完成，范围和结果见 [改名验证记录](docs/RENAME-VERIFICATION.md)；本次未进行游戏实测。
+
+---
+
+## 以下为 More Idols 原始研究与验收记录
 
 研究记录日期：2026-10-12。本文用于按阶段开发、验收和记录结果。
 

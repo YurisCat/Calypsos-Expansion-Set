@@ -5,19 +5,25 @@ using Entities.Player;
 using HarmonyLib;
 using Items;
 using Mirror;
-using MoreIdols.Idols;
+using CalypsoExpansionSet.Idols;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using User;
 using _200_Dev.Entities;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
-[BepInPlugin(PluginId, "More Idols", "0.2.3")]
-public sealed class MoreIdolsPlugin : BasePlugin
+[BepInPlugin(PluginId, PluginName, PluginVersion)]
+[BepInIncompatibility(LegacyPluginId)]
+[BepInProcess("Invokyr.exe")]
+public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
-    public const string PluginId = "mhz.invokyr.moreidols";
-    internal static MoreIdolsPlugin? Instance { get; private set; }
+    public const string PluginId = "calypso.invokyr.expansionset";
+    public const string PluginName = "Calypso's Expansion Set";
+    public const string PluginVersion = "0.2.4";
+    // The former plugin must not register the same content/message IDs alongside this one.
+    public const string LegacyPluginId = "mhz.invokyr.moreidols";
+    internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
     internal IdolRegistry Registry { get; private set; } = null!;
     internal JumpingIdolSync Sync { get; private set; } = null!;
     internal IdolSpawnIntegration Spawns { get; private set; } = null!;
@@ -43,9 +49,9 @@ public sealed class MoreIdolsPlugin : BasePlugin
             "将已注册雕像加入含其模板的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
         DebugTools = new IdolDebugTools(this);
         _harmony = new Harmony(PluginId);
-        _harmony.PatchAll(typeof(MoreIdolsPlugin).Assembly);
+        _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
         _driver = AddComponent<JumpingIdolDriver>();
-        Log.LogInfo("More Idols 0.2.3 loaded. All players need compatible MOD content. "
+        Log.LogInfo($"{PluginName} {PluginVersion} loaded. All players need compatible MOD content. "
             + "DebugMode enables one test console: F8 by default. Enter 'spawn jumping' in its input box.");
     }
 
@@ -54,7 +60,7 @@ public sealed class MoreIdolsPlugin : BasePlugin
         // Live entities still refer to the cloned configs and prefabs.
         if (NetworkServer.active || NetworkClient.active)
         {
-            Log.LogWarning("Leave the network session before unloading More Idols.");
+            Log.LogWarning("Leave the network session before unloading Calypso's Expansion Set.");
             return false;
         }
         Instance = null;
@@ -108,7 +114,7 @@ public sealed class MoreIdolsPlugin : BasePlugin
         _failed = true;
         _effects?.Dispose();
         DebugTools.Cancel();
-        Log.LogError($"More Idols runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
+        Log.LogError($"Calypso's Expansion Set runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
         // Keep registered resources alive until live entities have been destroyed.
         Sync.BlockAdmission();
     }

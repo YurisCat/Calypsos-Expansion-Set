@@ -3,18 +3,18 @@ using Mirror;
 using UnityEngine;
 using _200_Dev.Entities;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 internal sealed class IdolEffectRuntime : IDisposable
 {
     private sealed record Running(ScoreTool Idol, PlayerEntity Holder, HeldIdolEffect Effect);
-    private readonly MoreIdolsPlugin _plugin;
+    private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly Dictionary<uint, Running> _active = new();
     private readonly HashSet<uint> _seen = new();
     private readonly Dictionary<uint, IntPtr> _faulted = new();
     private readonly List<uint> _removed = new();
     private readonly List<JumpingIdolSync.TrackedIdol> _serverSnapshot = new();
-    internal IdolEffectRuntime(MoreIdolsPlugin plugin) => _plugin = plugin;
+    internal IdolEffectRuntime(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
     internal void Tick()
     {

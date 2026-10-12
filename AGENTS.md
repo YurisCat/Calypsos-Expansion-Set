@@ -1,13 +1,13 @@
-# MoreIdols 开发约定
+# Calypso's Expansion Set 开发约定
 
-默认用中文与小马沟通。先报告实际结果；区分源码/资源研究、编译、模拟测试与游戏实测。禁止把编译通过称为游戏或联机验收通过。
+默认使用中文沟通。先报告实际结果；区分源码/资源研究、编译、模拟测试与游戏实测。禁止把编译通过称为游戏或联机验收通过。
 
 本文记录持续适用的开发约定；当前状态和未完成事项见 `TODO.md`，原版研究与历史验收记录见 `DEVELOPMENT.md`。
 
 ## 项目目标与术语
 
 - Invokyr，Unity IL2CPP，BepInEx 6，Mirror；主游戏程序集为 `vhs.dll`，不是 `Assembly-CSharp.dll`。
-- 原版参考代码已处理好，位于 `D:\zd\ModEditor\Invokyr\libs`，主游戏代码在其 `vhs` 子目录。日常查接口、类和调用路径直接用 `rg` 搜索并以 UTF-8 读取这些代码，无需调用 `mod-dll-decompiler` 技能或重复反编译；仍要区分 interop 包装代码与已确认的原生行为。
+- 主游戏接口使用本机 `BepInEx/interop/vhs.dll`。可用的本机研究缓存位于 `.local/research/code-addresses/DiffableCs/vhs`，或原作者的 `D:\zd\ModEditor\Invokyr\libs/vhs`；先检查路径是否存在。直接用 `rg` 搜索并以 UTF-8 读取，区分 metadata 声明、interop 包装代码与已确认的原生行为。
 - 雕像实体属于 Item：`ScoreTool : Tool : Item`；配置为 `SOScoreTool : SOTool : SOItem`。
 - “类型注册”是配置、查找表、网络预制体与效果定义的接入；`EntityManager.RegisterIdol` 只登记现存实体。
 - “小局”是确认骰子事件后探索变化地图、带回雕像的这一轮；“大局”是整个房间/跑团会话。日志另外使用生成批次、事件 ID 和 seed，不混淆三者。
@@ -16,7 +16,7 @@
 ## 注册与扩展
 
 - 新内容应通过统一注册 API 接入，不在主插件或网络模块中添加每种雕像的分支。
-- 当前入口为 `MoreIdolsApi.Register(IdolDefinition)`，效果继承 `HeldIdolEffect`；本项目内容可参考 `Idols/JumpingIdol.cs` 并在 `Load` 登记定义。外部插件声明对 `mhz.invokyr.moreidols` 的 BepInDependency，在自己 Load 中注册；首次运行期初始化后禁止追加或热替换定义。
+- 当前入口为 `CalypsoExpansionSetApi.Register(IdolDefinition)`，效果继承 `HeldIdolEffect`；本项目内容可参考 `Idols/JumpingIdol.cs` 并在 `Load` 登记定义。外部插件声明对 `calypso.invokyr.expansionset` 的 BepInDependency，在自己 Load 中注册；首次运行期初始化后禁止追加或热替换定义。
 - 每种内容提供稳定 key、独立且非零的 `ulong` 配置 ID、独立且非零的 `uint` Mirror assetId、模板 ID、效果实现及执行端。
 - 配置 ID、assetId、实例 netId 和消息 ID 用途不同，不能混用。不可用随机数、运行期 `GetHashCode()` 或注册顺序产生联网类型 ID。
 - 所有端在处理新预制体的生成消息前完成注册。检查 ID/key 冲突、重复注册、资源未加载、缓存已构建、游戏重开及注册失败回滚。
@@ -96,8 +96,16 @@
 
 - Windows/PowerShell；读文本显式 UTF-8。优先 `rg`，不使用 Serena 或 sequential-thinking。
 - `net6.0` / x64；游戏引用来自本机 interop，vhs 使用 Publicizer。新增引用设置 Private=false，不把游戏/工具 DLL 打包到插件目录。
-- `dotnet build .\MoreIdols.csproj -c Release` 成功后自动覆盖游戏 `BepInEx/plugins/MoreIdols.dll`，小马已授权；不要再重复询问。仅编译用 `-p:DeployToGame=false`。
+- 优先用 `scripts/Build.ps1` 仅编译；部署用 `scripts/Deploy.ps1`，先退出游戏。直接运行 `dotnet build .\CalypsoExpansionSet.csproj -c Release` 仍保留原工程的部署目标；仅编译显式传 `-p:DeployToGame=false`。当前 DLL 为 `BepInEx/plugins/CalypsoExpansionSet/CalypsoExpansionSet.dll`。不要把原作者先前的本机部署授权扩展为任意新机器的部署授权。
 - 检查输出/部署版本和哈希；DLL 覆盖后需重启游戏。
 - 对注册和网络状态修改执行有意义的模拟/单元检查，再记录真实游戏测试的边界。测试不要仅复制实现。
 - 更新 `DEVELOPMENT.md` 的当前状态和验收记录，保留原来的历史证据。不要更改用户已有暂存内容，不自行提交。
 - 删除遵守用户全局约定：不递归、不用通配符、不碰目录或重解析点；只清理本项目中明确授权或自己生成的文件。
+
+## 本次改名与本机习惯
+
+- 对外名称 `Calypso's Expansion Set`，命名空间/程序集 `CalypsoExpansionSet`，插件 GUID `calypso.invokyr.expansionset`，公开注册入口 `CalypsoExpansionSetApi.Register`。
+- 原版 More Idols 的程序集/API/GUID 已更名，依赖旧插件的第三方插件需要改引用并重新编译。稳定雕像 ID、网络消息号与协议字段保持原值，不把重命名误当成内容身份迁移。
+- 保留 Masaicker 的署名、版权和原 Git 历史；旧版本的验收记录是历史证据，不改写成新版本已实测。
+- 用户偏好通过资源管理器正常启动游戏，不附加测试参数，不把反复脚本启动作为默认验证方式。
+- `.local`、本机路径、缓存、游戏 DLL 与生成文件不进入 Git；本地旧骨架和研究资料的备份位置见 `.local/migration.json`。

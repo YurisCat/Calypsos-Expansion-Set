@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 public sealed class JumpingIdolDriver : MonoBehaviour
 {
@@ -10,11 +10,11 @@ public sealed class JumpingIdolDriver : MonoBehaviour
 
     private void Update()
     {
-        MoreIdolsPlugin.Instance?.Tick();
+        CalypsoExpansionSetPlugin.Instance?.Tick();
     }
 
     private void OnGUI()
     {
-        MoreIdolsPlugin.Instance?.DebugTools.Draw();
+        CalypsoExpansionSetPlugin.Instance?.DebugTools.Draw();
     }
 }

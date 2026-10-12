@@ -5,12 +5,12 @@ using UnityEngine.InputSystem;
 using User;
 using _200_Dev.Entities;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 internal sealed class IdolDebugTools : IDisposable
 {
     private sealed record SpawnRequest(string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires);
-    private readonly MoreIdolsPlugin _plugin;
+    private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly ConfigEntry<bool> _enabled;
     private readonly Key _windowKey;
     private InputActionMap? _disabledMap;
@@ -24,7 +24,7 @@ internal sealed class IdolDebugTools : IDisposable
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
 
-    internal IdolDebugTools(MoreIdolsPlugin plugin)
+    internal IdolDebugTools(CalypsoExpansionSetPlugin plugin)
     {
         _plugin = plugin;
         _enabled = plugin.Config.Bind("Debug", "DebugMode", false,
@@ -171,7 +171,7 @@ internal sealed class IdolDebugTools : IDisposable
         var width = Mathf.Min(640f, Screen.width - 40f);
         var x = Mathf.Max(20f, (Screen.width - width) * 0.5f);
         const float y = 40f;
-        GUI.Box(new Rect(x, y, width, 340), $"More Idols - Test console ({_windowKey} / Esc to close)");
+        GUI.Box(new Rect(x, y, width, 340), $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close)");
         GUI.Label(new Rect(x + 15, y + 30, width - 30, 25), "Enter command here: spawn jumping   |   list   |   status");
         // Named-control APIs use span bindings that are broken in this game's interop.
         _command = GUI.TextField(new Rect(x + 15, y + 60, width - 115, 30), _command, 128);

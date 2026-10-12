@@ -8,10 +8,10 @@
     <LangVersion>latest</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>MoreIdols</AssemblyName>
-    <RootNamespace>MoreIdols</RootNamespace>
-    <Version>0.2.3</Version>
-    <Product>MoreIdols</Product>
+    <AssemblyName>CalypsoExpansionSet</AssemblyName>
+    <RootNamespace>CalypsoExpansionSet</RootNamespace>
+    <Version>0.2.4</Version>
+    <Product>Calypso's Expansion Set</Product>
     <Company>MHZ</Company>
     <Authors>Masaicker</Authors>
     <Copyright>Copyright © 2026 Masaicker</Copyright>
@@ -21,7 +21,7 @@
     <InvokyrPath Condition="'$(InvokyrPath)' == ''">E:\Steam\steamapps\common\Invokyr</InvokyrPath>
     <InteropPath Condition="'$(InteropPath)' == ''">$(InvokyrPath)\BepInEx\interop</InteropPath>
     <BepPath Condition="'$(BepPath)' == ''">$(InvokyrPath)\BepInEx\core</BepPath>
-    <PluginPath Condition="'$(PluginPath)' == ''">$(InvokyrPath)\BepInEx\plugins</PluginPath>
+    <PluginPath Condition="'$(PluginPath)' == ''">$(InvokyrPath)\BepInEx\plugins\CalypsoExpansionSet</PluginPath>
     <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
   </PropertyGroup>
 
@@ -62,7 +62,7 @@
           Condition="'$(DeployToGame)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <MakeDir Directories="$(PluginPath)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginPath)" SkipUnchangedFiles="true" />
-    <Message Importance="high" Text="MoreIdols 已部署到 $(PluginPath)\$(TargetFileName)。游戏运行中时需重启以加载新 DLL。" />
+    <Message Importance="high" Text="CalypsoExpansionSet 已部署到 $(PluginPath)\$(TargetFileName)。游戏运行中时需重启以加载新 DLL。" />
   </Target>
 
 </Project>

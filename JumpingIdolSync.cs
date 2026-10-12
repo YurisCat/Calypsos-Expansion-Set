@@ -1,7 +1,7 @@
 using BepInEx.Logging;
 using Mirror;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 // Historical filename; this now handles all registered types. Native prefab/config IDs
 // identify each idol, so a second custom instance-marker snapshot is unnecessary.
@@ -146,7 +146,7 @@ internal sealed class JumpingIdolSync : IDisposable
                 NetworkServer.SetClientReady(connection);
             else
             {
-                _log.LogWarning($"[Compatibility] disconnecting connectionId={id}: no compatible More Idols handshake within {HandshakeTimeout}s. Install matching MOD content on every player.");
+                _log.LogWarning($"[Compatibility] disconnecting connectionId={id}: no compatible Calypso's Expansion Set handshake within {HandshakeTimeout}s. Install matching MOD content on every player.");
                 connection.Disconnect();
             }
         }
@@ -188,7 +188,7 @@ internal sealed class JumpingIdolSync : IDisposable
             if (kind == Reject || kind == Acknowledge && (version != ProtocolVersion || !_registryReady() || manifest != _manifest()))
             {
                 ClientCompatible = false;
-                _log.LogError("Server content is incompatible. Install the same More Idols version and registered content on every player.");
+                _log.LogError("Server content is incompatible. Install the same Calypso's Expansion Set version and registered content on every player.");
                 server.Disconnect();
                 return;
             }

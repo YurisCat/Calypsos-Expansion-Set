@@ -1,6 +1,6 @@
 using UnityEngine.InputSystem;
 
-namespace MoreIdols.Idols;
+namespace CalypsoExpansionSet.Idols;
 
 internal sealed class JumpingIdol : HeldIdolEffect
 {

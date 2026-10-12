@@ -3,7 +3,7 @@ using Items;
 using Mirror;
 using UnityEngine;
 
-namespace MoreIdols;
+namespace CalypsoExpansionSet;
 
 internal sealed class IdolSpawnIntegration
 {
@@ -16,10 +16,10 @@ internal sealed class IdolSpawnIntegration
         public void Dispose() { if (Copy != null) UnityEngine.Object.Destroy(Copy); Copy = null; }
     }
 
-    private readonly MoreIdolsPlugin _plugin;
+    private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly Stack<Batch> _batches = new();
     private int _batchNumber;
-    internal IdolSpawnIntegration(MoreIdolsPlugin plugin) => _plugin = plugin;
+    internal IdolSpawnIntegration(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
     internal Batch? Begin(ItemDropManager manager, int seed, ref ItemSet set, GameEventData gameEvent, bool ignoreCap)
     {
@@ -31,7 +31,7 @@ internal sealed class IdolSpawnIntegration
             var allowed = _plugin.CanAddNaturalContent;
             var candidates = new HashSet<string>(StringComparer.Ordinal);
             batch.Copy = UnityEngine.Object.Instantiate(set);
-            batch.Copy.name = $"MoreIdols Batch {batch.Number}";
+            batch.Copy.name = $"CalypsoExpansionSet Batch {batch.Number}";
             batch.Copy.hideFlags = HideFlags.DontSave;
             var entries = new Il2CppSystem.Collections.Generic.List<ItemSetEntry>();
             if (set.spawnItems != null)
@@ -131,14 +131,14 @@ internal static class NaturalIdolPoolPatch
         bool ignoreIdolSpawnTypeCap, out IdolSpawnIntegration.Batch? __state)
     {
         __state = null;
-        var plugin = MoreIdolsPlugin.Instance;
+        var plugin = CalypsoExpansionSetPlugin.Instance;
         if (plugin == null) return;
         try { __state = plugin.Spawns.Begin(__instance, seed, ref set, gameEventData, ignoreIdolSpawnTypeCap); }
         catch (Exception exception) { plugin.Fail(exception); }
     }
     private static Exception? Finalizer(Exception? __exception, IdolSpawnIntegration.Batch? __state)
     {
-        MoreIdolsPlugin.Instance?.Spawns.End(__state, __exception);
+        CalypsoExpansionSetPlugin.Instance?.Spawns.End(__state, __exception);
         return __exception;
     }
 }
@@ -148,29 +148,29 @@ internal static class NaturalIdolSpawnPatch
 {
     // Hook the parameterless lifecycle method: native nullable score arguments in
     // SrvSpawnItem can be null and fail in an IL2CPP Harmony trampoline before our code runs.
-    private static void Postfix(ScoreTool __instance) => MoreIdolsPlugin.Instance?.Spawns.Observe(__instance);
+    private static void Postfix(ScoreTool __instance) => CalypsoExpansionSetPlugin.Instance?.Spawns.Observe(__instance);
 }
 
 [HarmonyPatch(typeof(ItemDropManager), nameof(ItemDropManager.ResetIdolWeights))]
 internal static class IdolWeightResetPatch
 {
-    private static void Postfix() => MoreIdolsPlugin.Instance?.Registry.ApplyInitialWeights();
+    private static void Postfix() => CalypsoExpansionSetPlugin.Instance?.Registry.ApplyInitialWeights();
 }
 
 [HarmonyPatch(typeof(NetworkClient), "PrepareToSpawnSceneObjects")]
 internal static class IdolNetworkPrefabPatch
 {
-    private static void Postfix() => MoreIdolsPlugin.Instance?.PrepareRegistry();
+    private static void Postfix() => CalypsoExpansionSetPlugin.Instance?.PrepareRegistry();
 }
 
 [HarmonyPatch(typeof(NetworkClient), nameof(NetworkClient.Ready))]
 internal static class IdolBeforeClientReadyPatch
 {
-    private static void Prefix() => MoreIdolsPlugin.Instance?.PrepareRegistry();
+    private static void Prefix() => CalypsoExpansionSetPlugin.Instance?.PrepareRegistry();
 }
 
 [HarmonyPatch(typeof(NetworkServer), nameof(NetworkServer.SetClientReady))]
 internal static class IdolServerReadyPatch
 {
-    private static bool Prefix(NetworkConnectionToClient conn) => MoreIdolsPlugin.Instance?.Sync.AllowReady(conn) ?? true;
+    private static bool Prefix(NetworkConnectionToClient conn) => CalypsoExpansionSetPlugin.Instance?.Sync.AllowReady(conn) ?? true;
 }

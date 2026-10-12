@@ -1,6 +1,6 @@
-# More Idols 待办
+# Calypso's Expansion Set 待办
 
-当前基准：0.2.3，2026-10-12。本文记录当前事实、待决策项和待验证项；持续适用的开发规则见 [AGENTS.md](AGENTS.md)，原版数据和历史研究见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+当前基准：0.2.4（由 More Idols 0.2.3 改名），2026-10-12。本次更名不视为原待办功能已完成。本文记录当前事实、待决策项和待验证项；持续适用的开发规则见 [AGENTS.md](AGENTS.md)，原版数据和历史研究见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ## 当前事实
 

@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory).local\Game.local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory).local\Game.local.props')" />
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory).local\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
