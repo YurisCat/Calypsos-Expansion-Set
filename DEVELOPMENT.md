@@ -1,22 +1,22 @@
-# Calypso's Expansion Set 开发路线与历史研究
+# Calypso's Expansion Set 开发路线与研究记录
 
-## 2026-10-12：0.2.4 改名说明
+## 2026-10-12：0.2.4 项目配置与验证
 
-项目由 More Idols 0.2.3 延续，更名为 **Calypso's Expansion Set**。当前入口是 `CalypsoExpansionSetPlugin`，程序集与命名空间是 `CalypsoExpansionSet`，BepInEx/Harmony GUID 是 `calypso.invokyr.expansionset`，公开注册入口为 `CalypsoExpansionSetApi.Register`。当前构建、部署和升级说明见 [README.md](README.md)。
+当前项目为 **Calypso's Expansion Set 0.2.4**。入口是 `CalypsoExpansionSetPlugin`，程序集与命名空间是 `CalypsoExpansionSet`，BepInEx/Harmony GUID 是 `calypso.invokyr.expansionset`，公开注册入口为 `CalypsoExpansionSetApi.Register`。当前构建、部署和使用说明见 [README.md](README.md)。
 
-保留原始作者、提交历史，以及下方所有旧版本研究/验收记录中的旧名称和路径；这些记录不能当作改名后的新版本已经完成游戏实测。本次不改变跳跃效果、自然池算法、稳定配置 ID、assetId、网络消息号或协议格式。
+早期框架、测试构建与当前内容均属于本项目。下方按开发版本保留研究和验收证据，历史日志、产物路径及测试结果按当时的实际值记录；其中的 `MoreIdols` 仅是早期框架使用的代码或产物标识。文档中的“原版”指 Invokyr 游戏本体。0.2.4 保留了 0.2.3 的跳跃效果、自然池算法、稳定配置 ID、assetId、网络消息号和协议格式。
 
-本次 Release 编译、程序集元数据及源码对照检查已完成，范围和结果见 [改名验证记录](docs/RENAME-VERIFICATION.md)；本次未进行游戏实测。
+0.2.4 的 Release 编译、程序集元数据及源码对照检查已完成，范围和结果见 [工程与插件验证记录](docs/RENAME-VERIFICATION.md)；该版本未进行游戏实测。当前事实与待办见 [TODO.md](TODO.md)。
 
 ---
 
-## 以下为 More Idols 原始研究与验收记录
+## 开发阶段研究与验收记录
 
-研究记录日期：2026-10-12。本文用于按阶段开发、验收和记录结果。
+研究记录日期：2026-10-12。以下内容按各开发阶段记录实现、研究与验收结果，所述版本和测试入口以对应阶段为准。
 
 **当前结论：雕像属于 Item 体系，核心实体类是 `ScoreTool`。0.2.0 已写入模板克隆注册、持有效果 API、按类型调试、自然候选池接入与多人兼容握手；独立注册和自然生成尚待游戏内验收。** 不同雕像可以复用这些共同流程，具体功能和需要同步的状态仍由效果作者实现。当前项目约定见 [AGENTS.md](AGENTS.md)。
 
-## 1. 当前状态与证据范围
+## 1. 0.2.0 阶段状态与证据范围
 
 - [x] 核实实体、配置、效果的继承关系和接口签名。
 - [x] 读取原版资源中的雕像配置、预制体引用和管理器默认参数。
@@ -30,7 +30,7 @@
 - [x] 0.2.0：实际同步源码 44 项、效果运行器 26 项、注册器 39 项模拟检查通过，共 109 项。
 - [ ] 游戏内验收 0.2.0 独立类型、控制台/面板、自然生成和双端同步。
 
-当前工程目标为 `net6.0` / x64，插件版本 `0.2.0`。跳跃内容位于 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs)，通用定义/注册/执行分别位于 [IdolDefinition.cs](IdolDefinition.cs)、[IdolRegistry.cs](IdolRegistry.cs)、[IdolEffectRuntime.cs](IdolEffectRuntime.cs)，测试及入池位于 [IdolDebugTools.cs](IdolDebugTools.cs)、[IdolSpawnIntegration.cs](IdolSpawnIntegration.cs)。`JumpingIdolSync.cs` 保留历史文件名，现在负责全部类型的兼容握手和服务器调试实例计数；新类型直接使用原版配置 ID、网络 prefab 和物品持有状态识别，不再重复同步一份 marker 集合。
+0.2.0 阶段的工程目标为 `net6.0` / x64，插件版本 `0.2.0`。跳跃内容位于 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs)，通用定义/注册/执行分别位于 [IdolDefinition.cs](IdolDefinition.cs)、[IdolRegistry.cs](IdolRegistry.cs)、[IdolEffectRuntime.cs](IdolEffectRuntime.cs)，测试及入池位于 [IdolDebugTools.cs](IdolDebugTools.cs)、[IdolSpawnIntegration.cs](IdolSpawnIntegration.cs)。`JumpingIdolSync.cs` 保留历史文件名，现在负责全部类型的兼容握手和服务器调试实例计数；新类型直接使用原版配置 ID、网络 prefab 和物品持有状态识别，不再重复同步一份 marker 集合。
 
 **小马已实测的是 0.1.1 的单人生成和持续跳跃；0.2.0 的编译/模拟检查不能替代 Unity IL2CPP、原版注册与真实联机验收。** 主机和客户端都需要安装兼容版本及相同注册内容；DebugMode 只控制测试入口，客户端不开启也可使用雕像。
 
@@ -53,20 +53,20 @@
 
 这些结论对应本机当前安装版本；游戏更新后需要复查签名、资源、ID 和接入时序。代理源码的限制见 [反编译记录](../libs/DECOMPILATION_NOTES.md)。
 
-### 1.1 工程配置、Publicizer 与构建参考
+### 1.1 当前工程配置、Publicizer 与构建参考
 
-工程配置见 [MoreIdols.csproj](MoreIdols.csproj)，SDK 选择见 [global.json](global.json)。配置参考 EnhancedControls 的本地 DLL 引用方式，调整为 Invokyr 的程序集与路径。
+工程配置见 [CalypsoExpansionSet.csproj](CalypsoExpansionSet.csproj)，SDK 选择见 [global.json](global.json)。配置参考 EnhancedControls 的本地 DLL 引用方式，调整为 Invokyr 的程序集与路径。
 
 | 设置 | 当前值与用途 |
 | --- | --- |
 | 目标框架 / 输出 / 架构 | `net6.0` / `Library` / `x64`。 |
-| 程序集名 / 根命名空间 / 版本 | `MoreIdols` / `MoreIdols` / `0.1.2`。 |
+| 程序集名 / 根命名空间 / 版本 | `CalypsoExpansionSet` / `CalypsoExpansionSet` / `0.2.4`。 |
 | C# 设置 | 隐式 using 开启；Nullable 开启；`LangVersion = latest`；允许 unsafe。 |
 | SDK | 最低选择版本为 `6.0.100`，`rollForward = latestMinor`；本机实际选用 `6.0.428`。`6.0.0` 不是合法的 SDK 版本号。 |
 | `InvokyrPath` | 默认 `E:\Steam\steamapps\common\Invokyr`，表示游戏根目录。 |
 | `InteropPath` | 默认 `$(InvokyrPath)\BepInEx\interop`。 |
 | `BepPath` | 默认 `$(InvokyrPath)\BepInEx\core`。 |
-| `PluginPath` | 默认 `$(InvokyrPath)\BepInEx\plugins`，直接覆盖该目录下的 `MoreIdols.dll`。 |
+| `PluginPath` | 默认 `$(InvokyrPath)\BepInEx\plugins\CalypsoExpansionSet`，部署 `CalypsoExpansionSet.dll`。 |
 | `DeployToGame` | 默认 `true`；实际 Build 成功后自动复制 DLL，Debug / Release 均适用。设计时构建不部署；设为 `false` 可只编译。 |
 | 游戏引用 | `vhs.dll`、`vhs.Audio.dll`、`Assembly-CSharp*`、Unity、Mirror、IL2CPP 基础库。主游戏代码在 `vhs.dll`。 |
 | 插件引用 | BepInEx Core/Unity Common/Unity IL2CPP、Il2CppInterop Common/Runtime、`0Harmony.dll`。 |
@@ -87,16 +87,16 @@ Publicizer 的关键配置为：
 
 Publicizer 处理托管代理的访问权限；自定义 IL2CPP 类型注入、网络预制体登记和原生虚方法回调，仍需按开发阶段分别验证。
 
-在项目目录运行：
+通常使用 `scripts/Build.ps1` 仅编译，再退出游戏后通过 `scripts/Deploy.ps1` 部署。以下命令说明工程自身的自动部署行为；在项目目录运行：
 
 ```powershell
-dotnet build .\MoreIdols.csproj -c Release
+dotnet build .\CalypsoExpansionSet.csproj -c Release
 ```
 
-输出为 `bin\Release\net6.0\MoreIdols.dll`，构建成功后自动覆盖 `E:\Steam\steamapps\common\Invokyr\BepInEx\plugins\MoreIdols.dll`。复制失败会让构建报告部署错误，避免误以为游戏已经更新。游戏运行中时，新 DLL 需重启游戏后才会加载；文件被占用时先关闭游戏再构建。游戏位于其他目录时可覆盖根路径，例如：
+输出为 `bin\Release\net6.0\CalypsoExpansionSet.dll`，构建成功后自动部署到 `<InvokyrPath>\BepInEx\plugins\CalypsoExpansionSet\CalypsoExpansionSet.dll`。复制失败会让构建报告部署错误，避免误以为游戏已经更新。游戏运行中时，新 DLL 需重启游戏后才会加载；文件被占用时先关闭游戏再构建。游戏位于其他目录时可覆盖根路径，例如：
 
 ```powershell
-dotnet build .\MoreIdols.csproj -c Release '-p:InvokyrPath=D:\Games\Invokyr'
+dotnet build .\CalypsoExpansionSet.csproj -c Release '-p:InvokyrPath=D:\Games\Invokyr'
 ```
 
 也可单独通过 `-p:InteropPath=...` 或 `-p:BepPath=...` 指定目录。路径本身不需要末尾反斜杠。
@@ -104,10 +104,10 @@ dotnet build .\MoreIdols.csproj -c Release '-p:InvokyrPath=D:\Games\Invokyr'
 只编译、不复制到游戏目录：
 
 ```powershell
-dotnet build .\MoreIdols.csproj -c Release -p:DeployToGame=false
+dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false
 ```
 
-部署到指定测试目录可以传 `-p:PluginPath=...`。自动部署目标位于 `AfterTargets="Build"`，编译或前置检查失败时不会执行复制；目标只复制本插件 DLL，依赖继续由游戏提供。不要在 `plugins` 根目录与子目录同时保留可被加载的两份 `MoreIdols.dll`。
+部署到指定测试目录可以传 `-p:PluginPath=...`。自动部署目标位于 `AfterTargets="Build"`，编译或前置检查失败时不会执行复制；目标只复制本插件 DLL，依赖继续由游戏提供。同一插件只保留一份可被加载的 DLL。
 
 0.1.1 已执行一次默认 Release 构建与自动覆盖，0 警告、0 错误；游戏目录中的 DLL 与构建输出 SHA-256 一致，程序集版本为 `0.1.1.0`。复制完成不代表当前进程已经重新加载，新版游戏行为仍待重启后验证。
 
@@ -456,11 +456,13 @@ OnJumpInputPerformed_OnceState
 - 放下、死亡或本机角色失效时停止本机请求；实例销毁及会话结束时清理同步标识。卸载时销毁本插件的更新组件并注销消息处理器；已生成实体继续由游戏管理。
 - 未预期异常会记录一次并停用测试驱动，避免每帧重复异常日志；修复后重启游戏。
 
-#### 安装和手动测试
+#### 0.1.2 框架测试步骤（历史记录）
+
+以下命令、产物名称和配置对应当时的框架构建；当前操作见 README.md。
 
 1. 执行 `dotnet build .\MoreIdols.csproj -c Release`。
 2. 默认构建已自动覆盖 `<InvokyrPath>\BepInEx\plugins\MoreIdols.dll`。如果禁用了部署，再手动复制 DLL。客户端也要安装同版本；不需要复制游戏引用或 Publicizer 工具 DLL。
-3. 首次加载 0.1.2 后生成 cfg；退出游戏，将第 5.5 节的 `DebugMode` 改为 `true`，再重启。作为房主进入可自由移动的场景；日志应包含 `More Idols 0.1.2 loaded. DebugMode=True` 和 `Jumping idol markers synchronized`，生成前数量为 0。
+3. 首次加载 0.1.2 后生成 cfg；退出游戏，将第 5.5 节的 `DebugMode` 改为 `true`，再重启。作为房主进入可自由移动的场景；日志应包含 0.1.2 的加载信息、`DebugMode=True` 和 `Jumping idol markers synchronized`，生成前数量为 0。
 4. 在空地按 F8，确认附近生成一个普通外观雕像，日志出现 `Jumping test idol spawned`。重复按键应继续生成，并保留之前每只的跳跃效果；若附近位置全部被占用，移动后再按。按住按键不会逐帧生成。
 5. 拿起 F8 生成的雕像，不按跳跃键，观察每次落地后是否继续正常跳跃，动画、音效和体力处理是否与手动跳跃一致。
 6. 放下或出售雕像，观察当前跳跃自然完成后是否停止；再次拿起未销毁的同一实例应恢复。拾取自然生成的同款普通雕像，应没有自动跳跃。
@@ -502,14 +504,16 @@ MaxTestIdols = 16
 
 这说明游戏带有控制台基础设施；正式版是否启用、实际快捷键、命令名称和托管 MOD 命令注册仍未做游戏内验证。因此当前直接测试采用上述 cfg + 按键入口，没有依赖未验证的控制台命令。
 
-### 5.7 当前注册与模块化方式（0.2.0）
+### 5.7 注册与模块化方式（0.2.0 引入）
 
 现在是供本项目继续添加内容的轻量公共接入层，支持 **从模板创建独立雕像类型 + 持有期间效果**。下一个持有效果无需改同步模块、控制台命令或自然生成补丁；添加定义并注册即可。出售触发、地面光环、自定义网络状态、独立模型资源加载等仍需对应的实现和验证，当前 API 没有自动实现这些能力。
 
+以下示例使用当前的程序集和 API 名称：
+
 ```csharp
-// 本项目内容在 MoreIdolsPlugin.Load 注册。
-// 外部 BepInEx 插件声明 [BepInDependency(MoreIdolsPlugin.PluginId)]，在自己的 Load 注册。
-MoreIdolsApi.Register(new IdolDefinition(
+// 本项目内容在 CalypsoExpansionSetPlugin.Load 注册。
+// 外部 BepInEx 插件声明 [BepInDependency(CalypsoExpansionSetPlugin.PluginId)]，在自己的 Load 注册。
+CalypsoExpansionSetApi.Register(new IdolDefinition(
     "my_idol", "My Idol",
     ConfigId: 0x4D49000000000100UL, // 示例；每个作者必须选用自己的稳定且不冲突的 ID
     AssetId: 0x4D490100U,
@@ -536,7 +540,7 @@ MoreIdolsApi.Register(new IdolDefinition(
 
 注册器维护 `SOItemLookup.scoreTools` 与 `_scoreById`、检查 key/ID/assetId 冲突、克隆自有 SO/预制体并连接 `gameplayElementData`，网络表重建后幂等登记。首次初始化后锁定定义；活跃房间内禁止热卸载，避免存活物品引用被销毁的配置。修改玩法、配置或外观契约时提升 `ContentVersion`；类型清单包含 ID、模板、版本和执行端，不会自动散列代码或整个资源。
 
-### 5.8 当前测试入口：内置控制台与备用选择面板
+### 5.8 历史测试入口（0.2.0）：内置控制台与备用选择面板
 
 首次运行生成或更新 `BepInEx/config/mhz.invokyr.moreidols.cfg`。退出游戏后设置并重启：
 
