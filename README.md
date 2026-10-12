@@ -2,14 +2,16 @@
 
 Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。
 
-当前版本 **0.2.4**。
+当前版本 **0.2.6**。
 
 ## 当前内容
 
 - 跳跃雕像：持有时调用原版跳跃入口。
 - 可扩展的雕像定义、注册与持有效果 API。
 - 自然候选池接入、生成日志和多人兼容握手。
-- 可选的 F8 调试窗口与 `list`、`status`、`spawn <key>` 命令。
+- 可选的 F8 调试窗口与 `list`、`status`、`spawn <key>`、`teleport` 命令。
+
+`DebugMode=true` 时，房主可在 F8 窗口点击 **Teleport to next MOD idol**，循环传送到当前存活的 MOD 雕像旁边；自然生成和手动生成的实例都可定位。
 
 自然生成、多人同步及其他未完成项目以 [TODO.md](TODO.md) 为准。未来计划加入更多雕像、骰子和生活质量改善。
 
@@ -78,5 +80,7 @@ using CalypsoExpansionSet;
 ```
 
 雕像配置 ID、Mirror assetId 和消息号必须保持稳定；参与联机的玩家需安装兼容版本及相同的注册内容。
+
+`TemplateId` 选择克隆的配置和外观；可选 `PoolTemplateId` 选择自然池的匹配模板，未指定时沿用 `TemplateId`。两者都使用游戏雕像配置 ID，入池后仍由原版规则筛选和抽取。
 
 开发约定见 [AGENTS.md](AGENTS.md)，研究与验收记录见 [DEVELOPMENT.md](DEVELOPMENT.md)。

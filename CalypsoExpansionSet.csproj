@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.4</Version>
+    <Version>0.2.6</Version>
     <Product>Calypso's Expansion Set</Product>
     <Company>MHZ</Company>
     <Authors>Masaicker</Authors>

@@ -8,7 +8,9 @@ internal sealed class JumpingIdol : HeldIdolEffect
         "jumping", "Jumping Idol", 0x4D49000000000001UL, 0x4D490001U,
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new JumpingIdol())
     {
-        ContentVersion = 2
+        // Score supplies the plain appearance; Slippery identifies ordinary idol pools.
+        PoolTemplateId = 13601636613369722279UL,
+        ContentVersion = 3
     };
 
     private InputAction.CallbackContext? _jumpContext;

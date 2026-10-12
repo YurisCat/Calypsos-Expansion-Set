@@ -39,7 +39,7 @@ internal sealed class IdolRegistry : IDisposable
         if (string.IsNullOrWhiteSpace(definition.Key) || definition.Key.Any(character =>
                 !(character is >= 'a' and <= 'z' or >= '0' and <= '9' or '.' or '-' or '_'))
             || string.IsNullOrWhiteSpace(definition.DisplayName) || definition.ConfigId == 0
-            || definition.AssetId == 0 || definition.TemplateId == 0 || definition.CreateEffect == null
+            || definition.AssetId == 0 || definition.TemplateId == 0 || definition.PoolTemplateId == 0 || definition.CreateEffect == null
             || definition.ContentVersion == 0 || !Enum.IsDefined(typeof(IdolEffectAuthority), definition.Authority)
             || definition.InitialWeight is { } weight && (!float.IsFinite(weight) || weight <= 0))
             throw new ArgumentException("Invalid idol key, IDs, factory, authority, version, or initial weight.");
@@ -52,7 +52,7 @@ internal sealed class IdolRegistry : IDisposable
         _byId.Add(definition.ConfigId, entry);
         _assetIds.Add(definition.AssetId);
         _log.LogInfo($"[Definition] {definition.Key}: configId={definition.ConfigId}, assetId={definition.AssetId}, "
-            + $"templateId={definition.TemplateId}, authority={definition.Authority}.");
+            + $"templateId={definition.TemplateId}, poolTemplateId={definition.PoolTemplateId ?? definition.TemplateId}, authority={definition.Authority}.");
     }
 
     internal bool TryGet(string key, out RegisteredIdol entry) => _byKey.TryGetValue(key, out entry!);
@@ -82,6 +82,12 @@ internal sealed class IdolRegistry : IDisposable
             _lookup = lookup;
             foreach (var entry in _entries)
             {
+                if (entry.Definition.PoolTemplateId is { } poolTemplateId
+                    && (!SOItemLookup.TryGetScoreTool(poolTemplateId, out var poolTemplate) || poolTemplate == null))
+                {
+                    Ready = false;
+                    return false;
+                }
                 if (entry.Data == null)
                 {
                     if (!SOItemLookup.TryGetScoreTool(entry.Definition.TemplateId, out var template)
@@ -226,7 +232,8 @@ internal sealed class IdolRegistry : IDisposable
         {
             var definition = entry.Definition;
             var text = $"{definition.Key}|{definition.ConfigId:X16}|{definition.AssetId:X8}|"
-                + $"{definition.TemplateId:X16}|{definition.ContentVersion:X8}|{(int)definition.Authority};";
+                + $"{definition.TemplateId:X16}|{definition.PoolTemplateId ?? definition.TemplateId:X16}|"
+                + $"{definition.ContentVersion:X8}|{(int)definition.Authority};";
             foreach (var character in text) { hash ^= character; hash *= 1099511628211UL; }
         }
         return hash;

@@ -59,7 +59,7 @@ internal sealed class IdolSpawnIntegration
                                 foreach (var item in entry.items!)
                                 {
                                     if (item == null) continue;
-                                    hasTemplate |= item.Id == registered.Definition.TemplateId;
+                                    hasTemplate |= item.Id == (registered.Definition.PoolTemplateId ?? registered.Definition.TemplateId);
                                     hasType |= item.Id == registered.Definition.ConfigId;
                                 }
                                 if (hasTemplate && !hasType) entry.items.Add(registered.Data!);

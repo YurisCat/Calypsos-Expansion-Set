@@ -9,7 +9,8 @@ namespace CalypsoExpansionSet;
 
 internal sealed class IdolDebugTools : IDisposable
 {
-    private sealed record SpawnRequest(string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires);
+    private enum DebugAction { Spawn, Teleport }
+    private sealed record DebugRequest(DebugAction Action, string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires);
     private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly ConfigEntry<bool> _enabled;
     private readonly Key _windowKey;
@@ -17,9 +18,9 @@ internal sealed class IdolDebugTools : IDisposable
     private bool _mapWasEnabled;
     private CursorLockMode _previousCursorLock;
     private bool _previousCursorVisible;
-    private SpawnRequest? _pending;
+    private DebugRequest? _pending;
     private string _command = "spawn jumping";
-    private string _result = "Commands: list | status | spawn <key>\nExample: spawn jumping";
+    private string _result = "Commands: list | status | spawn <key> | teleport\nExample: spawn jumping";
     private GUIStyle? _resultStyle;
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
@@ -70,12 +71,13 @@ internal sealed class IdolDebugTools : IDisposable
             || connection == null || connection.Pointer != pending.Connection || Time.realtimeSinceStartup > pending.Expires)
         {
             _pending = null;
-            Report("Spawn cancelled: player/session changed or controls did not resume. Close other menus and retry.", true);
+            Report("Debug action cancelled: player/session changed or controls did not resume. Close other menus and retry.", true);
             return;
         }
         if (!_plugin.LocalGameplayReady(player)) return;
         _pending = null;
-        if (_plugin.SpawnNearPlayer(pending.Key))
+        if (pending.Action == DebugAction.Teleport) _plugin.Teleports.TryTeleportNext();
+        else if (_plugin.SpawnNearPlayer(pending.Key))
             Report($"Spawned {pending.Key} near you. Open {_windowKey} again for another command.");
     }
 
@@ -119,7 +121,7 @@ internal sealed class IdolDebugTools : IDisposable
         switch (words[0].ToLowerInvariant())
         {
             case "help" when words.Length == 1:
-                Report("list: available types\nstatus: registry / network / counts\nspawn <key>: host spawns one near you\nExample: spawn jumping");
+                Report("list: available types\nstatus: registry / network / counts\nspawn <key>: host spawns one near you\nteleport: host cycles through all live MOD idols");
                 break;
             case "list" when words.Length == 1:
                 Report("Available types: " + string.Join(", ", _plugin.Registry.Entries.Select(entry => entry.Definition.Key)));
@@ -130,14 +132,18 @@ internal sealed class IdolDebugTools : IDisposable
             case "spawn" when words.Length == 2:
                 QueueSpawn(words[1].ToLowerInvariant());
                 break;
+            case "teleport" when words.Length == 1:
+                QueueTeleport();
+                break;
             default:
-                Report("Unknown command. Use list, status, or spawn <key>.", true);
+                Report("Unknown command. Use list, status, spawn <key>, or teleport.", true);
                 break;
         }
     }
 
     private void QueueSpawn(string key)
     {
+        if (!Enabled) { Report("DebugMode is disabled.", true); return; }
         if (_plugin.RuntimeFailed) { Report("Runtime disabled after an error; check the log and restart.", true); return; }
         var player = EntityManager.Me;
         var connection = NetworkClient.connection;
@@ -145,7 +151,18 @@ internal sealed class IdolDebugTools : IDisposable
         { Report("Only the host with a spawned local player can spawn test idols.", true); return; }
         if (!_plugin.Registry.Ready || !_plugin.Registry.TryGet(key, out _))
         { Report($"Unknown or unready type '{key}'. Use list to see registered types.", true); return; }
-        _pending = new SpawnRequest(key, player.Pointer, connection.Pointer, Time.frameCount, Time.realtimeSinceStartup + 2f);
+        _pending = new DebugRequest(DebugAction.Spawn, key, player.Pointer, connection.Pointer, Time.frameCount, Time.realtimeSinceStartup + 2f);
+        Close();
+    }
+
+    private void QueueTeleport()
+    {
+        if (!Enabled || _plugin.RuntimeFailed) { Report("Debug teleport is disabled.", true); return; }
+        var player = EntityManager.Me;
+        var connection = NetworkClient.connection;
+        if (!NetworkServer.active || player == null || connection == null)
+        { Report("Only the host with a spawned local player can teleport to MOD idols.", true); return; }
+        _pending = new DebugRequest(DebugAction.Teleport, "", player.Pointer, connection.Pointer, Time.frameCount, Time.realtimeSinceStartup + 2f);
         Close();
     }
 
@@ -171,7 +188,7 @@ internal sealed class IdolDebugTools : IDisposable
         var width = Mathf.Min(640f, Screen.width - 40f);
         var x = Mathf.Max(20f, (Screen.width - width) * 0.5f);
         const float y = 40f;
-        GUI.Box(new Rect(x, y, width, 340), $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close)");
+        GUI.Box(new Rect(x, y, width, 380), $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close)");
         GUI.Label(new Rect(x + 15, y + 30, width - 30, 25), "Enter command here: spawn jumping   |   list   |   status");
         // Named-control APIs use span bindings that are broken in this game's interop.
         _command = GUI.TextField(new Rect(x + 15, y + 60, width - 115, 30), _command, 128);
@@ -185,13 +202,14 @@ internal sealed class IdolDebugTools : IDisposable
             if (GUI.Button(new Rect(x + 15 + index * ((width - 30) / 3), y + 105, (width - 40) / 3, 30),
                     $"Spawn {entries[index].Definition.Key}"))
                 QueueSpawn(entries[index].Definition.Key);
+        if (GUI.Button(new Rect(x + 15, y + 145, width - 30, 30), "Teleport to next MOD idol")) QueueTeleport();
         _resultStyle ??= new GUIStyle { wordWrap = true, fontSize = 14 };
         _resultStyle.normal.textColor = Color.white;
-        GUI.Label(new Rect(x + 15, y + 150, width - 30, 125), _result, _resultStyle);
+        GUI.Label(new Rect(x + 15, y + 185, width - 30, 125), _result, _resultStyle);
         var count = NetworkServer.active ? $"Debug instances: {_plugin.Sync.ServerDebugCount}" : "Spawning is host only";
-        GUI.Label(new Rect(x + 15, y + 300, width - 30, 25), $"{count}. Max one test idol per type; natural idols excluded.");
+        GUI.Label(new Rect(x + 15, y + 340, width - 30, 25), $"{count}. Max one test idol per type; natural idols excluded.");
     }
 
-    internal void Cancel() { _pending = null; Close(); }
+    internal void Cancel() { _pending = null; Close(); _plugin.Teleports.Reset(); }
     public void Dispose() => Cancel();
 }

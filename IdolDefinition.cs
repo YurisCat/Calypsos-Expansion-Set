@@ -30,6 +30,7 @@ public sealed record IdolDefinition(
     Func<HeldIdolEffect> CreateEffect)
 {
     public uint ContentVersion { get; init; } = 1;
+    public ulong? PoolTemplateId { get; init; }
     public float? InitialWeight { get; init; }
     public Action<SOScoreTool>? ConfigureData { get; init; }
     public Action<GameObject>? ConfigurePrefab { get; init; }

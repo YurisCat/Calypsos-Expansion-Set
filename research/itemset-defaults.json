@@ -1,0 +1,655 @@
+{
+  "research_date": "2026-10-12",
+  "unity_version": "6000.3.14f1",
+  "evidence": "Serialized ItemSet resources from the installed Invokyr Addressables bundles. IDs and path IDs are decimal strings. Not runtime or multiplayer verification.",
+  "tools": {
+    "15659945856436154005": {
+      "name": "Data-Treasure-Blind",
+      "is_idol": true
+    },
+    "16161024687220126744": {
+      "name": "Data-Treasure-Camera",
+      "is_idol": true
+    },
+    "970001822794563052": {
+      "name": "Data-Treasure-DiceThrower",
+      "is_idol": true
+    },
+    "5678489519887607110": {
+      "name": "Data-Treasure-Flamethrower",
+      "is_idol": true
+    },
+    "6217483385191454636": {
+      "name": "Data-Treasure-Lightning",
+      "is_idol": true
+    },
+    "5804517731052606251": {
+      "name": "Data-Treasure-Musical",
+      "is_idol": true
+    },
+    "12728186048785612789": {
+      "name": "Data-Treasure-Puppet",
+      "is_idol": true
+    },
+    "16473980543408359611": {
+      "name": "Data-Treasure-ReverseInputs",
+      "is_idol": true
+    },
+    "13601636613369722279": {
+      "name": "Data-Treasure-Slippery",
+      "is_idol": true
+    },
+    "12388745898736220076": {
+      "name": "Data-Dice_Teleport",
+      "is_idol": false
+    },
+    "12696634195496546494": {
+      "name": "Data-Dice_Revive",
+      "is_idol": false
+    },
+    "16910182908390641787": {
+      "name": "Data-Treasure-InvertedView",
+      "is_idol": true
+    },
+    "8443964997203258129": {
+      "name": "Data-Treasure-Miniature",
+      "is_idol": true
+    },
+    "5831980656201572488": {
+      "name": "Data-Dice_Fire",
+      "is_idol": false
+    },
+    "15423619519501489380": {
+      "name": "Data-IceCube",
+      "is_idol": false
+    },
+    "7331884207844971565": {
+      "name": "Data-Treasure-Score",
+      "is_idol": true
+    },
+    "14115087848621455930": {
+      "name": "Data-Treasure-WanderingDice",
+      "is_idol": true
+    },
+    "6096484020692488796": {
+      "name": "Data-Treasure-Prankster",
+      "is_idol": true
+    },
+    "10078250632034383530": {
+      "name": "Data-Dice_Heal",
+      "is_idol": false
+    },
+    "7770937956365605783": {
+      "name": "Data-Dice_Cocoon",
+      "is_idol": false
+    },
+    "9718458899796387479": {
+      "name": "Data-Dice_Chaos_1",
+      "is_idol": false
+    },
+    "5225848727062881325": {
+      "name": "Data-Dice_BoomCocoon",
+      "is_idol": false
+    },
+    "17915858023455143062": {
+      "name": "Data-Dice_Boom",
+      "is_idol": false
+    },
+    "6819582037903767206": {
+      "name": "Data-Dice_BoomHeal",
+      "is_idol": false
+    },
+    "9573084003477405303": {
+      "name": "Data-Dice_TeleRez",
+      "is_idol": false
+    },
+    "5455032563696543221": {
+      "name": "Data-Dice_CocoonFire",
+      "is_idol": false
+    },
+    "722829617586222472": {
+      "name": "Data-Dice_AntiGravity",
+      "is_idol": false
+    },
+    "11781078333805946480": {
+      "name": "Data-Dice_Chaos_2",
+      "is_idol": false
+    },
+    "3215913703130088169": {
+      "name": "Data-Dice_Light",
+      "is_idol": false
+    },
+    "1202542338878686894": {
+      "name": "Data-Dice_Lightning",
+      "is_idol": false
+    },
+    "8507621278018719950": {
+      "name": "Data-Dice_Pelote",
+      "is_idol": false
+    },
+    "676141550055729431": {
+      "name": "Data-Dice_Fireworks",
+      "is_idol": false
+    },
+    "6434275332115713353": {
+      "name": "Data-Dice_Scanner",
+      "is_idol": false
+    },
+    "14369524039773222922": {
+      "name": "Data-Dice_Gather",
+      "is_idol": false
+    },
+    "12142498195737046383": {
+      "name": "Data-Treasure-Vanishing",
+      "is_idol": true
+    },
+    "7083697207254741933": {
+      "name": "Data-Dice_Freeze",
+      "is_idol": false
+    }
+  },
+  "sets": [
+    {
+      "name": "ItemSet_Ballerina",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-8801530057957298071",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "970001822794563052",
+            "5678489519887607110",
+            "6217483385191454636",
+            "5804517731052606251",
+            "12728186048785612789",
+            "16473980543408359611",
+            "13601636613369722279"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "12388745898736220076",
+            "12696634195496546494"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_Twister",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-4119536475073555804",
+      "spawnItems": [],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "None",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-3075294546119243384",
+      "spawnItems": [],
+      "bonusItems": []
+    },
+    {
+      "name": "ItemSet_Chessboard",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-2966597278214235972",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "970001822794563052",
+            "5678489519887607110",
+            "16910182908390641787",
+            "6217483385191454636",
+            "5804517731052606251",
+            "12728186048785612789",
+            "16473980543408359611",
+            "13601636613369722279"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "12388745898736220076",
+            "12696634195496546494"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_WeepingRoom",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-2585778639924479262",
+      "spawnItems": [
+        {
+          "items": [
+            "6217483385191454636",
+            "16161024687220126744",
+            "16910182908390641787",
+            "5678489519887607110",
+            "16473980543408359611",
+            "15659945856436154005",
+            "12728186048785612789",
+            "8443964997203258129",
+            "13601636613369722279",
+            "5804517731052606251",
+            "970001822794563052"
+          ],
+          "spawnCountAtMinDifficulty": 3,
+          "spawnCountAtMaxDifficulty": 3,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "5831980656201572488",
+            "12696634195496546494"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "15423619519501489380"
+          ],
+          "spawnCountAtMinDifficulty": 5,
+          "spawnCountAtMaxDifficulty": 5,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_Trivia",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-2411964040726775493",
+      "spawnItems": [
+        {
+          "items": [
+            "7331884207844971565"
+          ],
+          "spawnCountAtMinDifficulty": 3,
+          "spawnCountAtMaxDifficulty": 3,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_Large_Demo",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-1065633199972640641",
+      "spawnItems": [
+        {
+          "items": [
+            "6217483385191454636",
+            "16161024687220126744",
+            "16910182908390641787",
+            "5678489519887607110",
+            "14115087848621455930",
+            "6096484020692488796",
+            "16473980543408359611",
+            "15659945856436154005",
+            "13601636613369722279"
+          ],
+          "spawnCountAtMinDifficulty": 8,
+          "spawnCountAtMaxDifficulty": 8,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "12696634195496546494"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "10078250632034383530"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "12388745898736220076",
+            "5831980656201572488",
+            "7770937956365605783",
+            "9718458899796387479",
+            "5225848727062881325",
+            "17915858023455143062",
+            "6819582037903767206",
+            "9573084003477405303",
+            "5455032563696543221"
+          ],
+          "spawnCountAtMinDifficulty": 5,
+          "spawnCountAtMaxDifficulty": 5,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "15423619519501489380"
+          ],
+          "spawnCountAtMinDifficulty": 10,
+          "spawnCountAtMaxDifficulty": 10,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494",
+        "17915858023455143062"
+      ]
+    },
+    {
+      "name": "ItemSet_Lava",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "-871496279143712000",
+      "spawnItems": [
+        {
+          "items": [
+            "12388745898736220076",
+            "722829617586222472"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_Boulder",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "377264701614898002",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "970001822794563052",
+            "5678489519887607110",
+            "16910182908390641787",
+            "6217483385191454636",
+            "12728186048785612789",
+            "13601636613369722279"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_End",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "4691386598002608798",
+      "spawnItems": [
+        {
+          "items": [
+            "722829617586222472",
+            "9718458899796387479",
+            "11781078333805946480",
+            "5225848727062881325",
+            "17915858023455143062",
+            "7770937956365605783",
+            "6819582037903767206",
+            "9573084003477405303",
+            "12388745898736220076",
+            "5831980656201572488",
+            "5455032563696543221",
+            "3215913703130088169",
+            "1202542338878686894",
+            "8507621278018719950",
+            "676141550055729431",
+            "6434275332115713353",
+            "14369524039773222922"
+          ],
+          "spawnCountAtMinDifficulty": 6,
+          "spawnCountAtMaxDifficulty": 6,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "15423619519501489380"
+          ],
+          "spawnCountAtMinDifficulty": 10,
+          "spawnCountAtMaxDifficulty": 10,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "12696634195496546494",
+        "10078250632034383530",
+        "17915858023455143062"
+      ]
+    },
+    {
+      "name": "ItemSet_Large",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "4914778901988262004",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "970001822794563052",
+            "5678489519887607110",
+            "16910182908390641787",
+            "6217483385191454636",
+            "8443964997203258129",
+            "5804517731052606251",
+            "6096484020692488796",
+            "12728186048785612789",
+            "16473980543408359611",
+            "13601636613369722279",
+            "12142498195737046383",
+            "14115087848621455930"
+          ],
+          "spawnCountAtMinDifficulty": 8,
+          "spawnCountAtMaxDifficulty": 8,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "12696634195496546494"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 2,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "10078250632034383530"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "722829617586222472",
+            "12388745898736220076",
+            "3215913703130088169",
+            "5831980656201572488",
+            "7770937956365605783",
+            "9718458899796387479",
+            "11781078333805946480",
+            "5225848727062881325",
+            "17915858023455143062",
+            "6819582037903767206",
+            "9573084003477405303",
+            "5455032563696543221",
+            "1202542338878686894",
+            "8507621278018719950",
+            "7083697207254741933",
+            "6434275332115713353",
+            "14369524039773222922"
+          ],
+          "spawnCountAtMinDifficulty": 5,
+          "spawnCountAtMaxDifficulty": 5,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "15423619519501489380"
+          ],
+          "spawnCountAtMinDifficulty": 10,
+          "spawnCountAtMaxDifficulty": 10,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494",
+        "17915858023455143062"
+      ]
+    },
+    {
+      "name": "ItemSet_Jump",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "5758716097134223668",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "970001822794563052",
+            "5678489519887607110",
+            "6217483385191454636",
+            "5804517731052606251",
+            "12728186048785612789",
+            "16473980543408359611",
+            "13601636613369722279",
+            "6217483385191454636"
+          ],
+          "spawnCountAtMinDifficulty": 3,
+          "spawnCountAtMaxDifficulty": 3,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "12388745898736220076",
+            "12696634195496546494",
+            "722829617586222472"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "15423619519501489380"
+          ],
+          "spawnCountAtMinDifficulty": 5,
+          "spawnCountAtMaxDifficulty": 5,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_Inception",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "8230300449500544966",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "5678489519887607110",
+            "16910182908390641787",
+            "6217483385191454636",
+            "12728186048785612789",
+            "16473980543408359611",
+            "13601636613369722279"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        },
+        {
+          "items": [
+            "722829617586222472",
+            "12388745898736220076",
+            "12696634195496546494"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    },
+    {
+      "name": "ItemSet_TrapCorridor",
+      "bundle": "74e8a9e18f190d086b727c44312b5efb.bundle",
+      "path_id": "9200949453004738129",
+      "spawnItems": [
+        {
+          "items": [
+            "15659945856436154005",
+            "16161024687220126744",
+            "6217483385191454636",
+            "8443964997203258129",
+            "5804517731052606251",
+            "12728186048785612789",
+            "16473980543408359611",
+            "13601636613369722279"
+          ],
+          "spawnCountAtMinDifficulty": 1,
+          "spawnCountAtMaxDifficulty": 1,
+          "legacyCount": 0
+        }
+      ],
+      "bonusItems": [
+        "10078250632034383530",
+        "12696634195496546494"
+      ]
+    }
+  ]
+}

@@ -1,8 +1,79 @@
 # Calypso's Expansion Set 开发路线与研究记录
 
+## 2026-10-12：0.2.6 调试闪退修复与循环定位
+
+当前版本为 **0.2.6**，由小马手动部署并复测，反馈手动生成和传送正常，未再反馈生成闪退。Release 0 警告、0 错误；调试生成 20 项、循环传送 26 项、菜单/请求时序 12 项源码模拟通过。积分/出售显示、多场景边界和真实双端同步仍待单独验收。
+
+### 0.2.5 自然生成的游戏证据
+
+小马提供 `actually spawned MOD idols=[jumping x1]` 后，本机日志确认加载 0.2.5，在 eventId=41、seed=-1960054746 的 `ItemSet_Large` 批次中，筛选前候选为 `jumping(weight=100)`，服务端创建 netId=223 的 jumping，批次正常结束。Unity `Player.log` 也记录 `Item spawn: CalypsoExpansionSet.jumping`。此证据确认一次真实自然实体生成；小马因地图较大尚未找到实体，不能据此勾选可见、拾取、出售或多人验收。`OnStartServer` 日志中的 value=21 是该生命周期时刻的值，不作为后续皮肤分配后的最终售价。
+
+### 调试生成崩溃的定位与修复
+
+小马反馈 F8 菜单正常，点击生成后卡住并闪退。BepInEx 日志没有托管异常或调试生成完成记录，`Player.log` 也未记录具体崩溃栈；Windows Application 事件 1000 在 20:26:09 记录 Invokyr.exe / coreclr.dll、异常代码 `0xc0000005`、偏移 `0x1d1fdd`，事件 1001 对应 APPCRASH。未取得可还原调用栈的 dump，因此不能凭该事件唯一认定崩溃函数。
+
+按 Unity IL2CPP/BepInEx 运行边界复核发现 **[CRASH]**：0.2.5 新增的 `TryGetIdolSkinData(out FIdolScoreMaterialData)` 调用使用了错误的生成包装。`../libs/vhs/Items/ItemDropManager.cs` 中包装把输出当作一个 `nint`，只有 8 字节缓冲区；该类型实际为原生值类型，包含 skin、skinValue、material 与 distribution。`GameAssembly.dll` 中 VA `0x182EBBA60` 的方法向输出写入 24 字节，成功路径在 `0x182EBBB4D`–`0x182EBBB5F`，未找到条目的清零路径在 `0x182EBBBB7`–`0x182EBBBBA`。两条路径都超出包装缓冲区，还会把写入的枚举/分值误当作对象指针。该调用存在已确认的内存破坏风险，与此次无托管异常的崩溃相符；此前 20 项托管模拟未覆盖这种封送错误，不能作为该原生调用安全的证据。
+
+0.2.6 移除该调用，按索引读取 `idolsScoreData` 中装箱的皮肤条目，只读取 skin/skinValue 字段；随后使用原版 `Skin` 与 `CurrentValue` 同步 setter，不向原生方法传递该结构体。缺失资源不创建实体，初始化 setter 异常仍清理本次创建的实体。新增准备/已创建两个诊断边界，若仍有崩溃，可从最后一条 `[Debug spawn]` 判断进行到了哪里。新版实际 helper 的 20 项模拟通过，模拟中的危险查询和结构体初始化入口直接抛错，确保产品代码不会调用它们；随后小马在游戏中确认手动生成正常。
+
+### 循环传送调试入口
+
+F8 窗口新增 **Teleport to next MOD idol** 按钮，等价命令 `teleport`，只允许 `DebugMode=true` 的房主使用。每次请求从当前服务器实体表查找有效的自有配置类型，包含自然与调试实例，按 netId 循环，不长期缓存 Unity 实体引用。已出售/销毁/未激活实例不作为目标，角色/连接变化或关闭 DebugMode 时重置循环。
+
+与生成操作一样，点击后关闭窗口、恢复自身暂停的输入，下一帧在角色/会话仍一致且控制可用时执行；超时或退出会话取消。目标旁边检查地面法线与角色胶囊空间，跳过无法站立的目标；无实例或没有安全落点时只报告原因。房主调用本机角色原版 `PlayerMovement.TargetTeleport`（VA `0x182FA5310`），其原生 TargetRpc 进入 `CliTeleport`（`0x182F9D760`），设置角色刚体位置/朝向并复位速度；不直接写玩家 transform 或增加自定义网络协议。原版运动同步和远端观察效果需游戏实测。
+
+`IdolDebugTeleport.cs` 实际源码的 26 项模拟覆盖开关、房主/Ready/注册/控制/死亡门禁、目标顺序与循环、实例销毁、受阻/无地面、胶囊检查、普通雕像排除、连接变化及清理。`IdolDebugTools.cs` 实际队列/更新/输入方法的 12 项模拟覆盖关闭菜单后下一帧执行一次、关 DebugMode、角色/连接变化、控制锁、超时、结束会话和运行故障取消。模拟使用替代 Mirror 与物理查询，不证明真实碰撞场景、TargetRpc 传输或菜单显示已验收。
+
+最终输出 `bin/Release/net6.0/CalypsoExpansionSet.dll`，版本 0.2.6.0，SHA256 `90FDC8D1CD233864754CEB54CBF94F036C3B401387F9A1C8019914AF9CA74283`。小马手动部署后反馈“测试没什么问题”，确认生成的雕像可以传送过去。这次反馈确认手动生成与传送入口可用；没有单独确认自然实例拾取/出售、积分显示、同类型自然与手动实例共存、多只目标循环、销毁/换场景边界或真实双端同步。
+
+## 2026-10-12：0.2.5 自然池匹配与调试价值修复
+
+0.2.5 阶段已定位 0.2.4 自然候选为空的原因并修正源码；以下保留当时的编译/模拟记录，随后自然生成与调试闪退的游戏证据见上方 0.2.6 记录。
+
+### 自然候选为空的原因
+
+本机 0.2.4 游戏日志记录三个完成的原版生成批次：`ItemSet_Large`（eventId=4、seed=814397706）、名为 `None` 的 ItemSet（eventId=13、seed=-51679945）和 `ItemSet_Chessboard`（eventId=2、seed=-417972950）。它们均为 `enabled=True`、原版筛选前 MOD 候选 `[]`、实际 MOD 实例 `[]`。此时尚未参与权重抽取，不能解释为权重低、基础积分低或“已经入池但没抽中”。`None` 是资源名称，不是空对象；空对象不会进入这条批次日志。
+
+用 UnityPy 1.21.3 读取本机 822 个 Addressables bundle，得到 14 个 ItemSet，全部引用解析成功。池资源均在 `74e8a9e18f190d086b727c44312b5efb.bundle`，配置 ID 和候选数量快照见 [research/itemset-defaults.json](research/itemset-defaults.json)。资源证明：
+
+| ItemSet | 原版雕像候选 | 原版雕像生成数量 | 是否含原来的 Score 模板 |
+| --- | --- | --- | --- |
+| `ItemSet_Large` | 14 种，含 Slippery | 最低/最高难度均为 8 | 否 |
+| `ItemSet_Chessboard` | 10 种，含 Slippery | 最低/最高难度均为 1 | 否 |
+| `ItemSet_Trivia` | 只有 Score | 最低/最高难度均为 3 | 是 |
+| `None`、`ItemSet_Twister` | 无候选 entry | 无 | 否 |
+
+原策略要求 entry 包含定义的 `TemplateId`。跳跃使用的 `Data-Treasure-Score`（`7331884207844971565`）只在答题池中，作为外观/属性模板有效，但无法匹配普通地图的雕像池。补丁已进入真实生成入口；本轮查到的失败点是模板和池的绑定。
+
+0.2.5 为定义增加可选 `PoolTemplateId`，默认仍使用 `TemplateId`。跳跃保留 Score 的配置、外观与原有效果，使用 Slippery（`13601636613369722279`）作为自然池匹配标记；不复制 Slippery 的配置、预制体或效果。它会加入包含该标记的 9 个雕像 entry：Ballerina、Chessboard、WeepingRoom、Large_Demo、Boulder、Large、Jump、Inception、TrapCorridor；不加入 Trivia、Lava、End、None 或 Twister，不追加 bonus、额外 entry 或生成数量。
+
+`PoolTemplateId` 必须非零且能从游戏雕像查找表中读取；它的实际匹配值加入兼容清单。跳跃 `ContentVersion` 从 2 升至 3，插件/程序集版本升为 0.2.5；配置 ID、assetId、GUID、消息号和协议格式保留。所有参与玩家需使用相同内容清单。跳跃仍未覆盖 `InitialWeight`，克隆配置的难度范围仍为 1–5、标签仍为 `[35]`，与资源中的 Blind/Slippery 相同；积分和重量不参与入池模板匹配。
+
+### 调试雕像积分为零的原因
+
+小马反馈手持和出售处均不显示积分，本机日志也记录多个 `[Debug spawn] value=0`。原生研究确认 `SrvSpawnToolOnGround`（VA `0x182EBA580`）只完成地面实例化与网络生成，跳过自然批次的皮肤/价值分配。`ScoreTool.OnStartServer`（`0x1832B5DF0`）负责登记实体，不补价值。
+
+调试生成现先检查游戏皮肤表，生成后调用原版 `SrvApplyIdolSkin`（`0x182EB4710`）。模板明确指定的皮肤保留，未指定时使用 Bronze；当前资源表 Bronze=100、Silver=150、Gold=200、Crystal=300，实际赋值读取表而非硬编码。缺失皮肤数据时不创建实体，原生返回错误类型或初始化异常时清理本次生成的实体。
+
+原生路径确认 `SrvApplyIdolSkin` 设置 Skin 和 CurrentValue；`set_CurrentValue` 与 `set_Network_currentValue` 同址 `0x1832B7190`，沿用 Mirror dirty bit `0x8000`。这些地址只对应当前安装的游戏版本。基础 `scoreBasePoint=1` 与实例的最终价值不同；自然批次仍使用原版皮肤/计价流程，未套用调试 Bronze 默认值。
+
+### 验证结果与边界
+
+- **源码与资源模拟**：直接编译当前 `IdolSpawnIntegration.cs`、`IdolDefinition.cs`、`Idols/JumpingIdol.cs`，使用上述 14 个真实池快照。重现旧策略仅匹配 Trivia，验证新策略匹配 9 个目标 entry；覆盖原版列表/数量/bonus 不变、重复接入、两类型共池、禁用/不兼容门禁、客户端不修改池、空 entry、嵌套批次、非 MOD 实例不统计、异常清理。
+- **抽取模型**：9 个目标池，各测试难度 1–5 与 100 个 seed，共 4,500 个模型批次；默认权重下都能抽到跳跃，模型中的请求总数和每类型上限保持，跨批次计数重新开始、权重继续衰减。整套程序通过 13,660 次断言，其中包含重复批次检查。原生指令已复核难度筛选、权重累计抽取、选中后除以 2、局部类型计数与事件忽略上限的路径。
+- **注册模拟**：直接编译当前 `IdolRegistry.cs` 与 `IdolDefinition.cs`，47 项通过；覆盖独立克隆与查找/prefab 表，以及新入池模板的零值拒绝、缺失/恢复、ready 清理、属性模板隔离和兼容清单差异。
+- **调试价值模拟**：从当前插件源码抽取完整 `SpawnDebugIdol` 方法，20 项通过；覆盖真实表值使用、皮肤选择、模板不改动、多个独立实例、资源缺失及错误类型/初始化异常回滚。
+- **编译**：`dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false --no-restore --nologo`，SDK 6.0.428，0 警告、0 错误，输出版本 0.2.5.0。
+
+最终构建位于 `bin/Release/net6.0/CalypsoExpansionSet.dll`，SHA256：`4589363EEAB5E2B17DC883D4BD500742B58D69C96B4CCA5B9DB4F3E5ECACDA6B`。小马选择手动部署，本轮未覆盖游戏目录；手动部署和游戏复测待完成。检查时本机已有 DLL 的版本同为 0.2.5.0，但 SHA256 为 `570F962E5A79E250D10E83EE7761A7EBAC2F48CE73185AD9E3CC0DCA11B4A4E9`，不能仅凭版本号认定它就是最终构建。
+
+本机模拟产物在 `obj/NaturalSpawnVerification`、`obj/RegistryVerification` 与 `obj/DebugSpawnVerification`。模拟替代了 Unity/Mirror 原生接口，抽取模型假定掉落点足够、事件/biome/玩家条件允许；没有复现完整地图物理、房间分布、原版随机数消耗顺序、Harmony IL2CPP 参数替换或网络传输。它证明当前源码能把新配置加入真实池快照并在已核对的规则模型中被选择，不证明实际游戏或联机已验收，也不提供真实出现率或对具体游戏 seed 的结果预测。
+
+游戏复测时先确认 `0.2.5 loaded` 和 `[Definition] poolTemplateId=13601636613369722279`。普通地图生成批次应能看到 `[Pool]` 中的 `jumping(weight=…)`；候选存在而 `[Batch result]` 为空仍可能是正常未抽中。`None` 等没有目标 entry 的事件仍应为空。用 F8 窗口的 `spawn jumping` 验证调试日志的 skin/value、手持与出售显示，再验证自然实例、转交、晚加入及双方价值同步。
+
 ## 2026-10-12：0.2.4 项目配置与验证
 
-当前项目为 **Calypso's Expansion Set 0.2.4**。入口是 `CalypsoExpansionSetPlugin`，程序集与命名空间是 `CalypsoExpansionSet`，BepInEx/Harmony GUID 是 `calypso.invokyr.expansionset`，公开注册入口为 `CalypsoExpansionSetApi.Register`。当前构建、部署和使用说明见 [README.md](README.md)。
+0.2.4 阶段的项目名称为 **Calypso's Expansion Set**。入口是 `CalypsoExpansionSetPlugin`，程序集与命名空间是 `CalypsoExpansionSet`，BepInEx/Harmony GUID 是 `calypso.invokyr.expansionset`，公开注册入口为 `CalypsoExpansionSetApi.Register`。当前构建、部署和使用说明见 [README.md](README.md)。
 
 早期框架、测试构建与当前内容均属于本项目。下方按开发版本保留研究和验收证据，历史日志、产物路径及测试结果按当时的实际值记录；其中的 `MoreIdols` 仅是早期框架使用的代码或产物标识。文档中的“原版”指 Invokyr 游戏本体。0.2.4 保留了 0.2.3 的跳跃效果、自然池算法、稳定配置 ID、assetId、网络消息号和协议格式。
 
@@ -60,7 +131,7 @@
 | 设置 | 当前值与用途 |
 | --- | --- |
 | 目标框架 / 输出 / 架构 | `net6.0` / `Library` / `x64`。 |
-| 程序集名 / 根命名空间 / 版本 | `CalypsoExpansionSet` / `CalypsoExpansionSet` / `0.2.4`。 |
+| 程序集名 / 根命名空间 / 版本 | `CalypsoExpansionSet` / `CalypsoExpansionSet` / `0.2.6`。 |
 | C# 设置 | 隐式 using 开启；Nullable 开启；`LangVersion = latest`；允许 unsafe。 |
 | SDK | 最低选择版本为 `6.0.100`，`rollForward = latestMinor`；本机实际选用 `6.0.428`。`6.0.0` 不是合法的 SDK 版本号。 |
 | `InvokyrPath` | 默认 `E:\Steam\steamapps\common\Invokyr`，表示游戏根目录。 |

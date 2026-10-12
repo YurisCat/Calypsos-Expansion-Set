@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.4";
+    public const string PluginVersion = "0.2.6";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -28,6 +28,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal JumpingIdolSync Sync { get; private set; } = null!;
     internal IdolSpawnIntegration Spawns { get; private set; } = null!;
     internal IdolDebugTools DebugTools { get; private set; } = null!;
+    internal IdolDebugTeleport Teleports { get; private set; } = null!;
 
     private JumpingIdolDriver? _driver;
     private IdolEffectRuntime? _effects;
@@ -46,7 +47,8 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Spawns = new IdolSpawnIntegration(this);
         _effects = new IdolEffectRuntime(this);
         _naturalSpawning = Config.Bind("Gameplay", "NaturalSpawning", true,
-            "将已注册雕像加入含其模板的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
+            "将已注册雕像加入含其 PoolTemplateId（未指定时为 TemplateId）的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
+        Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
@@ -196,13 +198,47 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         if (!position.HasValue)
             return SpawnFailure($"No spawn position: floorHits={floorHits}/18, blocked={blockedPositions}, "
                 + $"itemLayer={data.prefab.layer}, collisionMask={collisionMask}, center={center}, extents={extents}. Move to an open area and retry.");
-        var tool = manager.SrvSpawnToolOnGround(data, position.Value, new Il2CppSystem.Nullable<Quaternion>(Quaternion.identity));
-        var idol = tool != null ? tool.TryCast<ScoreTool>() : null;
-        if (idol == null) { Log.LogError("Native spawn did not return a ScoreTool."); return false; }
+        var idol = SpawnDebugIdol(manager, data, position.Value);
+        if (idol == null) return false;
         Sync.Track(idol, true);
-        Log.LogInfo($"[Debug spawn] {key}: netId={idol.netId}, value={idol.CurrentValue}, position={position.Value}, "
+        Log.LogInfo($"[Debug spawn] {key}: netId={idol.netId}, skin={idol.Skin}, value={idol.CurrentValue}, position={position.Value}, "
             + $"allTypeDebugCount={Sync.ServerDebugCount}, debugLimit=1 per type.");
         return true;
+    }
+
+    private ScoreTool? SpawnDebugIdol(ItemDropManager manager, SOScoreTool data, Vector3 position)
+    {
+        var skin = data.prefab.GetComponent<ScoreTool>().Skin;
+        // Direct ground spawning skips the native batch's skin/value initialization.
+        if (skin == ItemDropManager.EIdolSkin.None) skin = ItemDropManager.EIdolSkin.Bronze;
+        Log.LogInfo($"[Debug spawn] preparing: type={data.name}, skin={skin}, position={position}.");
+        int? value = null;
+        // The generated out-struct wrapper allocates 8 bytes for a 24-byte native
+        // value. Read boxed table entries instead of calling TryGetIdolSkinData.
+        var skins = manager.idolsScoreData;
+        if (skins != null)
+            for (var index = 0; index < skins.Count; index++)
+            {
+                var candidate = skins[index];
+                if (candidate != null && candidate.skin == skin) { value = candidate.skinValue; break; }
+            }
+        if (!value.HasValue)
+        {
+            SpawnFailure($"No game skin/value data for {skin}. Wait for the scene to finish loading and retry.");
+            return null;
+        }
+        var tool = manager.SrvSpawnToolOnGround(data, position, new Il2CppSystem.Nullable<Quaternion>(Quaternion.identity));
+        var idol = tool != null ? tool.TryCast<ScoreTool>() : null;
+        if (idol == null)
+        {
+            if (tool != null) NetworkServer.Destroy(tool.gameObject);
+            SpawnFailure("Native spawn did not return a ScoreTool. Check the registered prefab and retry.");
+            return null;
+        }
+        Log.LogInfo($"[Debug spawn] created: netId={idol.netId}; initializing skin={skin}, value={value.Value}.");
+        try { idol.Skin = skin; idol.CurrentValue = value.Value; }
+        catch { NetworkServer.Destroy(idol.gameObject); throw; }
+        return idol;
     }
 
     private bool SpawnFailure(string message) { DebugTools.Report(message, true); return false; }
