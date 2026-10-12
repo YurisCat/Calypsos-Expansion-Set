@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>MoreIdols</AssemblyName>
+    <RootNamespace>MoreIdols</RootNamespace>
+    <Version>0.2.3</Version>
+    <Product>MoreIdols</Product>
+    <Company>MHZ</Company>
+    <Authors>Masaicker</Authors>
+    <Copyright>Copyright © 2026 Masaicker</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <InvokyrPath Condition="'$(InvokyrPath)' == ''">E:\Steam\steamapps\common\Invokyr</InvokyrPath>
+    <InteropPath Condition="'$(InteropPath)' == ''">$(InvokyrPath)\BepInEx\interop</InteropPath>
+    <BepPath Condition="'$(BepPath)' == ''">$(InvokyrPath)\BepInEx\core</BepPath>
+    <PluginPath Condition="'$(PluginPath)' == ''">$(InvokyrPath)\BepInEx\plugins</PluginPath>
+    <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3"
+                      PrivateAssets="all" IncludeAssets="build;contentFiles" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Invokyr 主游戏代码在 vhs，Assembly-CSharp 提供辅助类型。 -->
+    <Reference Include="$(InteropPath)\vhs.dll" Private="false" Publicize="true" />
+    <Reference Include="$(InteropPath)\vhs.Audio.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Assembly-CSharp*.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Unity*.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Il2CppSystem*.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Mirror*.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Enhanced*.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepPath)\0Harmony.dll" Private="false" />
+    <Reference Include="$(BepPath)\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepPath)\BepInEx.Unity.Common.dll" Private="false" />
+    <Reference Include="$(BepPath)\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(BepPath)\Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(BepPath)\Il2CppInterop.Runtime.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="ValidateGameReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(InteropPath)\vhs.dll')"
+           Text="找不到 Invokyr 的 vhs.dll，请检查 InvokyrPath 或 InteropPath，并先运行游戏生成 interop 程序集。" />
+    <Error Condition="!Exists('$(BepPath)\BepInEx.Unity.IL2CPP.dll')"
+           Text="找不到 BepInEx.Unity.IL2CPP.dll，请检查 BepPath 和 BepInEx IL2CPP 安装。" />
+  </Target>
+
+  <Target Name="DeployPlugin" AfterTargets="Build"
+          Condition="'$(DeployToGame)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+    <MakeDir Directories="$(PluginPath)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginPath)" SkipUnchangedFiles="true" />
+    <Message Importance="high" Text="MoreIdols 已部署到 $(PluginPath)\$(TargetFileName)。游戏运行中时需重启以加载新 DLL。" />
+  </Target>
+
+</Project>
