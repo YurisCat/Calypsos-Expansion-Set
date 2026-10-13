@@ -1,13 +1,29 @@
 # 雕像音效
 
-运行时把两组短音效内嵌在模组 DLL，使用游戏已有的 FMOD Core 系统和监听器播放，不分发独立采样库。原文件、裁剪预览和生成的 PCM bank 均保存在本机忽略目录，不提交到 Git。
+本目录随源码提供构建需要的全部音效 bank，编译时内嵌到模组 DLL。运行时使用游戏已有的 FMOD Core 系统和监听器播放。
 
-## 本地准备与构建
+## 拉取后构建
 
-使用自己有使用权的 Soundly WAV 导出文件：
+| 文件 | 用途 |
+| --- | --- |
+| `duck_steps.pcm` | 鸭步的 6 段短叫声 |
+| `spring_accent.pcm` | 弹簧大跳的 4 段完整音效 |
+| `cuts.json` | 来源、裁剪位置、采样数和 SHA256 |
 
-- `Toys, Misc, Rubber, Squeaky SND29638.wav`：6 段短叫声，鸭步雕像配合实际原版脚步触发。
-- `Cartoon, Impact, Bonk, Crash, Hits 01 SND11776.wav`：4 段完整音效，只在弹簧编排的大跳成功起跳后触发。
+按项目 README 配好游戏 interop、BepInEx 和 SDK 后，在仓库根目录运行：
+
+```powershell
+.\scripts\Build.ps1
+```
+
+默认直接使用 `Assets/Audio`，普通构建不需要另取音频包、原始 WAV、Soundly 或 Python。两份 PCM 以二进制形式跟踪，`.gitattributes` 禁止 Git 改写其字节。缺失时应完整同步本目录；高级用法仍可通过 MSBuild 属性 `IdolAudioPath` 覆盖资源目录。
+
+## 重新裁剪或替换
+
+原始素材为：
+
+- `Toys, Misc, Rubber, Squeaky SND29638.wav`
+- `Cartoon, Impact, Bonk, Crash, Hits 01 SND11776.wav`
 
 两份输入都是 96 kHz / 24-bit / 双声道 PCM WAV。在仓库根目录运行（Python 3.10+，不依赖第三方包）：
 
@@ -18,9 +34,9 @@ python scripts/PrepareIdolAudio.py `
 .\scripts\Build.ps1
 ```
 
-脚本下混单声道、降采样为 48 kHz，处理片段边缘与响度，输出 `.local/audio/duck_steps.pcm`、`spring_accent.pcm` 和带来源/结果 SHA256 的 `cuts.json`。可用 `--preview-dir` 将试听 WAV 输出到自己的本地目录。裁剪起止点在脚本 `RANGES` 中；改动音频契约后提升对应雕像的 `ContentVersion`。
+脚本下混单声道、降采样为 48 kHz，处理片段边缘与响度，默认更新 `Assets/Audio/duck_steps.pcm`、`spring_accent.pcm` 和带来源/结果 SHA256 的 `cuts.json`。可用 `--preview-dir` 将试听 WAV 输出到自己的本地目录。裁剪起止点在脚本 `RANGES` 中；改动音频契约后提升对应雕像的 `ContentVersion`。
 
-构建默认从 `.local/audio` 嵌入两份 bank，也可用 MSBuild 属性 `IdolAudioPath` 指向另一个本地目录。缺失资源会明确终止构建，不静默替换成其他声音。只安装已构建 DLL 的玩家不需要源 WAV、Python 或 Soundly。
+原始完整录音和试听预览由本地工作目录保存，构建只使用本目录的两份 bank。bank 采用项目定义的头部和浮点 PCM 布局，不能仅把其他音频改成 `.pcm` 后替换。只安装已构建 DLL 的玩家不需要本目录。
 
 ## 播放与同步
 
@@ -31,10 +47,3 @@ python scripts/PrepareIdolAudio.py `
 弹簧 bank 没有该听觉回调；小跳、普通跳、手动跳和未成功的自动跳均不触发大跳音效。新增听觉行为只属于鸭步，`duck_step.ContentVersion=2`，联机各端需要匹配内容。
 
 音效资源由类型注册生命周期持有；FMOD `OPENMEMORY | OPENRAW | CREATESAMPLE` 同步复制浮点 PCM，创建完成后释放托管 pin。只停止/释放本模组自己的声道和声音，不创建或接管游戏的全局监听器。
-
-## 来源使用范围
-
-Soundly 官方游戏使用说明允许把获授权音效整合进游戏；其 EULA 区分作品内使用与独立音频采样再分发。维护者应按自己取得素材时的授权使用，勿把完整来源或拆分采样作为源码附件/独立下载发布。
-
-- 官方游戏使用说明：<https://getsoundly.com/faq/can-i-use-the-sounds-in-a-video-game/>
-- 官方 EULA：<https://getsoundly.com/assets/Soundly-EULA.pdf>

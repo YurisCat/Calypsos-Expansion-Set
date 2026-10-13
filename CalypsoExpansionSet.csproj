@@ -22,7 +22,7 @@
     <BepPath Condition="'$(BepPath)' == ''">$(InvokyrPath)\BepInEx\core</BepPath>
     <PluginPath Condition="'$(PluginPath)' == ''">$(InvokyrPath)\BepInEx\plugins\CalypsoExpansionSet</PluginPath>
     <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
-    <IdolAudioPath Condition="'$(IdolAudioPath)' == ''">$(MSBuildProjectDirectory)\.local\audio</IdolAudioPath>
+    <IdolAudioPath Condition="'$(IdolAudioPath)' == ''">$(MSBuildProjectDirectory)\Assets\Audio</IdolAudioPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -63,7 +63,7 @@
 
   <Target Name="ValidateGameReferences" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(IdolAudioPath)\duck_steps.pcm') Or !Exists('$(IdolAudioPath)\spring_accent.pcm')"
-           Text="缺少本地授权音效，请按 Assets/Audio/README.md 运行 scripts/PrepareIdolAudio.py；音效原文件不随源码分发。" />
+           Text="缺少构建音效，请完整同步 Assets/Audio 中的 duck_steps.pcm 和 spring_accent.pcm；重新生成资源的方法见 Assets/Audio/README.md。" />
     <Error Condition="!Exists('$(InteropPath)\vhs.dll')"
            Text="找不到 Invokyr 的 vhs.dll，请检查 InvokyrPath 或 InteropPath，并先运行游戏生成 interop 程序集。" />
     <Error Condition="!Exists('$(BepPath)\BepInEx.Unity.IL2CPP.dll')"

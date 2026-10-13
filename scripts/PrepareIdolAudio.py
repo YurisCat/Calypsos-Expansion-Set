@@ -1,7 +1,7 @@
-"""Prepare locally licensed Soundly sources; derived audio stays outside Git.
+"""Prepare the project's embedded audio banks from the original Soundly WAVs.
 
 Python 3.10+, standard library only. Input: the two 96 kHz / 24-bit PCM WAVs.
-Output: 48 kHz mono float banks embedded by MSBuild, optional local WAV previews.
+Output: versioned 48 kHz mono float banks in Assets/Audio, optional local WAV previews.
 """
 import argparse
 import array
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--duck-source", required=True, type=Path)
     parser.add_argument("--spring-source", required=True, type=Path)
-    parser.add_argument("--output-dir", type=Path, default=Path(".local/audio"))
+    parser.add_argument("--output-dir", type=Path, default=Path("Assets/Audio"))
     parser.add_argument("--preview-dir", type=Path)
     args = parser.parse_args()
     result = [prepare(args.duck_source, "duck_steps", args.output_dir, args.preview_dir),

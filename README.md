@@ -96,7 +96,7 @@ dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false '-p:I
 .\scripts\Build.ps1
 ```
 
-首次从源码构建前，按 [音频准备说明](Assets/Audio/README.md) 导入本地获授权的音效；生成的 bank 不随 Git 源码分发。安装已构建 DLL 不需要这些源文件。
+构建所需音效随源码保存在 `Assets/Audio`，拉取后可直接参与编译；无需单独取得音频包。需要重新裁剪或替换时，参阅 [音频说明](Assets/Audio/README.md)。
 
 这个脚本仅编译，输出为 `bin/Release/net6.0/CalypsoExpansionSet.dll`。BepInEx、Unity、Mirror、游戏 interop 与 Publicizer 工具 DLL 不随插件输出分发。
 
@@ -148,4 +148,4 @@ using CalypsoExpansionSet;
 | [DEVELOPMENT](DEVELOPMENT.md) | 研究与验证历史，按当时版本保留证据 |
 | [便签说明](Assets/StickyNote/README.md) | 网格/贴图来源、导入工具与视觉诊断 |
 
-音效裁剪、嵌入和使用范围见 [音频说明](Assets/Audio/README.md)。
+音效资源、裁剪和嵌入方法见 [音频说明](Assets/Audio/README.md)。
