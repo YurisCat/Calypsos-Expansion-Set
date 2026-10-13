@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.15</Version>
+    <Version>0.2.17</Version>
     <Product>Calypso's Expansion Set</Product>
     <Authors>YurisCat;Masaicker</Authors>
     <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>
@@ -22,12 +22,15 @@
     <BepPath Condition="'$(BepPath)' == ''">$(InvokyrPath)\BepInEx\core</BepPath>
     <PluginPath Condition="'$(PluginPath)' == ''">$(InvokyrPath)\BepInEx\plugins\CalypsoExpansionSet</PluginPath>
     <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
+    <IdolAudioPath Condition="'$(IdolAudioPath)' == ''">$(MSBuildProjectDirectory)\.local\audio</IdolAudioPath>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\StickyNote\note.mesh.json" LogicalName="CalypsoExpansionSet.StickyNote.note.mesh.json" />
     <EmbeddedResource Include="Assets\StickyNote\paper.rgba" LogicalName="CalypsoExpansionSet.StickyNote.paper.rgba" />
     <EmbeddedResource Include="Assets\StickyNote\Baked\*.rgba" LogicalName="CalypsoExpansionSet.StickyNote.Artwork.%(Filename).rgba" />
+    <EmbeddedResource Include="$(IdolAudioPath)\duck_steps.pcm" LogicalName="CalypsoExpansionSet.Audio.duck_steps.pcm" />
+    <EmbeddedResource Include="$(IdolAudioPath)\spring_accent.pcm" LogicalName="CalypsoExpansionSet.Audio.spring_accent.pcm" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,6 +48,7 @@
     <Reference Include="$(InteropPath)\Il2Cppmscorlib.dll" Private="false" />
     <Reference Include="$(InteropPath)\Il2CppSystem*.dll" Private="false" />
     <Reference Include="$(InteropPath)\Mirror*.dll" Private="false" />
+    <Reference Include="$(InteropPath)\FMODUnity.dll" Private="false" />
     <Reference Include="$(InteropPath)\Enhanced*.dll" Private="false" />
   </ItemGroup>
 
@@ -58,6 +62,8 @@
   </ItemGroup>
 
   <Target Name="ValidateGameReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(IdolAudioPath)\duck_steps.pcm') Or !Exists('$(IdolAudioPath)\spring_accent.pcm')"
+           Text="缺少本地授权音效，请按 Assets/Audio/README.md 运行 scripts/PrepareIdolAudio.py；音效原文件不随源码分发。" />
     <Error Condition="!Exists('$(InteropPath)\vhs.dll')"
            Text="找不到 Invokyr 的 vhs.dll，请检查 InvokyrPath 或 InteropPath，并先运行游戏生成 interop 程序集。" />
     <Error Condition="!Exists('$(BepPath)\BepInEx.Unity.IL2CPP.dll')"

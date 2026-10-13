@@ -1,13 +1,17 @@
 # Calypso's Expansion Set
 
-Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。当前开发版本 **0.2.15**，更新记录见 [CHANGELOG](CHANGELOG.md)。
+Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。当前开发版本 **0.2.17**，更新记录见 [CHANGELOG](CHANGELOG.md)。
 
 ## 当前内容
 
 - **跳跃雕像**：持有时自动连续跳跃。
-- **弹簧雕像**：持有时有节奏地弹跳，小跳中穿插大跳。
+- **弹簧雕像**：持有时有节奏地弹跳，大跳起跳时随机播放四段卡通音效之一。
 - **近景雕像**：持有时视野变窄，眼前景物放大。
 - **声控雕像**：持有时用声音驱动前进，屏蔽键盘与手柄的前后左右输入；保留转向、跳跃、蹲下和奔跑。
+- **倒立雕像**：世界画面旋转 180°，HUD 与菜单保持正立。
+- **鸭步雕像**：走路时配合脚步随机发出短叫声，附近玩家可听见，也会作为噪声进入原版怪物听觉系统。
+- **极速雕像**：通过原版速度倍率实现四倍移动速度，不额外改 FOV 或体力规则。
+- **迟钝雕像**：移动方向与松键延迟 0.3 秒，视角和交互即时。
 
 ## 配置与 F8 调试
 
@@ -27,7 +31,7 @@ DebugMode=true 时按 F8，点击命令输入框输入：
 | 命令 | 操作 |
 | --- | --- |
 | list / status / help | 查看类型、状态与帮助 |
-| spawn <key> | 房主在附近生成对应雕像，如 jumping、spring、near_view、voice；每种同时最多一只手动实例 |
+| spawn <key> | 房主在附近生成对应雕像，如 jumping、spring、near_view、voice、upside_down、duck_step、extreme_speed、delayed_move；每种同时最多一只手动实例 |
 | teleport | 房主循环传送到存活的 MOD 雕像旁；也可点击 Teleport to next MOD idol |
 | visual <key> texture / white / flat | 比较该类型便签的图案、纯白底色和逐面法线；结束时用 texture 恢复 |
 
@@ -49,7 +53,7 @@ TestRoomEnabled = true
 & '<Steam 安装目录>\steam.exe' -applaunch 3883570 --ces-test-room
 ```
 
-参数与两个开关必须同时满足。游戏自动开本机单人会话、跳过 Logo，在初始房门外建立明亮陈列房并将玩家放到前方。后部是 20 种非怪物原版雕像，中部按注册清单陈列每种 MOD 一只，使用原版石质基座，各占自己的调试限额。MOD 展品按稳定 key 的字母顺序排列，当前为 jumping → near_view → spring → voice；新增类型会按 key 插入相应位置。
+参数与两个开关必须同时满足。游戏自动开本机单人会话、跳过 Logo，在初始房门外建立明亮陈列房并将玩家放到前方。后部是 20 种非怪物原版雕像，中部按注册清单陈列每种 MOD 一只，使用原版石质基座，各占自己的调试限额。MOD 展品按稳定 key 的字母顺序排列，当前为 delayed_move → duck_step → extreme_speed → jumping → near_view → spring → upside_down → voice；新增类型会按 key 插入相应位置。
 
 测试房阻止远端加入、骰子事件、常规怪物生成和存档写入，只过滤指定的棋盘加入提示。不会自动补刷取走或销毁的雕像；重置时退出游戏，用相同参数重启。普通启动不自动建房。布局与补丁范围见 [设计说明](docs/ARCHITECTURE.md#调试与测试房)，对应版本实际验收见 [DEVELOPMENT](DEVELOPMENT.md)。
 
@@ -92,6 +96,8 @@ dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false '-p:I
 .\scripts\Build.ps1
 ```
 
+首次从源码构建前，按 [音频准备说明](Assets/Audio/README.md) 导入本地获授权的音效；生成的 bank 不随 Git 源码分发。安装已构建 DLL 不需要这些源文件。
+
 这个脚本仅编译，输出为 `bin/Release/net6.0/CalypsoExpansionSet.dll`。BepInEx、Unity、Mirror、游戏 interop 与 Publicizer 工具 DLL 不随插件输出分发。
 
 ## 安装与部署
@@ -125,7 +131,9 @@ using CalypsoExpansionSet;
 
 ## 调整雕像属性与外观
 
-各类型定义与效果分别位于 [JumpingIdol.cs](Idols/JumpingIdol.cs)、[SpringIdol.cs](Idols/SpringIdol.cs)、[FovIdol.cs](Idols/FovIdol.cs) 和 [VoiceIdol.cs](Idols/VoiceIdol.cs)。近景的 FieldOfView 为内置值；声控读取原版运行期阈值，声音平滑与停止判定位于 [VoiceInputGate.cs](Idols/VoiceInputGate.cs)。ConfigureData 修改自有配置，ConfigurePrefab 修改自有预制体，InitialWeight 设置初始相对权重；没有覆盖的属性继承模板。
+各类型的身份、内置参数与效果位于 [Idols](Idols) 对应源码的 Definition 和实现中。ConfigureData 修改自有配置，ConfigurePrefab 修改自有预制体，InitialWeight 设置初始相对权重；没有覆盖的属性继承模板。
+
+声控读取原版运行期麦克风阈值，声音平滑与停止判定位于 [VoiceInputGate.cs](Idols/VoiceInputGate.cs)。
 
 基础分值不同于实例显示/出售的 CurrentValue，修改 scoreBasePoint 不会固定售价。改变玩法、配置或外观契约后提升 ContentVersion，重新编译、部署并重启，联机各端更新兼容构建。字段含义与资源生命周期见 [类型注册](docs/ARCHITECTURE.md#类型注册)，原版属性证据见 [DEVELOPMENT](DEVELOPMENT.md#23-原版配置属性与普通雕像的资源默认值)。
 
@@ -139,3 +147,5 @@ using CalypsoExpansionSet;
 | [CHANGELOG](CHANGELOG.md) | 各版本对用户可见的变化 |
 | [DEVELOPMENT](DEVELOPMENT.md) | 研究与验证历史，按当时版本保留证据 |
 | [便签说明](Assets/StickyNote/README.md) | 网格/贴图来源、导入工具与视觉诊断 |
+
+音效裁剪、嵌入和使用范围见 [音频说明](Assets/Audio/README.md)。

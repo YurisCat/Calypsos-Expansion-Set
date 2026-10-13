@@ -120,7 +120,7 @@ internal sealed class JumpingIdolSync : IDisposable
         return false;
     }
 
-    private bool IsCompatible(NetworkConnectionToClient connection) =>
+    internal bool IsCompatible(NetworkConnectionToClient connection) =>
         // The local host uses exactly the same registry and resources as the server.
         connection.TryCast<LocalConnectionToClient>() != null
         || _peers.TryGetValue(connection.connectionId, out var peer) && peer.Pointer == connection.Pointer;

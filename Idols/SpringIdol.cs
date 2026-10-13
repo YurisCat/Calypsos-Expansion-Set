@@ -3,6 +3,7 @@ using UnityEngine;
 using CalypsoExpansionSet.Visuals;
 using Entities.Player.Behaviours;
 using HarmonyLib;
+using CalypsoExpansionSet.Audio;
 
 namespace CalypsoExpansionSet.Idols;
 
@@ -33,8 +34,9 @@ internal sealed class SpringIdol : HeldIdolEffect
 
         // 实际改变属性、玩法或外观后提升此版本，重新编译并让所有联机端更新。
         // Both built-in types temporarily reuse the existing artwork, with separate visual resources.
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "jumping"),
-        ContentVersion = 1
+        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "jumping",
+            0x4D49000000000002UL, "spring_accent", 4, 3f),
+        ContentVersion = 2
     };
 
     // An authored rhythm, not independent client-side random gameplay results.
@@ -147,6 +149,9 @@ internal sealed class SpringIdol : HeldIdolEffect
         effect._beat = (effect._beat + 1) % Rhythm.Length;
         effect._remaining = GroundPauseSeconds;
         effect.ClearPending();
+        // Only the accented (large) beat, after native acceptance. Small/normal
+        // hops and failed/blocked requests remain silent. Server selects the clip.
+        if (gain > 1f) HeldIdolAudio.Emit(effect._context);
         if (CalypsoExpansionSetPlugin.Instance?.DebugTools.Enabled == true)
         {
             effect._launchY = effect._peakY = movement.transform.position.y;
