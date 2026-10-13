@@ -26,6 +26,7 @@
 | [Idols/JumpingIdol.cs](../Idols/JumpingIdol.cs) | 原力度连续跳跃 |
 | [Idols/SpringIdol.cs](../Idols/SpringIdol.cs) | 弹簧编排、原生单次力度补丁与可选测量 |
 | [Idols/FovIdol.cs](../Idols/FovIdol.cs) | 近景持有者的本地 FOV 覆盖与恢复 |
+| [Idols/VoiceIdol.cs](../Idols/VoiceIdol.cs)、[Idols/VoiceInputGate.cs](../Idols/VoiceInputGate.cs) | 声控持有者的方向输入替换、麦克风采样与音量判定 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs) | 便签网格、纹理、材质与视觉诊断资源 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
@@ -69,8 +70,9 @@ flowchart LR
 | 跳跃雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 8 | OwnerNativeGameplay |
 | 弹簧雕像 | spring | 0x4D49000000000002 | 0x4D490002 | 1 | OwnerNativeGameplay |
 | 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 1 | LocalPresentation |
+| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 1 | OwnerNativeGameplay |
 
-三种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+四种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
 跳跃雕像在落地、没有原版待处理跳跃且未处于跳跃状态时，继续调用原版跳跃输入，保持原力度；不另加落地等待，也不在拿起时清空体力。
 
@@ -84,11 +86,17 @@ flowchart LR
 
 近景在原版 SetFovShakeData.LateUpdate 前撤销仍属于自己的上次 FOV 写入，让原版计算正常视野；Finalizer 在原版成功返回后保存结果，再覆盖最终 Camera.fieldOfView。每次核对实际持有物、本机角色控制权、健康/Ready/兼容状态、控制可用及镜头关联的 playerPerlinShake，只作用于站立/蹲下视角。菜单/F8、放下、转交、死亡、角色/镜头替换、断线或卸载时恢复自己仍持有的写入；若游戏或其他 MOD 已写不同值则保留。异常时停用到释放，原生异常保持传播，不逐帧重试或刷屏。Unity 镜头更新顺序及与其他 MOD 并用仍需游戏验收。
 
+声控只在当前持有者读取 `InputsManager.Move` 时用 Postfix 替换返回的 Vector2：声音满足条件输出向前，否则输出零。键盘、重绑定按键和手柄摇杆的方向输入都在此入口被替换；不写原版存储的输入值、不解绑动作订阅，转向、跳跃、蹲下、奔跑、交互和放下继续使用原版输入。取消前进输入不会清除原版惯性、重力或外力。
+
+音频补丁在原版 `PlayerMicrophone.ProcessAudio` 完成后发布 `_correctedAmplitude` 和时间戳，主线程消费当前持有者麦克风的样本。启动阈值读取原版 `amplitudeThreshold`，这是数字音量幅值，不是物理声压分贝；只在原版值无效时采用保护值。短时平滑与较低的停止阈值避免临界抖动，过期/无效样本停止推进，因此启停时机与原版制造噪声的较长平均窗口并不完全相同。没有独立 CFG 阈值；具体平滑和保护参数以源码为准，原版证据见 [声控研究](../DEVELOPMENT.md#voice-research-0215)。
+
+每次消费输入重新检查实际持有物、物品归属、本机角色控制权、健康、Ready/兼容和控制状态。静音、麦克风失效、菜单/F8 或控制禁用时清空采样并输出零；恢复后需要新声音样本。转交、放下、死亡、库存/角色切换、断线及卸载撤销覆盖，不必恢复输入字段或订阅。音频回调只发布样本/错误，主线程处理生命周期与异常日志；原生读取异常后停用到释放。原版按键说话决定可用声音输入，真实麦克风/原生补丁执行仍待游戏验收。
+
 0.2.12 曾把弹簧保存在 jumping 身份下；拆分后 jumping 恢复跳跃，弹簧另用 spring，调试命令相应改变。没有自动迁移已有存档类型；升级变化见 [CHANGELOG](../CHANGELOG.md)，存档恢复仍待验收。
 
 ## 自然生成
 
-服务端在原版 SrvSpawnItemsForData 开始前复制当前 ItemSet，再按每个定义的 `PoolTemplateId ?? TemplateId` 将自有配置加入对应雕像候选 entry。当前快照中三种匹配含 Slippery 的 9 个池；Score 本身主要位于答题池，外观模板不等于合适的普通地图匹配标记。
+服务端在原版 SrvSpawnItemsForData 开始前复制当前 ItemSet，再按每个定义的 `PoolTemplateId ?? TemplateId` 将自有配置加入对应雕像候选 entry。当前四种均使用 Slippery 匹配标记；原版资源快照中有 9 个池含该标记。Score 本身主要位于答题池，外观模板不等于合适的普通地图匹配标记。
 
 批次副本保留原版候选顺序、bonus、生成数量与难度字段，重复接入每种只加入一次。缺失注册/兼容或 NaturalSpawning=false 时排除自有候选；客户端不修改自然池。完成或异常后只释放批次副本。
 
@@ -113,7 +121,7 @@ flowchart LR
 | 执行端 | 决策与执行 | 网络和恢复要求 |
 | --- | --- | --- |
 | LocalPresentation | 当前持有者客户端修改自己的画面/声音/UI | 持有身份沿用权威状态；各退出路径恢复自身表现 |
-| OwnerNativeGameplay | 拥有角色控制权的客户端调用原版动作 | 运动/动画继续走已确认的原版同步；服务端和观察者不重复执行 |
+| OwnerNativeGameplay | 拥有角色控制权的客户端调用原版动作或提供原版运动输入 | 运动/动画继续走已确认的原版同步；服务端和观察者不重复执行 |
 | ServerGameplay | 服务端验证并修改世界/跨玩家状态 | 效果自己调用实际网络 setter/RPC；自有稳定状态另设计快照 |
 
 执行器通过原版配置 ID 识别类型，以 ItemOwner 与 InventoryNew.InHand 判断实际持有物；本地动作还要求本机角色有移动控制权、连接 Ready、清单匹配且游戏控制可用。EntityManager.Me 来自 UserInstance.Me.playerEntity，不用 PlayerEntity.isLocalPlayer 再拒绝可移动房主。
@@ -124,11 +132,13 @@ flowchart LR
 
 近景由当前持有者客户端执行，房主和观察者不重复修改画面，也不广播 FOV。转交后新持有者按原版持有状态启用自己的效果，晚加入按当前物品/持有状态恢复；没有新增权威玩法状态或随机结果。全部参与端仍需注册兼容类型，真实双端的持有/转交时序尚待验证。
 
+声控由持有者所属且有移动控制权的客户端读取自己的麦克风，并向原版运动入口提供方向输入。房主观察远端持有者时不替其推进，不新增音量/前进消息；运动、动画、奔跑体力、碰撞和物品持有状态沿用原版路径。转交后新持有者以空采样开始；晚加入依靠原版物品/角色状态恢复，不重放历史声音。四种类型均须先注册并通过兼容准入，旧三类型清单不兼容；真实双端、观察者、转交与晚加入仍需实测。
+
 声明 ServerGameplay 不会自动同步字段。新增价值状态应使用 Network_currentValue 等实际原版入口；新增稳定玩法状态、随机结果、可重放事件或存档契约需要独立设计与验证。
 
 ## 便签资源与生命周期
 
-跳跃/弹簧显式配置 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "jumping")`，类型 key 与图案 key 分开，暂用同一图案。近景使用单参数 `StickyNoteVisuals.Create(prefab)`，只加载空白 paper.rgba。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
+跳跃/弹簧显式配置 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "jumping")`，类型 key 与图案 key 分开，暂用同一图案。近景/声控使用单参数 `StickyNoteVisuals.Create(prefab)`，只加载空白 paper.rgba。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json 和按图案 key 选择的预合成 RGBA mip 链创建视觉对象，挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
@@ -149,7 +159,7 @@ flowchart LR
 
 后部摆放 20 种非怪物原版雕像（含两种特殊拼图；排除怪物 WanderingDice），两排各 10 个。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。
 
-布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，当前为 jumping → near_view → spring，新增时间不决定位置。三种布局已做源码模拟，实际同时陈列尚待游戏验收。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
+布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，当前为 jumping → near_view → spring → voice，新增时间不决定位置。四种布局已做源码模拟，实际同时陈列尚待游戏验收。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
 
 ## Interop 禁用项
 
