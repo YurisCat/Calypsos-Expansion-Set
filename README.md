@@ -1,43 +1,59 @@
 # Calypso's Expansion Set
 
-Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。
-
-当前版本 **0.2.12**。
-
-版本变化见 [更新记录（CL）](CHANGELOG.md)，详细验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。当前源码版本 **0.2.13**；构建、部署与验收状态见 [TODO](TODO.md)，版本变化见 [CHANGELOG](CHANGELOG.md)。
 
 ## 当前内容
 
-- 弹簧雕像（`jumping`）：额头便签显示用户绘制的弹簧图案；持有时约半米小跳，穿插正常跳或略高跳，呈现弹簧玩具的节奏。每次落地后等待 1 秒再跳，放下停止，菜单/F8 开启时暂停。沿用原版跳跃条件和体力处理。
-- 可扩展的雕像定义、注册与持有效果 API。
-- 自然候选池接入、生成日志和多人兼容握手。
-- 可选的 F8 调试窗口与 `list`、`status`、`spawn <key>`、`teleport` 命令。
+- **跳跃雕像（jumping）**：持有时落地后继续按原力度跳跃。
+- **弹簧雕像（spring）**：约半米小跳，穿插正常跳与稍高跳，所有节拍落地后等待 1 秒。
+- 两种均带额头便签，暂用同一张弹簧图案；均不在拿起时清空体力，放下停止，菜单/F8 开启时暂停。沿用原版跳跃条件、体力处理和运动/动画同步。
+- 自然候选池接入、多人兼容准入及可扩展注册 API 已实现。入池不保证每局出现；所有需要内容的玩家安装兼容版本和相同类型清单，真实双端验收状态以 TODO 为准。
 
-便签网格和按雕像 key 合成的纹理内嵌在 DLL 中。当前采用模型师的不透明胶带版本，保留原网格法线，未启用交付的高度图和细节法线图。图案用透明 PNG 绘制，通过 `scripts/PrepareNoteArtwork.py` 合成到纸面正面，再编译部署；这不是运行期热加载。使用方法见 [便签资源说明](Assets/StickyNote/README.md)。DebugMode 下还提供 `visual jumping texture|white|flat` 命令，对比已合成图案、纯白底色和纯白逐面法线；这是本端视觉诊断，不改玩法。完成对照后用 `visual jumping texture` 恢复。
+具体身份、参数与模块职责见 [当前设计](docs/ARCHITECTURE.md)。便签图案需要显式导入、编译和重启，不支持运行期热加载；制作方法见 [便签资源说明](Assets/StickyNote/README.md)。
 
-`DebugMode=true` 时，房主可在 F8 窗口点击 **Teleport to next MOD idol**，循环传送到当前存活的 MOD 雕像旁边；自然生成和手动生成的实例都可定位。
+## 配置与 F8 调试
 
-自然生成、多人同步及其他未完成项目以 [TODO.md](TODO.md) 为准。未来计划加入更多雕像、骰子和生活质量改善。
+配置文件为 `BepInEx/config/calypso.invokyr.expansionset.cfg`。
+
+| 配置项 | 默认值 | 用途 |
+| --- | --- | --- |
+| [Gameplay] NaturalSpawning | true | 加入匹配的原版自然候选池，保留原版生成总数 |
+| [Debug] DebugMode | false | 开启 MOD 调试模式，启用测试工具和诊断日志；不影响正常玩法 |
+| [Debug] WindowKey | F8 | 打开/关闭测试窗口；None 禁用按键 |
+| [Debug] TestRoomEnabled | false | 允许专用测试房启动，仍需参数与 DebugMode |
+
+修改 CFG 后重启游戏。普通游玩设 DebugMode=false，关闭测试工具和诊断日志，保留必要状态与异常日志。只关闭 F8 窗口不会关闭调试模式。
+
+DebugMode=true 时按 F8，点击命令输入框输入：
+
+| 命令 | 操作 |
+| --- | --- |
+| list / status / help | 查看类型、状态与帮助 |
+| spawn jumping / spawn spring | 房主在附近生成对应雕像；每种同时最多一只手动实例 |
+| teleport | 房主循环传送到存活的 MOD 雕像旁；也可点击 Teleport to next MOD idol |
+| visual <key> texture / white / flat | 比较该类型便签的图案、纯白底色和逐面法线；结束时用 texture 恢复 |
+
+出售/销毁手动实例后可再次生成，自然实例不占调试限额。新类型的列表与命令自动来自注册清单；快捷生成按钮只显示前三种。窗口开启会暂停原版动作并解锁鼠标，关闭后恢复；不要在菜单等控制禁用状态强行生成。
 
 ## 单人测试房
 
-专用启动参数为 `--ces-test-room`，同时需要 CFG 中 `[Debug]` 的 `DebugMode=true` 和 `TestRoomEnabled=true`。本机桌面“测试”快捷方式已配置为通过 Steam 启动，并使用原游戏图标。
+退出当前游戏，在 CFG 中设定：
 
-该入口停止 Unity Logo，沿原版 KCP 主机流程进入单人场景，在初始房间门外创建明亮的空旷陈列房、打开连接门，将玩家传送到陈列区前方。20 种原版可拿取雕像放在房间后部，两排、每排 10 个，横向间距 2.2 米、排距 3.2 米，包括两种特殊拼图雕像；每只下方使用游戏自带的 `SM_SocleStatue` 基座模型及 `M_SocleStatue` 材质。查找表中另一个 WanderingDice 条目实际是怪物实体，按无怪要求排除。
+```ini
+[Debug]
+DebugMode = true
+TestRoomEnabled = true
+```
 
-中部按注册清单的稳定 key 排列 MOD 雕像，每种一只，目前是 `jumping`。以后新增定义、编译部署并重新通过“测试”启动，即可自动出现在中部，不需要为每种内容写陈列分支。不满一排时居中；超过三排时自动向后延长房间，保持与原版区分隔。MOD 陈列实例计入该类型的调试上限，仍存活时 F8 不重复生成；出售/销毁后才可再次手动生成。
+启动时附加 `--ces-test-room`。若已配置专用“测试”快捷方式可直接双击；也可以通过 Steam 启动，以下路径替换成自己的 Steam 安装目录：
 
-测试会话阻止远端加入、骰子事件、常规怪物生成和存档写入，不自动补刷已取走或销毁的雕像。需要重置时退出游戏并重新双击“测试”。顶部仅过滤本地化键 `UI/lobby/waitPlayerBeforeStart` 对应的“棋盘开启后将无法加入游戏”，其他提示与 HUD 保留，未实现的雕像效果说明也不会被这一过滤规则屏蔽。
+```powershell
+& '<Steam 安装目录>\steam.exe' -applaunch 3883570 --ces-test-room
+```
 
-0.2.7 已完成本机单人启动、20 种陈列、玩家落点、开门状态、Logo 停止和提示过滤的实机检查，以及画面亮度复核；尚未逐种验收全部原版效果、行走往返或多人行为。该测试房限定单人使用。源码/模拟/游戏证据边界详见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+参数与两个开关必须同时满足。游戏自动开本机单人会话、跳过 Logo，在初始房门外建立明亮陈列房并将玩家放到前方。后部是 20 种非怪物原版雕像，中部按注册清单陈列每种 MOD 一只，使用原版石质基座；当前源码会陈列 jumping 和 spring，各占自己的调试限额。
 
-0.2.9 本机实测确认中部 MOD 展位生成弹跳雕像，便签在陈列、拿起和放下后可见；持有时有周期跳跃，打开 F8 暂停、关闭后恢复，放下停止。本轮没有重新运行自然探索抽取或真实双端测试，进入候选池仍不保证每局出现。
-
-测试房布局已在 0.2.9 中复核：后部两排原版陈列、游戏原版基座、中部便签雕像及 F8 重复生成限制均保留。新增类型只需完成注册、编译部署并重启测试游戏；当前已运行的房间不会热追加或自动补刷。
-
-0.2.11 根据手感反馈调高小跳、拉长间隔：小跳落地后等待从 0.10 秒增加到 0.45 秒，起跳速度上限从 1.8 调至 2.4；正常跳和稍高跳幅度不变。狐狸节点单人测试房的小跳位置采样多数约 13～15 厘米，正常跳约 1.4 米，稍高跳约 1.7 米；数值只代表该场景观察，不是所有地形/重力条件下的保证。节奏仍为四次小跳后正常跳、五次小跳后稍高跳，循环执行。只在对应的原版起跳调用内临时调整力度，随后恢复；没有各客户端独立抽取随机结果。`jumping` 的 ContentVersion=6，所有联机端须更新兼容内容版本，真实双端仍待验收。
-
-0.2.12 将显示名改为“弹簧雕像”，稳定 key/配置 ID/assetId 保留；小跳目标提高至约 50 厘米，所有节拍落地等待统一为 1 秒，正常/稍高跳的力度不变。增加用户提供的临时便签图案，`ContentVersion=7`。实际校准记录与当前构建的验收边界见 [DEVELOPMENT.md](DEVELOPMENT.md)；旧版本的高度记录不代表当前参数。
+测试房阻止远端加入、骰子事件、常规怪物生成和存档写入，只过滤指定的棋盘加入提示。不会自动补刷取走或销毁的雕像；重置时退出游戏，用相同参数重启。普通启动不自动建房。布局与补丁范围见 [设计说明](docs/ARCHITECTURE.md#调试与测试房)，对应版本实际验收见 [DEVELOPMENT](DEVELOPMENT.md)。
 
 ## 统一名称
 
@@ -107,12 +123,19 @@ using CalypsoExpansionSet;
 
 `TemplateId` 选择克隆的配置和外观；可选 `PoolTemplateId` 选择自然池的匹配模板，未指定时沿用 `TemplateId`。两者都使用游戏雕像配置 ID，入池后仍由原版规则筛选和抽取。
 
-## 修改跳跃雕像属性
+## 调整雕像属性与外观
 
-直接编辑 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs) 顶部的 `Definition`。第五个参数 `7331884207844971565UL` 是 `TemplateId`，目前从 Score 模板复制基础配置和外观；`PoolTemplateId` 只决定匹配哪些自然池。
+跳跃雕像编辑 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs)，弹簧雕像编辑 [Idols/SpringIdol.cs](Idols/SpringIdol.cs) 顶部的 Definition。ConfigureData 修改自有配置，ConfigurePrefab 修改自有预制体，InitialWeight 设置初始相对权重；没有覆盖的属性继承模板。
 
-文件内已留有带模板值的注释示例：取消 `ConfigureData` 块的注释，只保留需要调整的分值、难度、持有减速或缩放字段；质量等组件属性在 `ConfigurePrefab` 块中调整。没有覆盖的属性继续继承模板。抽取权重可单独设置 `InitialWeight`，不是百分比。
+基础分值不同于实例显示/出售的 CurrentValue，修改 scoreBasePoint 不会固定售价。改变玩法、配置或外观契约后提升 ContentVersion，重新编译、部署并重启，联机各端更新兼容构建。字段含义与资源生命周期见 [类型注册](docs/ARCHITECTURE.md#类型注册)，原版属性证据见 [DEVELOPMENT](DEVELOPMENT.md#23-原版配置属性与普通雕像的资源默认值)。
 
-`scoreBasePoint` 是基础分值，实例显示与出售使用的 `CurrentValue` 仍由生成后的计价流程设置。改变基础分值不会固定最终售价。实际修改属性后提升 `ContentVersion`，使用 `scripts/Build.ps1` 重新编译，手动部署并重启游戏；联机各端需更新兼容构建。完整模板属性见 [DEVELOPMENT.md](DEVELOPMENT.md#23-原版配置属性与普通雕像的资源默认值)。
+## 文档分工
 
-开发约定见 [AGENTS.md](AGENTS.md)，研究与验收记录见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+| 文档 | 内容 |
+| --- | --- |
+| [AGENTS](AGENTS.md) | 长期开发约定、禁止事项和工作阅读入口 |
+| [当前设计](docs/ARCHITECTURE.md) | 当前模块、注册、效果、同步、资源与调试实现 |
+| [TODO](TODO.md) | 最新状态、未完成事项与下一步验收 |
+| [CHANGELOG](CHANGELOG.md) | 各版本对用户可见的变化 |
+| [DEVELOPMENT](DEVELOPMENT.md) | 研究与验证历史，按当时版本保留证据 |
+| [便签说明](Assets/StickyNote/README.md) | 网格/贴图来源、导入工具与视觉诊断 |

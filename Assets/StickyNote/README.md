@@ -21,7 +21,7 @@ python scripts/PrepareNoteArtwork.py --key jumping --input "<透明图案 PNG �
 
 画布横向映射到 U=0.020310～0.982463；顶部对应 V=0.871263、底部 V=0.010619。不翻转或镜像图案；按当前网格朝向，画布左侧对应头部局部坐标 +X。只合成纸面正面矩形，胶带、背面、折边使用原底图，最终材质保持不透明。透明的是绘画素材，不是纸本身。
 
-定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<key>")`；无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
+定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。0.2.13 的跳跃雕像（`jumping`）和弹簧雕像（`spring`）都暂时传入 `"jumping"`，复用已有弹簧图案，各自创建独立网格、材质和纹理；以后更换各自图案时修改对应定义。当前本项目的两种 MOD 雕像均使用便签。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
 
 更新图案后提升定义的 `ContentVersion`，重新编译、部署并重启游戏。此流程是显式导入工具，不会监控用户文件夹或热替换运行中的纹理。
 
@@ -31,8 +31,8 @@ python scripts/PrepareNoteArtwork.py --key jumping --input "<透明图案 PNG �
 
 DebugMode 开启时，F8 命令：
 
-- `visual jumping texture`：已合成的弹簧图案＋纸底＋原模型法线，默认。
-- `visual jumping white`：纯白底色＋原模型法线，隔离底色图影响。
-- `visual jumping flat`：纯白底色＋逐面几何法线，进一步比较法线插值。
+- `visual jumping texture` 或 `visual spring texture`：对应类型的已合成图案＋纸底＋原模型法线，默认。
+- `visual jumping white` 或 `visual spring white`：对应类型的纯白底色＋原模型法线，隔离底色图影响。
+- `visual jumping flat` 或 `visual spring flat`：对应类型的纯白底色＋逐面几何法线，进一步比较法线插值。
 
-诊断仅改变本端该类型的便签显示，不修改原模型文件、其他类型、玩法或网络状态；结束比较后使用 `visual jumping texture` 恢复。便签资源随注册失败回滚或退出会话后的正常卸载清理，活跃房间禁止热卸载。
+诊断仅改变本端该类型的便签显示，不修改原模型文件、其他类型、玩法或网络状态；结束比较后使用该类型的 `visual <key> texture` 恢复。便签资源随注册失败回滚或退出会话后的正常卸载清理，活跃房间禁止热卸载。

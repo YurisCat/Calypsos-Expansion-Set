@@ -29,7 +29,7 @@ internal sealed class IdolDebugTools : IDisposable
     {
         _plugin = plugin;
         _enabled = plugin.Config.Bind("Debug", "DebugMode", false,
-            "开启 MOD 测试窗口。按 WindowKey 打开，在输入框输入 spawn jumping 生成一只；list 查看类型。关闭不影响雕像效果。");
+            "开启 MOD 调试模式，启用测试工具和诊断日志；关闭不影响正常玩法。");
         var key = plugin.Config.Bind("Debug", "WindowKey", "F8",
             "打开/关闭测试窗口的唯一按键，默认 F8；窗口内输入命令或点击生成按钮。None 禁用按键。");
         if (!Enum.TryParse(key.Value.Trim(), true, out _windowKey) || !Enum.IsDefined(typeof(Key), _windowKey))
