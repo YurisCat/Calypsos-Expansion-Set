@@ -1,15 +1,12 @@
 # Calypso's Expansion Set
 
-Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。当前源码版本 **0.2.13**；构建、部署与验收状态见 [TODO](TODO.md)，版本变化见 [CHANGELOG](CHANGELOG.md)。
+Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像。当前开发版本 **0.2.14**，更新记录见 [CHANGELOG](CHANGELOG.md)。
 
 ## 当前内容
 
-- **跳跃雕像（jumping）**：持有时落地后继续按原力度跳跃。
-- **弹簧雕像（spring）**：约半米小跳，穿插正常跳与稍高跳，所有节拍落地后等待 1 秒。
-- 两种均带额头便签，暂用同一张弹簧图案；均不在拿起时清空体力，放下停止，菜单/F8 开启时暂停。沿用原版跳跃条件、体力处理和运动/动画同步。
-- 自然候选池接入、多人兼容准入及可扩展注册 API 已实现。入池不保证每局出现；所有需要内容的玩家安装兼容版本和相同类型清单，真实双端验收状态以 TODO 为准。
-
-具体身份、参数与模块职责见 [当前设计](docs/ARCHITECTURE.md)。便签图案需要显式导入、编译和重启，不支持运行期热加载；制作方法见 [便签资源说明](Assets/StickyNote/README.md)。
+- **跳跃雕像**：持有时自动连续跳跃。
+- **弹簧雕像**：持有时有节奏地弹跳，小跳中穿插大跳。
+- **近景雕像**：持有时视野变窄，眼前景物放大。
 
 ## 配置与 F8 调试
 
@@ -29,7 +26,7 @@ DebugMode=true 时按 F8，点击命令输入框输入：
 | 命令 | 操作 |
 | --- | --- |
 | list / status / help | 查看类型、状态与帮助 |
-| spawn jumping / spawn spring | 房主在附近生成对应雕像；每种同时最多一只手动实例 |
+| spawn <key> | 房主在附近生成对应雕像，如 jumping、spring、near_view；每种同时最多一只手动实例 |
 | teleport | 房主循环传送到存活的 MOD 雕像旁；也可点击 Teleport to next MOD idol |
 | visual <key> texture / white / flat | 比较该类型便签的图案、纯白底色和逐面法线；结束时用 texture 恢复 |
 
@@ -51,7 +48,7 @@ TestRoomEnabled = true
 & '<Steam 安装目录>\steam.exe' -applaunch 3883570 --ces-test-room
 ```
 
-参数与两个开关必须同时满足。游戏自动开本机单人会话、跳过 Logo，在初始房门外建立明亮陈列房并将玩家放到前方。后部是 20 种非怪物原版雕像，中部按注册清单陈列每种 MOD 一只，使用原版石质基座；当前源码会陈列 jumping 和 spring，各占自己的调试限额。
+参数与两个开关必须同时满足。游戏自动开本机单人会话、跳过 Logo，在初始房门外建立明亮陈列房并将玩家放到前方。后部是 20 种非怪物原版雕像，中部按注册清单陈列每种 MOD 一只，使用原版石质基座，各占自己的调试限额。MOD 展品按稳定 key 的字母顺序排列，当前为 jumping → near_view → spring；新增类型会按 key 插入相应位置。
 
 测试房阻止远端加入、骰子事件、常规怪物生成和存档写入，只过滤指定的棋盘加入提示。不会自动补刷取走或销毁的雕像；重置时退出游戏，用相同参数重启。普通启动不自动建房。布局与补丁范围见 [设计说明](docs/ARCHITECTURE.md#调试与测试房)，对应版本实际验收见 [DEVELOPMENT](DEVELOPMENT.md)。
 
@@ -98,6 +95,8 @@ dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false '-p:I
 
 ## 安装与部署
 
+联机时，所有玩家都需安装兼容版本的 MOD。
+
 退出游戏后运行部署脚本：
 
 ```powershell
@@ -119,13 +118,13 @@ using CalypsoExpansionSet;
 // 在自己的 Load 中调用 CalypsoExpansionSetApi.Register(definition)。
 ```
 
-雕像配置 ID、Mirror assetId 和消息号必须保持稳定；参与联机的玩家需安装兼容版本及相同的注册内容。
+雕像配置 ID、Mirror assetId 和消息号必须保持稳定。
 
 `TemplateId` 选择克隆的配置和外观；可选 `PoolTemplateId` 选择自然池的匹配模板，未指定时沿用 `TemplateId`。两者都使用游戏雕像配置 ID，入池后仍由原版规则筛选和抽取。
 
 ## 调整雕像属性与外观
 
-跳跃雕像编辑 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs)，弹簧雕像编辑 [Idols/SpringIdol.cs](Idols/SpringIdol.cs) 顶部的 Definition。ConfigureData 修改自有配置，ConfigurePrefab 修改自有预制体，InitialWeight 设置初始相对权重；没有覆盖的属性继承模板。
+跳跃雕像编辑 [Idols/JumpingIdol.cs](Idols/JumpingIdol.cs)，弹簧雕像编辑 [Idols/SpringIdol.cs](Idols/SpringIdol.cs)，近景雕像编辑 [Idols/FovIdol.cs](Idols/FovIdol.cs) 的 Definition 与内置 FieldOfView。ConfigureData 修改自有配置，ConfigurePrefab 修改自有预制体，InitialWeight 设置初始相对权重；没有覆盖的属性继承模板。
 
 基础分值不同于实例显示/出售的 CurrentValue，修改 scoreBasePoint 不会固定售价。改变玩法、配置或外观契约后提升 ContentVersion，重新编译、部署并重启，联机各端更新兼容构建。字段含义与资源生命周期见 [类型注册](docs/ARCHITECTURE.md#类型注册)，原版属性证据见 [DEVELOPMENT](DEVELOPMENT.md#23-原版配置属性与普通雕像的资源默认值)。
 

@@ -10,11 +10,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.13</Version>
+    <Version>0.2.14</Version>
     <Product>Calypso's Expansion Set</Product>
-    <Company>MHZ</Company>
-    <Authors>Masaicker</Authors>
-    <Copyright>Copyright © 2026 Masaicker</Copyright>
+    <Authors>YurisCat;Masaicker</Authors>
+    <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>
   </PropertyGroup>
 
   <PropertyGroup>

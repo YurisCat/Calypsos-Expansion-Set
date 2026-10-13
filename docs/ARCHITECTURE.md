@@ -25,6 +25,7 @@
 | [JumpingIdolSync.cs](../JumpingIdolSync.cs) | 全类型兼容准入与服务器实例/调试来源记录；保留历史文件名 |
 | [Idols/JumpingIdol.cs](../Idols/JumpingIdol.cs) | 原力度连续跳跃 |
 | [Idols/SpringIdol.cs](../Idols/SpringIdol.cs) | 弹簧编排、原生单次力度补丁与可选测量 |
+| [Idols/FovIdol.cs](../Idols/FovIdol.cs) | 近景持有者的本地 FOV 覆盖与恢复 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs) | 便签网格、纹理、材质与视觉诊断资源 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
@@ -61,14 +62,15 @@ flowchart LR
 
 ## 内置雕像
 
-身份参数的权威来源是两种源码的 Definition。当前定义如下：
+身份参数的权威来源是各类型源码的 Definition。当前定义如下：
 
 | 名称 | key | 配置 ID | assetId | ContentVersion | 执行端 |
 | --- | --- | --- | --- | --- | --- |
 | 跳跃雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 8 | OwnerNativeGameplay |
 | 弹簧雕像 | spring | 0x4D49000000000002 | 0x4D490002 | 1 | OwnerNativeGameplay |
+| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 1 | LocalPresentation |
 
-两种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+三种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
 跳跃雕像在落地、没有原版待处理跳跃且未处于跳跃状态时，继续调用原版跳跃输入，保持原力度；不另加落地等待，也不在拿起时清空体力。
 
@@ -78,11 +80,15 @@ flowchart LR
 
 两种均不主动写体力，继续沿用原版起跳体力处理。菜单/控制禁用时不新增动作；空中和既有请求优先完成。手动跳跃不强制变成弹簧节拍，可推迟自动节奏。放下/转交/失效时停止效果，但不截断已经由原版接受的跳跃。
 
+近景雕像内置 FOV=15°，不提供 CFG 参数，不写原版 GraphicsSettings 或虚拟镜头配置。当前游戏原版默认 FOV=65°，设置范围为 30°～90°；这是设置范围，奔跑/抖动/取景等运行期叠加另行处理，原生证据见 [DEVELOPMENT](../DEVELOPMENT.md#fov-research-0214)。
+
+近景在原版 SetFovShakeData.LateUpdate 前撤销仍属于自己的上次 FOV 写入，让原版计算正常视野；Finalizer 在原版成功返回后保存结果，再覆盖最终 Camera.fieldOfView。每次核对实际持有物、本机角色控制权、健康/Ready/兼容状态、控制可用及镜头关联的 playerPerlinShake，只作用于站立/蹲下视角。菜单/F8、放下、转交、死亡、角色/镜头替换、断线或卸载时恢复自己仍持有的写入；若游戏或其他 MOD 已写不同值则保留。异常时停用到释放，原生异常保持传播，不逐帧重试或刷屏。Unity 镜头更新顺序及与其他 MOD 并用仍需游戏验收。
+
 0.2.12 曾把弹簧保存在 jumping 身份下；拆分后 jumping 恢复跳跃，弹簧另用 spring，调试命令相应改变。没有自动迁移已有存档类型；升级变化见 [CHANGELOG](../CHANGELOG.md)，存档恢复仍待验收。
 
 ## 自然生成
 
-服务端在原版 SrvSpawnItemsForData 开始前复制当前 ItemSet，再按每个定义的 `PoolTemplateId ?? TemplateId` 将自有配置加入对应雕像候选 entry。当前快照中两种匹配含 Slippery 的 9 个池；Score 本身主要位于答题池，外观模板不等于合适的普通地图匹配标记。
+服务端在原版 SrvSpawnItemsForData 开始前复制当前 ItemSet，再按每个定义的 `PoolTemplateId ?? TemplateId` 将自有配置加入对应雕像候选 entry。当前快照中三种匹配含 Slippery 的 9 个池；Score 本身主要位于答题池，外观模板不等于合适的普通地图匹配标记。
 
 批次副本保留原版候选顺序、bonus、生成数量与难度字段，重复接入每种只加入一次。缺失注册/兼容或 NaturalSpawning=false 时排除自有候选；客户端不修改自然池。完成或异常后只释放批次副本。
 
@@ -116,11 +122,13 @@ flowchart LR
 
 雕像生成、配置、物品持有状态及实例晚加入恢复使用原版网络 prefab/SyncVar；没有重复的自有实例 marker 快照。跳跃/弹簧只有持有者所属端编排动作，观察者依靠原版运动/动画同步看到结果；弹簧力度不另作自有网络字段广播。原版路径接入、托管模拟与真实双端验收是不同证据，当前边界查看 [TODO](../TODO.md)。
 
+近景由当前持有者客户端执行，房主和观察者不重复修改画面，也不广播 FOV。转交后新持有者按原版持有状态启用自己的效果，晚加入按当前物品/持有状态恢复；没有新增权威玩法状态或随机结果。全部参与端仍需注册兼容类型，真实双端的持有/转交时序尚待验证。
+
 声明 ServerGameplay 不会自动同步字段。新增价值状态应使用 Network_currentValue 等实际原版入口；新增稳定玩法状态、随机结果、可重放事件或存档契约需要独立设计与验证。
 
 ## 便签资源与生命周期
 
-当前两种内置雕像都显式配置 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "jumping")`。类型 key（jumping/spring）与图案 key 分开，暂用同一图案，但每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
+跳跃/弹簧显式配置 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "jumping")`，类型 key 与图案 key 分开，暂用同一图案。近景使用单参数 `StickyNoteVisuals.Create(prefab)`，只加载空白 paper.rgba。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json 和按图案 key 选择的预合成 RGBA mip 链创建视觉对象，挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
@@ -141,7 +149,7 @@ flowchart LR
 
 后部摆放 20 种非怪物原版雕像（含两种特殊拼图；排除怪物 WanderingDice），两排各 10 个。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。
 
-布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。当前两种布局已做源码检查，实际同时陈列尚待游戏验收。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
+布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，当前为 jumping → near_view → spring，新增时间不决定位置。三种布局已做源码模拟，实际同时陈列尚待游戏验收。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
 
 ## Interop 禁用项
 
