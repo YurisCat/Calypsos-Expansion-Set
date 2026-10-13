@@ -9,6 +9,7 @@
 - 项目名称统一使用 `Calypso's Expansion Set`；早期框架、测试构建和当前内容均属于本项目，按开发版本记录。文档中的“原版”指 Invokyr 游戏本体。
 - Invokyr，Unity IL2CPP，BepInEx 6，Mirror；主游戏程序集为 `vhs.dll`，不是 `Assembly-CSharp.dll`。
 - 主游戏接口使用本机 `BepInEx/interop/vhs.dll`。可用的本机研究缓存位于 `.local/research/code-addresses/DiffableCs/vhs`，或 `D:\zd\ModEditor\Invokyr\libs/vhs`；先检查路径是否存在。直接用 `rg` 搜索并以 UTF-8 读取，区分 metadata 声明、interop 包装代码与已确认的原生行为。
+- 2026-10-13 的当前原生地址缓存为 `.local/research/code-20261013/DiffableCs/vhs`，对应 GameAssembly SHA256 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`。旧 `code-addresses` 的 RVA 已不匹配此二进制，不能拿旧地址反汇编当前文件后声称确认原生行为；更新后重新提取并核对。
 - 雕像实体属于 Item：`ScoreTool : Tool : Item`；配置为 `SOScoreTool : SOTool : SOItem`。
 - “类型注册”是配置、查找表、网络预制体与效果定义的接入；`EntityManager.RegisterIdol` 只登记现存实体。
 - “小局”是确认骰子事件后探索变化地图、带回雕像的这一轮；“大局”是整个房间/跑团会话。日志另外使用生成批次、事件 ID 和 seed，不混淆三者。
@@ -51,6 +52,7 @@
 - 初期可复用原版模型；自定义外观仅修改自有预制体，校验碰撞、刚体、拾取/双手姿态、丢弃、网络组件顺序和模型高度。
 - 更换原版外观可选用其他有效的雕像 `TemplateId`，同时复核继承的基础属性；未指定 `PoolTemplateId` 时还会改变自然池匹配条件。自制外观通过 `ConfigurePrefab` 修改自有预制体的视觉部分，保留必要的 `ScoreTool`、网络 identity、拾取和物理结构；资源加载需单独实现，注册 API 不会自动导入模型。
 - 独立模型/材质/音频资源需在所有需要显示的客户端加载；避免以添加网络组件的方式实现纯视觉效果。
+- 0.2.9 的可选 `CreateVisuals` 在自有预制体上创建外观并返回 `IDisposable`，注册器在后续注册失败或正常卸载时清理；工厂返回前若抛错，工厂自己回滚。便签网格/纹理内嵌 DLL，挂在 `SM_IdolHead` 下，不改原版网络/物理结构。本机 `ImageConversion.LoadImage` 同样有缺失 ReadOnlySpan 包装，便签使用已核对的 `LoadRawTextureData(IntPtr,int)` 载入完整 RGBA mip 链；不要退回未经验证的 LoadImage 调用。
 
 ## 多人同步：每个效果必须声明执行端
 
@@ -67,6 +69,7 @@
 - 0.2.0 使用独立配置 ID 和原版网络 prefab/持有状态识别类型，移除 0.1.2 重复的实例 marker 快照；原版生成/SyncVar 承担实例晚加入恢复。新增自有玩法状态仍需另外设计快照，不能据此假设已有。
 - `EntityManager.Me` 指向 `UserInstance.Me.playerEntity`；控制权使用实际角色的 `isOwned` 等原版语义。不要再次用 `PlayerEntity.isLocalPlayer` 拒绝已能移动的房主。
 - 所有需要此内容的端安装兼容版本；不能无实测承诺“只装房主”。
+- 0.2.12 的“弹簧雕像” `jumping` 为 `OwnerNativeGameplay`、ContentVersion=7，节奏是固定编排，不是各端随机；小跳目标约半米、起跳速度上限 3.6，所有节拍落地等待 1 秒。输入回调排队后，在原版 `PlayerMovement.HandleJumpRequest` 的单次调用内临时调整该角色 `jumpForce`，Finalizer 恢复自己的值；不持久改共享配置、原版重力倍率或刚体速度。待处理记录核对物品/持有者/控制权及原生请求时间戳，放下/转交/超时清理，原生失败后停用本次效果直到释放。此路径需保留原版落地/动作条件和原版运动/动画同步，双端仍需实测。
 
 ## 调试入口与数量
 
@@ -79,6 +82,9 @@
 - 当前 MOD 使用自有测试窗口：`DebugMode` 控制开启，`WindowKey` 默认 F8，命令为 `list`、`status`、`help`、`spawn <key>`、`teleport`；不依赖当前场景不存在的原版控制台 UI。`Teleport to next MOD idol` 按钮仅供 DebugMode 开启的房主使用，按 netId 循环定位当前存活的自然/调试 MOD 雕像，在地面与角色空间检查通过后通过原版 `TargetTeleport` 移动本机角色；关闭窗口、恢复控制后下一帧执行，角色/连接变化或超时取消。旧 F9/F10 和 `MaxTestIdols` 配置已移除。窗口开启时暂停原版动作输入并解锁鼠标，关闭或绘制异常时按所有权条件恢复，不能覆盖游戏自身的状态切换。
 - 当前游戏 interop 的 `GUI.SetNextControlName` 会触发 `ReadOnlySpan.GetPinnableReference` 缺失异常；测试窗口避免控件命名和 `GUI.FocusControl` 自动聚焦，使用点击输入，绘制异常应关闭窗口而不是逐帧刷屏。
 - 不在活跃网络会话中热卸载，存活实体仍引用自有配置；先退出房间，正常卸载才销毁模板和配置。
+- 0.2.7 的专用单人测试房需要 `--ces-test-room`、`DebugMode=true` 与 `TestRoomEnabled=true` 同时满足。该入口由用户明确授权用桌面“测试”快捷方式启动；跳过 Logo、原版 KCP 单人建房、初始房门外连接空旷陈列房、摆放 20 种非怪物原版雕像并移动本机角色。WanderingDice 是怪物，按无怪要求排除。测试补丁仅在专用模式生效，禁止远端加入、事件/怪物生成及存档写入；不自动补刷雕像。测试照明和材质由测试房持有并清理，正常启动不自动创建房间。
+- 测试场景顶部只隐藏 `UI/lobby/waitPlayerBeforeStart` 的精确键或对应译文；不得关闭全局消息组件、整个顶部 UI 或其他提示，保留以后看向雕像时显示名称/效果说明的入口。
+- 0.2.8 测试陈列使用原版 `SM_SocleStatue` 网格与 `M_SocleStatue` 共享材质（只读），只创建自有视觉对象和静态承托碰撞，不复制来源房间或玩法脚本。原版 20 种在后部两排各 10 个，横向 2.2 米、排距 3.2 米；中部按注册清单的稳定 key 为每种 MOD 生成一只，计入该类型调试限额，不自动补刷。新定义应自动加入中部陈列，不写逐种分支；模型和通道净空需按实际资源验证。
 
 ## 生命周期和边缘情况验证
 
@@ -111,3 +117,5 @@
 - 保留项目的署名、版权和 Git 历史；各开发版本的验收记录按实际版本保存，不改写成当前版本已实测。
 - 用户偏好通过资源管理器正常启动游戏，不附加测试参数，不把反复脚本启动作为默认验证方式。
 - `.local`、本机路径、缓存、游戏 DLL 与生成文件不进入 Git；本地早期框架和研究资料的备份位置见 `.local/migration.json`。
+- 涉及部署、游戏启动或电脑控制前，若存在 `.local/WORKSTATION.md`，读取其中本机约定；不存在时沿用本文默认流程。本机专用的节点地址、路径和操作脚本留在 `.local`，不要求其他作者配置相同设备。
+- `人类工作间/` 是用户存放原文件和杂物的本地工作目录，整个目录不进入 Git/GitHub；交付给用户的导出文件统一放在 `人类工作间/接收文件/`，不得清理或覆盖用户放入的其他文件。

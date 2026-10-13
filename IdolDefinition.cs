@@ -34,6 +34,9 @@ public sealed record IdolDefinition(
     public float? InitialWeight { get; init; }
     public Action<SOScoreTool>? ConfigureData { get; init; }
     public Action<GameObject>? ConfigurePrefab { get; init; }
+    // Called on the owned prefab. Return the visual resources' lifetime; clean up
+    // locally if construction throws. The registry disposes it on rollback/unload.
+    public Func<GameObject, IDisposable>? CreateVisuals { get; init; }
 }
 
 public static class CalypsoExpansionSetApi

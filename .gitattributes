@@ -1,0 +1,2 @@
+# Raw Unity texture mip chains must keep their exact bytes on every checkout.
+*.rgba binary

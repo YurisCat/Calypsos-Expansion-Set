@@ -9,6 +9,7 @@ internal sealed class RegisteredIdol
 {
     internal IdolDefinition Definition { get; }
     internal SOScoreTool? Data { get; set; }
+    internal IDisposable? Visuals { get; set; }
     internal RegisteredIdol(IdolDefinition definition) => Definition = definition;
 }
 
@@ -131,6 +132,7 @@ internal sealed class IdolRegistry : IDisposable
         }
         var data = UnityEngine.Object.Instantiate(template);
         GameObject? prefab = null;
+        IDisposable? visuals = null;
         try
         {
             data.name = $"CalypsoExpansionSet.{definition.Key}";
@@ -148,6 +150,9 @@ internal sealed class IdolRegistry : IDisposable
             identity.sceneId = 0;
             identity.assetId = definition.AssetId;
             definition.ConfigurePrefab?.Invoke(prefab);
+            if (definition.CreateVisuals != null)
+                visuals = definition.CreateVisuals(prefab)
+                    ?? throw new InvalidOperationException($"CreateVisuals returned no resource lifetime: {definition.Key}.");
             if (prefab.GetComponent<ScoreTool>() == null || prefab.GetComponent<NetworkIdentity>() == null
                 || data.id != definition.ConfigId || idol.gameplayElementData != data
                 || identity.assetId != definition.AssetId || identity.sceneId != 0)
@@ -156,12 +161,15 @@ internal sealed class IdolRegistry : IDisposable
             prefab.SetActive(true);
             data.prefab = prefab;
             entry.Data = data;
+            entry.Visuals = visuals;
             _log.LogInfo($"[Register] {definition.Key}: cloned config and prefab; assetId={identity.assetId}, "
                 + $"scoreBasePoint={data.scoreBasePoint}, appearance={template.prefab.name}.");
         }
         catch
         {
             if (prefab != null) UnityEngine.Object.Destroy(prefab);
+            try { visuals?.Dispose(); }
+            catch (Exception cleanup) { _log.LogError($"Visual rollback failed for {definition.Key}: {cleanup}"); }
             UnityEngine.Object.Destroy(data);
             throw;
         }
@@ -256,6 +264,12 @@ internal sealed class IdolRegistry : IDisposable
         }
         if (_prefabRoot != null) UnityEngine.Object.Destroy(_prefabRoot);
         _prefabRoot = null;
+        foreach (var entry in _entries)
+        {
+            try { entry.Visuals?.Dispose(); }
+            catch (Exception cleanup) { _log.LogError($"Visual cleanup failed for {entry.Definition.Key}: {cleanup}"); }
+            entry.Visuals = null;
+        }
     }
 
     private void DetachLookup(SOItemLookup lookup)

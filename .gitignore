@@ -7,6 +7,8 @@ riderModule.iml
 
 .local/
 artifacts/
+/人类工作间/
 *.log
 *.user
 .vs/
+__pycache__/

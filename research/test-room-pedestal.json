@@ -1,0 +1,29 @@
+{
+  "research_date": "2026-10-13",
+  "unity_version": "6000.3.14f1",
+  "evidence": "Read from the installed game's serialized assets; these are mesh-local dimensions, not a runtime physics test.",
+  "prefab": {
+    "name": "PF_SocleStatue",
+    "bundle": "44f56c96c1f8b2c4a0b9b44e9736179f.bundle",
+    "path_id": "7045446686338954803",
+    "visual_child": "SM_SocleStatue",
+    "visual_components": ["Transform", "MeshFilter", "MeshRenderer"],
+    "has_original_collider": false
+  },
+  "mesh": {
+    "name": "SM_SocleStatue",
+    "model_addressables_key": "63890c5622abc2b4a8138c2dcfbebf52",
+    "bundle": "d1f214e3ffe38fca6aa0caa97b9b1842.bundle",
+    "path_id": "-5181560206772177940",
+    "bounds_center": [0.007323235273361206, 0.2962886691093445, 0.0018878579139709473],
+    "bounds_extents": [0.7194749116897583, 0.3009710907936096, 1.0368170738220215],
+    "size_meters": [1.4389498233795166, 0.6019421815872192, 2.073634147644043]
+  },
+  "material": {
+    "name": "M_SocleStatue",
+    "addressables_key": "73e95878aab21ce4e8a1c420ccf81f58",
+    "bundle": "ea99bd2745d68879be6d33ea8531697b.bundle",
+    "path_id": "6325686951203783272"
+  },
+  "gallery_usage": "Load the model GameObject and material asynchronously through the original Addressables keys, retaining both handles until gallery cleanup. Read-only shared native mesh/material on own static objects. Center X/Z and align mesh bottom with gallery floor; add own box support because the decorative source has no collider. No original assets or source room objects are edited."
+}

@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.6";
+    public const string PluginVersion = "0.2.12";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -29,6 +29,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal IdolSpawnIntegration Spawns { get; private set; } = null!;
     internal IdolDebugTools DebugTools { get; private set; } = null!;
     internal IdolDebugTeleport Teleports { get; private set; } = null!;
+    internal Testing.TestRoomLaunch TestRoom { get; private set; } = null!;
 
     private JumpingIdolDriver? _driver;
     private IdolEffectRuntime? _effects;
@@ -50,6 +51,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             "将已注册雕像加入含其 PoolTemplateId（未指定时为 TemplateId）的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
+        TestRoom = new Testing.TestRoomLaunch(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
         _driver = AddComponent<JumpingIdolDriver>();
@@ -70,6 +72,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         _driver = null;
         _effects?.Dispose();
         DebugTools.Dispose();
+        TestRoom.Dispose();
         _harmony?.UnpatchSelf();
         Sync.Dispose();
         Registry.Dispose();
@@ -78,6 +81,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 
     internal void Tick()
     {
+        TestRoom.Tick();
         if (_failed) return;
         try
         {
@@ -206,7 +210,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         return true;
     }
 
-    private ScoreTool? SpawnDebugIdol(ItemDropManager manager, SOScoreTool data, Vector3 position)
+    internal ScoreTool? SpawnDebugIdol(ItemDropManager manager, SOScoreTool data, Vector3 position, Quaternion? rotation = null)
     {
         var skin = data.prefab.GetComponent<ScoreTool>().Skin;
         // Direct ground spawning skips the native batch's skin/value initialization.
@@ -227,7 +231,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             SpawnFailure($"No game skin/value data for {skin}. Wait for the scene to finish loading and retry.");
             return null;
         }
-        var tool = manager.SrvSpawnToolOnGround(data, position, new Il2CppSystem.Nullable<Quaternion>(Quaternion.identity));
+        var tool = manager.SrvSpawnToolOnGround(data, position, new Il2CppSystem.Nullable<Quaternion>(rotation ?? Quaternion.identity));
         var idol = tool != null ? tool.TryCast<ScoreTool>() : null;
         if (idol == null)
         {

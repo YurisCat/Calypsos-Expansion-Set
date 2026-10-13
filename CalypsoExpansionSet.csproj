@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.6</Version>
+    <Version>0.2.12</Version>
     <Product>Calypso's Expansion Set</Product>
     <Company>MHZ</Company>
     <Authors>Masaicker</Authors>
@@ -24,6 +24,12 @@
     <PluginPath Condition="'$(PluginPath)' == ''">$(InvokyrPath)\BepInEx\plugins\CalypsoExpansionSet</PluginPath>
     <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\StickyNote\note.mesh.json" LogicalName="CalypsoExpansionSet.StickyNote.note.mesh.json" />
+    <EmbeddedResource Include="Assets\StickyNote\paper.rgba" LogicalName="CalypsoExpansionSet.StickyNote.paper.rgba" />
+    <EmbeddedResource Include="Assets\StickyNote\Baked\*.rgba" LogicalName="CalypsoExpansionSet.StickyNote.Artwork.%(Filename).rgba" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3"

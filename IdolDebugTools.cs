@@ -121,7 +121,7 @@ internal sealed class IdolDebugTools : IDisposable
         switch (words[0].ToLowerInvariant())
         {
             case "help" when words.Length == 1:
-                Report("list: available types\nstatus: registry / network / counts\nspawn <key>: host spawns one near you\nteleport: host cycles through all live MOD idols");
+                Report("list: types | status: registry / network\nspawn <key>: spawn near you\nteleport: next MOD idol\nvisual <key> texture|white|flat: local note comparison");
                 break;
             case "list" when words.Length == 1:
                 Report("Available types: " + string.Join(", ", _plugin.Registry.Entries.Select(entry => entry.Definition.Key)));
@@ -135,8 +135,14 @@ internal sealed class IdolDebugTools : IDisposable
             case "teleport" when words.Length == 1:
                 QueueTeleport();
                 break;
+            case "visual" when words.Length == 3:
+                if (!Enabled || !_plugin.Registry.Ready || !_plugin.Registry.TryGet(words[1], out var visualEntry)
+                    || visualEntry.Visuals is not Visuals.IVisualDiagnostics diagnostics)
+                    Report("No ready visual diagnostics for that key; use list.", true);
+                else Report(diagnostics.SetDiagnosticMode(words[2].ToLowerInvariant()));
+                break;
             default:
-                Report("Unknown command. Use list, status, spawn <key>, or teleport.", true);
+                Report("Unknown command. Use help for commands.", true);
                 break;
         }
     }
