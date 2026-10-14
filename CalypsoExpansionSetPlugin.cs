@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.19";
+    public const string PluginVersion = "0.2.20";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -52,6 +52,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Registry.Register(DuckStepIdol.Definition);
         Registry.Register(ExtremeSpeedIdol.Definition);
         Registry.Register(DelayedMoveIdol.Definition);
+        Registry.Register(RelayIdol.Definition);
         Sync = new JumpingIdolSync(Log, () => Registry.Ready, () => Registry.Manifest);
         Spawns = new IdolSpawnIntegration(this);
         _effects = new IdolEffectRuntime(this);
@@ -113,6 +114,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Registry.EnsureNetworkPrefabs();
             EnsureSessionWeights();
             Sync.Tick();
+            Registry.TickContentRuntimes();
             DebugTools.Tick();
             _effects!.Tick();
         }
@@ -127,6 +129,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         if (_failed) return;
         _failed = true;
         _effects?.Dispose();
+        Registry.StopContentRuntimes();
         DebugTools.Cancel();
         Log.LogError($"Calypso's Expansion Set runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
         // Keep registered resources alive until live entities have been destroyed.

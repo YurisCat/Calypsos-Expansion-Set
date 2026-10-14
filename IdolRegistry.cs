@@ -10,6 +10,7 @@ internal sealed class RegisteredIdol
     internal IdolDefinition Definition { get; }
     internal SOScoreTool? Data { get; set; }
     internal IDisposable? Visuals { get; set; }
+    internal IdolContentRuntime? Runtime { get; set; }
     internal RegisteredIdol(IdolDefinition definition) => Definition = definition;
 }
 
@@ -133,6 +134,7 @@ internal sealed class IdolRegistry : IDisposable
         var data = UnityEngine.Object.Instantiate(template);
         GameObject? prefab = null;
         IDisposable? visuals = null;
+        IdolContentRuntime? runtime = null;
         try
         {
             data.name = $"CalypsoExpansionSet.{definition.Key}";
@@ -160,13 +162,19 @@ internal sealed class IdolRegistry : IDisposable
             // Native Instantiate(prefab) creates an active object outside the inactive template root.
             prefab.SetActive(true);
             data.prefab = prefab;
+            if (definition.CreateRuntime != null)
+                runtime = definition.CreateRuntime()
+                    ?? throw new InvalidOperationException($"CreateRuntime returned no lifetime: {definition.Key}.");
             entry.Data = data;
             entry.Visuals = visuals;
+            entry.Runtime = runtime;
             _log.LogInfo($"[Register] {definition.Key}: cloned config and prefab; assetId={identity.assetId}, "
                 + $"scoreBasePoint={data.scoreBasePoint}, appearance={template.prefab.name}.");
         }
         catch
         {
+            try { runtime?.Dispose(); }
+            catch (Exception cleanup) { _log.LogError($"Runtime rollback failed for {definition.Key}: {cleanup}"); }
             if (prefab != null) UnityEngine.Object.Destroy(prefab);
             try { visuals?.Dispose(); }
             catch (Exception cleanup) { _log.LogError($"Visual rollback failed for {definition.Key}: {cleanup}"); }
@@ -247,11 +255,28 @@ internal sealed class IdolRegistry : IDisposable
         return hash;
     }
 
+    internal void TickContentRuntimes()
+    {
+        if (_disposed) return;
+        foreach (var entry in _entries) entry.Runtime?.Tick();
+    }
+
+    internal void StopContentRuntimes()
+    {
+        foreach (var entry in _entries)
+        {
+            try { entry.Runtime?.Dispose(); }
+            catch (Exception cleanup) { _log.LogError($"Runtime cleanup failed for {entry.Definition.Key}: {cleanup}"); }
+            entry.Runtime = null;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
         Ready = false;
+        StopContentRuntimes();
         if (_lookup != null) DetachLookup(_lookup);
         foreach (var entry in _entries)
         {

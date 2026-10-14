@@ -29,6 +29,8 @@
 | [Idols/VoiceIdol.cs](../Idols/VoiceIdol.cs)、[Idols/VoiceInputGate.cs](../Idols/VoiceInputGate.cs)、[Visuals/VoiceEyeGlow.cs](../Visuals/VoiceEyeGlow.cs) | 声控持有者的方向输入替换、麦克风判定及本地红蓝眼睛 |
 | [Idols/UpsideDownIdol.cs](../Idols/UpsideDownIdol.cs)、[Idols/DelayedMoveIdol.cs](../Idols/DelayedMoveIdol.cs)、[Idols/ExtremeSpeedIdol.cs](../Idols/ExtremeSpeedIdol.cs) | 渲染期间倒立、方向输入延迟与原生速度计算 |
 | [Idols/DuckStepIdol.cs](../Idols/DuckStepIdol.cs)、[Audio/HeldIdolAudio.cs](../Audio/HeldIdolAudio.cs) | 原版脚步触发、共享一次性音效协议和 FMOD 资源 |
+| [Idols/RelayIdol.cs](../Idols/RelayIdol.cs)、[Idols/RelayFatigue.cs](../Idols/RelayFatigue.cs)、[Idols/RelayIdolRuntime.cs](../Idols/RelayIdolRuntime.cs) | 接力持有者减速、疲劳公式、服务器实例状态与全员快照 |
+| [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs) | 便签网格、纹理、材质与视觉诊断资源 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
@@ -47,6 +49,9 @@
 | ConfigureData | 修改自有配置副本，不能改稳定身份 |
 | ConfigurePrefab | 修改自有预制体，保留必要物品/网络结构 |
 | CreateVisuals | 在自有预制体创建附件并返回 IDisposable；构造抛错前自行回滚 |
+| CreateRuntime | 可选按类型创建 IdolContentRuntime；用于跨持有周期的状态与观察者表现，Tick 由主插件统一调用 |
+
+CreateRuntime 在该类型的自有配置/预制体准备完成后调用，每种类型只创建一次；查找表重建不重新创建，不在放下时销毁。构造失败回滚本次资源，Tick 异常进入主插件失败边界并停止全部内容运行时；正常卸载也清理。运行时自行判断执行端、Ready、场景和网络生命周期，字段不会自动联网或进入原版存档。外部插件使用新增 API 时需更新引用并重新编译。
 
 资源就绪后，注册器克隆 SOScoreTool 与预制体。预制体在非活跃父节点下创建，避免 Awake 提前看到模板身份；随后连接自有 gameplayElementData、清除 sceneId、设置 assetId、运行配置/视觉回调，最后接入 scoreTools、_scoreById 和 Mirror 预制体表。
 
@@ -76,8 +81,9 @@ flowchart LR
 | 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 2 | OwnerNativeGameplay |
 | 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 2 | OwnerNativeGameplay |
 | 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 1 | OwnerNativeGameplay |
+| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 1 | OwnerNativeGameplay |
 
-七种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+八种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
 0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。其跳跃补丁入口已移除，不随 PatchAll 安装；恢复启用时需要重新接入原生跳跃补丁并单独验收。旧效果源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
 
@@ -126,6 +132,28 @@ flowchart LR
 
 FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/Audio/README.md)。运行所需的两份 bank 和裁剪/哈希记录保存在仓库 `Assets/Audio`，构建默认从这里嵌入；原始完整录音和试听预览仍由本地工作目录保存。注册失败回滚相应 bank、便签和自有协议处理器；不会修改原版 FMOD 全局监听器或播放其他类型的声音。
 
+## 接力疲劳与眼睛
+
+每只接力雕像独立保存最后搬运者与疲劳 `p ∈ [0,1]`。服务器按持有时间积分：
+
+```text
+p_new = clamp(p + Δt × N / T_solo, 0, 1)
+移动倍率 = 1 − (1 − m_min) × p
+眼睛颜色 = Lerp(绿色, 红色, p)
+```
+
+首版暂定 `T_solo=180 秒`、`m_min=0.25`，权威参数见 RelayFatigue；1/2/3/4 人分别约 180/90/60/45 秒达到下限。N 是服务器当前已认证、Ready、兼容且有玩家网络身份的在线连接数，包括仍在线的死亡/旁观玩家；安全范围见源码。每次服务器更新重新统计，因此持有中掉线/离开/加入会改变后续累积速率，不把已有持有时间乘以新人数重新算疲劳。
+
+放下、库存切换或死亡后停止累积，保留最后搬运者和疲劳；同一人再拿继续原值和颜色，另一人实际接手才归零。同一房间的服务器 UserInstance 提供平台身份时，角色替换/同账号重连沿用搬运者；无平台身份的离线连接使用独立连接生命周期标识，连接 ID 复用不会继承旧身份，但不能保证识别无身份断线后的同一人。不同物品互不共享疲劳。
+
+RelayIdol 的 HeldIdolEffect 只由当前持有者所属且有控制权的客户端执行；在原版 PlayerMovement.Update/FixedUpdate 调用内，将既有 SpeedMultiplier 乘以权威疲劳倍率，Finalizer 仅恢复仍属于自己的写入，不直接改速度、输入、体力或动画。键盘/手柄都经过原版运动计算；菜单中撤销本地倍率，服务器只要仍判定持有就继续计时，全局时间暂停时不累积。
+
+RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。协议消息号 `0x4D4B`，版本 1，与兼容和音效协议分离；每 0.2 秒及人数/持有边界发送完整实例表，包括 configId、manifest、递增序号、人数和各实例的 netId、持有角色 netId、疲劳。没有客户端疲劳写入接口。只发给已认证、Ready、兼容连接；接收检查当前服务器来源、可靠通道、版本、清单、配置身份、精确长度、数量/数值范围、重复和已知物品类型。未知生成 ID 不保存或应用，后续完整快照修复正常的晚加入生成时序；移动执行前再核对当前持有者与实例。
+
+眼睛对所有客户端可见，包括放在地面的已疲劳物品。每个实例创建自有覆盖网格/材质，使用同一个疲劳值从绿渐红；与声控共用 IdolEyeOverlay 的资源流程，不改原版眼睛 renderer、材质或 tween，不增加网络组件。销毁/出售时移除状态和附件，断开客户端清理快照/表现，服务器关闭清理权威状态；处理器重建只重新登记自己的委托，冲突不覆盖其他 MOD。
+
+首版状态跟随当前房间内仍存活的网络实例。原版存档重新生成的实例从零开始；没有把疲劳塞入价值/皮肤字段，也没有声称实现存档疲劳持久化。公式、快照及清理已有托管检查，真实双端、角色/场景原生时序、眼睛与实际移动表现均待游戏验收。
+
 ## 自然生成
 
 服务端在原版 SrvSpawnItemsForData 开始前复制当前 ItemSet，再按每个定义的 `PoolTemplateId ?? TemplateId` 将自有配置加入对应雕像候选 entry。当前快照中这些类型匹配含 Slippery 的 9 个池；Score 本身主要位于答题池，外观模板不等于合适的普通地图匹配标记。
@@ -170,7 +198,7 @@ FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/A
 
 ## 便签资源与生命周期
 
-跳跃的图案 key 为 `jumping`，类型 key 与图案 key 分开，沿用已导入的弹簧图案。其余六种使用空白 paper.rgba，等待各自图案。跳跃和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型直接返回 StickyNoteVisuals。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
+跳跃的图案 key 为 `jumping`，类型 key 与图案 key 分开，沿用已导入的弹簧图案。其余七种使用空白 paper.rgba，等待各自图案。跳跃和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型返回便签资源；接力另由 CreateRuntime 管理实例眼睛和疲劳快照。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json 和按图案 key 选择的预合成 RGBA mip 链创建视觉对象，挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
