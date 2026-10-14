@@ -15,7 +15,7 @@ internal sealed class NativeMonsterCatalog : IDisposable
     private static int _references;
     private readonly Dictionary<uint, MonsterEntity> _prefabs = new();
     private readonly HashSet<uint> _entered = new();
-    private IntPtr _manager, _board, _clientPrefabs;
+    private IntPtr _manager, _board, _clientPrefabs, _events;
     private int _prefabCount = -1, _scene = -1;
     private float _nextPoll;
     private bool _serverActive;
@@ -39,9 +39,9 @@ internal sealed class NativeMonsterCatalog : IDisposable
         }
     }
 
-    internal void Tick()
+    internal void Tick(bool force = false)
     {
-        if (Time.realtimeSinceStartup < _nextPoll) return;
+        if (!force && Time.realtimeSinceStartup < _nextPoll) return;
         _nextPoll = Time.realtimeSinceStartup + 0.25f;
         EnsurePrefabs();
         if (!NetworkServer.active)
@@ -51,7 +51,7 @@ internal sealed class NativeMonsterCatalog : IDisposable
             return;
         }
         _serverActive = true;
-        if (!RefreshBoard()) return;
+        RefreshBoard();
         if (Testing.TestRoomLaunch.IsActive) return;
         var entities = EntityManager.Instance;
         if (entities != null)
@@ -63,51 +63,81 @@ internal sealed class NativeMonsterCatalog : IDisposable
     private void EnsurePrefabs()
     {
         var manager = NetworkManager.singleton;
+        var events = GameEventManager.Instance;
+        var eventsPointer = events != null ? events.Pointer : IntPtr.Zero;
         var scene = SceneManager.GetActiveScene().handle;
         var count = (manager != null && manager.spawnPrefabs != null ? manager.spawnPrefabs.Count : 0) + NetworkClient.prefabs.Count;
         if (_manager == (manager != null ? manager.Pointer : IntPtr.Zero) && _prefabCount == count && _scene == scene
-            && _clientPrefabs == NetworkClient.prefabs.Pointer) return;
+            && _clientPrefabs == NetworkClient.prefabs.Pointer && _events == eventsPointer) return;
         _prefabs.Clear();
         _manager = manager != null ? manager.Pointer : IntPtr.Zero;
         _prefabCount = count; _scene = scene;
         _clientPrefabs = NetworkClient.prefabs.Pointer;
+        _events = eventsPointer;
         if (manager != null && manager.spawnPrefabs != null)
             foreach (var prefab in manager.spawnPrefabs)
-            {
-                var monster = prefab != null ? prefab.GetComponent<MonsterEntity>() : null;
-                var id = AssetId(monster);
-                if (monster != null && id != 0 && monster.GetComponent<ScoreTool>() == null) _prefabs.TryAdd(id, monster);
-            }
+                AddPrefab(prefab);
         foreach (var pair in NetworkClient.prefabs)
+            AddPrefab(pair.Value, pair.Key);
+        // Native event templates can be available before Mirror's prefab lists
+        // contain them. Discovering a template does not make it eligible.
+        if (events != null)
         {
-            var monster = pair.Value != null ? pair.Value.GetComponent<MonsterEntity>() : null;
-            if (monster != null && pair.Key != 0 && monster.GetComponent<ScoreTool>() == null) _prefabs.TryAdd(pair.Key, monster);
+            AddPrefab(events.tentacleMonsterPrefab);
+            AddPrefab(events.spiderPrefab);
+            AddPrefab(events.jokerPrefab);
+            AddPrefab(events.whiteHorsemanPrefab?.gameObject);
+            AddPrefab(events.blackHorsemanPrefab?.gameObject);
+            AddPrefab(events.hunterPrefab);
+            AddPrefab(events.weepingAngelPrefab?.gameObject);
+            AddPrefab(events.parrotPrefab);
+            AddPrefab(events.yetiPrefab);
+            AddPrefab(events.crocoPrefab);
+            AddPrefab(events.penguinPrefab);
+            AddPrefab(events.moneyGuyPrefab);
+            AddPrefab(events.snowmanPrefab);
+            AddPrefab(events.alpinistPrefab);
+            AddPrefab(events.tvGhostPrefab);
+            AddPrefab(events.pharaohPrefab);
+            AddPrefab(events.beeSwarmPrefab);
+            AddPrefab(events.beeHivePrefab);
+            AddPrefab(events.sandWormPrefab);
         }
-        var events = GameEventManager.Instance;
-        var fallback = events != null ? events.weepingAngelPrefab : null;
-        var fallbackId = AssetId(fallback);
-        if (fallback != null && fallbackId != 0) _prefabs.TryAdd(fallbackId, fallback);
+    }
+
+    private MonsterEntity? AddPrefab(GameObject? prefab, uint registeredId = 0)
+    {
+        if (prefab == null || prefab.GetComponentInChildren<ScoreTool>(true) != null) return null;
+        // Some monsters live below the network prefab root. Their entity and
+        // NetworkIdentity do not have to be components on the same GameObject.
+        var monster = prefab.GetComponentInChildren<MonsterEntity>(true);
+        if (monster == null) return null;
+        var id = registeredId != 0 ? registeredId : AssetId(monster);
+        if (id == 0) return null;
+        _prefabs.TryAdd(id, monster);
+        return monster;
     }
 
     internal void Remember(MonsterEntity monster)
     {
         if (!NetworkServer.active || monster == null || monster.GetComponent<ScoreTool>() != null
-            || Testing.TestRoomLaunch.IsActive || !RefreshBoard()) return;
+            || Testing.TestRoomLaunch.IsActive) return;
+        RefreshBoard();
         var id = AssetId(monster);
-        if (id != 0 && Resolve(id) != null) _entered.Add(id);
+        // Do not lose a real spawn just because its template is still loading.
+        if (id != 0) _entered.Add(id);
     }
 
-    private bool RefreshBoard()
+    private void RefreshBoard()
     {
         var manager = GameEventManager.Instance;
         var board = manager?.boardConfigurationData?.Pointer ?? IntPtr.Zero;
         if (board != _board) { _entered.Clear(); _board = board; }
-        if (manager != null && manager._boardCompleted) { _entered.Clear(); return false; }
-        return true;
+        // Board completion can coexist with live queues; it is not a run reset.
     }
 
     internal static uint AssetId(MonsterEntity? monster) =>
-        monster != null ? monster.GetComponent<NetworkIdentity>()?.assetId ?? 0U : 0U;
+        monster != null ? monster.GetComponentInParent<NetworkIdentity>(true)?.assetId ?? 0U : 0U;
 
     internal MonsterEntity? Resolve(uint assetId)
     {
@@ -115,22 +145,22 @@ internal sealed class NativeMonsterCatalog : IDisposable
         if (_prefabs.TryGetValue(assetId, out var prefab) && prefab != null) return prefab;
         if (NetworkClient.prefabs.TryGetValue(assetId, out var gameObject) && gameObject != null)
         {
-            prefab = gameObject.GetComponent<MonsterEntity>();
-            if (prefab != null && prefab.GetComponent<ScoreTool>() == null) { _prefabs[assetId] = prefab; return prefab; }
+            prefab = AddPrefab(gameObject, assetId);
+            if (prefab != null) return prefab;
         }
         return null;
     }
 
-    internal void Eligible(List<uint> target)
+    internal bool Eligible(List<uint> target)
     {
-        Tick();
+        Tick(force: true);
         target.Clear();
         foreach (var id in _entered) if (Resolve(id) != null) target.Add(id);
         // Queued does not mean spawned: cancelled pending entries must disappear
         // from the pool instead of becoming permanent history.
         var events = GameEventManager.Instance;
         if (NetworkServer.active && !Testing.TestRoomLaunch.IsActive && events != null
-            && !events._boardCompleted && events._spawnDelayHandles != null)
+            && events._spawnDelayHandles != null)
             foreach (var queued in events._spawnDelayHandles)
             {
                 var monster = queued?.Entity;
@@ -139,7 +169,7 @@ internal sealed class NativeMonsterCatalog : IDisposable
                     && Resolve(id) != null && !target.Contains(id)) target.Add(id);
             }
         target.Sort();
-        if (target.Count != 0) return;
+        if (target.Count != 0) return false;
         var fallback = GameEventManager.Instance?.weepingAngelPrefab;
         var fallbackId = AssetId(fallback);
         if (fallback != null && fallbackId != 0)
@@ -147,12 +177,28 @@ internal sealed class NativeMonsterCatalog : IDisposable
             _prefabs[fallbackId] = fallback;
             target.Add(fallbackId);
         }
+        return true;
     }
 
     internal IEnumerable<MonsterEntity> AllPrefabs()
     {
         EnsurePrefabs();
         return _prefabs.Values;
+    }
+
+    internal string DescribeSources()
+    {
+        static string Describe(MonsterEntity? monster) => monster == null ? "null"
+            : $"{monster.name}(asset={AssetId(monster)}, source={monster.spawnSource})";
+        var live = new List<string>();
+        var entities = EntityManager.Instance;
+        if (entities != null)
+            foreach (var monster in entities.MonsterEntitiesSet) live.Add(Describe(monster));
+        var pending = new List<string>();
+        var events = GameEventManager.Instance;
+        if (events?._spawnDelayHandles != null)
+            foreach (var handle in events._spawnDelayHandles) pending.Add(Describe(handle?.Entity));
+        return $"templates={_prefabs.Count}, remembered={_entered.Count}, boardCompleted={events?._boardCompleted}, testRoom={Testing.TestRoomLaunch.IsActive}, live=[{string.Join(", ", live)}], pending=[{string.Join(", ", pending)}]";
     }
 
     internal static void RememberRespawn(MonsterEntity monster) => _instance?.Remember(monster);
@@ -168,7 +214,7 @@ internal sealed class NativeMonsterCatalog : IDisposable
     public void Dispose()
     {
         _prefabs.Clear(); _entered.Clear();
-        _serverActive = false; _manager = _board = IntPtr.Zero;
+        _serverActive = false; _manager = _board = _events = IntPtr.Zero;
     }
 }
 
@@ -183,10 +229,27 @@ internal static class MonsterCatalogSpawnPatch
     }
 }
 
+[HarmonyPatch(typeof(EntityManager), nameof(EntityManager.SrvRegisterMonster))]
+internal static class MonsterCatalogRegisterPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(MonsterEntity monsterEntity)
+    {
+        if (monsterEntity != null && monsterEntity.spawnSource == MonsterEntity.ESpawnSource.GameEvent)
+            NativeMonsterCatalog.RememberRespawn(monsterEntity);
+    }
+}
+
 [HarmonyPatch(typeof(NetworkServer), nameof(NetworkServer.Shutdown))]
 internal static class MonsterCatalogSessionPatch
 {
     [HarmonyPrefix] private static void Prefix() => NativeMonsterCatalog.ResetSession();
+}
+
+[HarmonyPatch(typeof(GameEventManager), nameof(GameEventManager.SrvOnResetGame))]
+internal static class MonsterCatalogGameResetPatch
+{
+    [HarmonyPostfix] private static void Postfix() => NativeMonsterCatalog.ResetSession();
 }
 
 internal sealed class MonsterCatalogRuntime : IdolContentRuntime

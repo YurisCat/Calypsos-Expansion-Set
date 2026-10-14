@@ -22,8 +22,30 @@ internal sealed class BoardPawnCollision : IDisposable
     internal BoardPawnCollision(CalypsoExpansionSetPlugin plugin)
     {
         _plugin = plugin;
-        _enabled = plugin.Config.Bind("QualityOfLife", "关闭棋盘上棋子的碰撞箱", true,
-            "关闭代表玩家进度的棋子的实体碰撞，方便站在棋盘上移动和踢骰子。保留棋子显示与进度动画，不影响棋盘、骰子和事件棋子。各端按本机配置生效，联机建议所有玩家保持一致；修改后重启游戏。");
+        _enabled = BindSetting(plugin.Config);
+    }
+
+    private static ConfigEntry<bool> BindSetting(ConfigFile config)
+    {
+        if (config.TryGetEntry<bool>("QualityOfLife", "DisableBoardPawnCollision", out var existing)) return existing;
+        var saveOnSet = config.SaveOnConfigSet;
+        config.SaveOnConfigSet = false;
+        try
+        {
+            // Read raw values to distinguish missing keys, prefer the new key,
+            // and keep the Boolean setting's documented default fixed at true.
+            var legacy = config.Bind("QualityOfLife", "关闭棋盘上棋子的碰撞箱", "");
+            var stored = config.Bind("QualityOfLife", "DisableBoardPawnCollision", legacy.Value);
+            var value = stored.Value;
+            config.Remove(legacy.Definition);
+            config.Remove(stored.Definition);
+            var setting = config.Bind("QualityOfLife", "DisableBoardPawnCollision", true,
+                "关闭棋盘进度棋子的实体碰撞，方便移动和踢骰子；显示、动画、棋盘、骰子及事件棋子不变。各端独立生效，联机建议一致；修改后重启。\n"
+                + "/ Disable board progress-pawn collisions for easier movement and dice kicking; visuals, animations, board, dice and event pieces stay unchanged. Local setting; matching settings recommended. Restart after changes.");
+            if (!string.IsNullOrWhiteSpace(value)) setting.SetSerializedValue(value);
+            return setting;
+        }
+        finally { config.SaveOnConfigSet = saveOnSet; }
     }
 
     private bool CanApply => !_disposed && !_failed && _enabled.Value

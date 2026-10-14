@@ -33,7 +33,8 @@ internal sealed class TestRoomLaunch : IDisposable
     {
         _plugin = plugin;
         var setting = plugin.Config.Bind("Debug", "TestRoomEnabled", false,
-            "允许 --ces-test-room 专用启动入口：跳过 Logo、单人测试房、后部原版雕像与中部已注册 MOD 雕像陈列。普通启动不自动建房。");
+            "需 DebugMode=true 和启动参数 --ces-test-room；自动进入单人雕像陈列房，禁用远端加入、事件、常规怪物和存档写入。普通启动不建房。\n"
+            + "/ Requires DebugMode=true and --ces-test-room. Auto-host a solo idol gallery; no remote players, events, normal monster spawns or save writes. Normal launch is unaffected.");
         _enabled = setting.Value && plugin.DebugTools.Enabled
             && Environment.GetCommandLineArgs().Any(arg => string.Equals(arg, Argument, StringComparison.Ordinal));
         plugin.Config.Save();

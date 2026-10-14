@@ -10,7 +10,7 @@ namespace CalypsoExpansionSet.Idols;
 internal sealed class SuspiciousIdol : HeldIdolEffect
 {
     internal const ulong ConfigId = 0x4D4900000000000AUL;
-    internal const float MinimumInterval = 5f, MaximumInterval = 9f, MinimumRadius = 4f, MaximumRadius = 10f;
+    internal const float MinimumInterval = 5f, MaximumInterval = 9f;
     internal const float NoiseRange = 18f;
     internal static IdolDefinition Definition => new(
         "suspicious", "疑神雕像", ConfigId, 0x4D49000AU, 7331884207844971565UL,
@@ -20,7 +20,7 @@ internal sealed class SuspiciousIdol : HeldIdolEffect
         ShortDescription = "怪声四起，干吓自己",
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_suspicious"),
         CreateRuntime = () => new MonsterCatalogRuntime(),
-        ContentVersion = 2
+        ContentVersion = 3
     };
     private readonly System.Random _random = new();
     private readonly List<EventReference> _sounds = new();
@@ -56,7 +56,7 @@ internal sealed class SuspiciousIdol : HeldIdolEffect
             || !HeldAppearanceRuntime.Held(context.Holder, ConfigId, out var held) || held != context.Idol) return;
         if (Time.time < _nextSound) return;
         _nextSound = Time.time + Interval();
-        if (!TryPosition(context.Holder.transform.position, out var position)) return;
+        var position = context.Holder.transform.position;
         var audio = NetworkAudioManager.Instance;
         if (audio == null || audio.netId == 0 || HearingSenseManager.Instance == null)
             throw new InvalidOperationException("Native network audio/hearing manager is unavailable.");
@@ -67,34 +67,11 @@ internal sealed class SuspiciousIdol : HeldIdolEffect
             if (peer != null && peer.isAuthenticated && peer.isReady && peer.identity != null && plugin.Sync.IsCompatible(peer))
                 audio.TargetPlayOneShot(peer, sound, position);
 
-        // Keep the original player source/tag for native hearing goals, while
-        // placing this one newly-created event at the shared false sound origin.
-        IdolHearing.Emit(context, ConfigId, NoiseRange, "Suspicious", position);
+        // Native player-hearing goals resolve the source player's position.
+        // Keep playback and hearing at that same source instead of a false origin.
+        IdolHearing.Emit(context, ConfigId, NoiseRange, "Suspicious");
         if (plugin.DebugTools.Enabled)
             plugin.Log.LogInfo($"[Suspicious] idol={context.Idol.netId}, sound={sound.Guid}, position={position}, noiseRange={NoiseRange}.");
-    }
-
-    private bool TryPosition(Vector3 origin, out Vector3 position)
-    {
-        for (var attempt = 0; attempt < 12; attempt++)
-        {
-            var angle = (float)_random.NextDouble() * Mathf.PI * 2f;
-            var radius = MinimumRadius + (float)_random.NextDouble() * (MaximumRadius - MinimumRadius);
-            var point = origin + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * radius;
-            foreach (var hit in Physics.RaycastAll(point + Vector3.up * 3f, Vector3.down, 8f,
-                         Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-            {
-                if (hit.collider == null || Vector3.Dot(hit.normal, Vector3.up) < 0.7f
-                    || hit.collider.GetComponentInParent<Entities.Entity>() != null
-                    || hit.collider.GetComponentInParent<Items.Item>() != null) continue;
-                var candidate = hit.point + Vector3.up * 0.8f;
-                if (Physics.CheckSphere(candidate, 0.15f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) continue;
-                position = candidate;
-                return true;
-            }
-        }
-        position = default;
-        return false;
     }
 
     public override void Dispose() { _sounds.Clear(); _guids.Clear(); _nextSound = float.PositiveInfinity; }

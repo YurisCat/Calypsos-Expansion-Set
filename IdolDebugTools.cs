@@ -34,9 +34,11 @@ internal sealed class IdolDebugTools : IDisposable
     {
         _plugin = plugin;
         _enabled = plugin.Config.Bind("Debug", "DebugMode", false,
-            "开启 MOD 调试模式，启用测试工具和诊断日志；关闭不影响正常玩法。");
+            "启用测试工具和诊断日志，关闭不影响正常玩法。修改后重启。\n"
+            + "/ Enable test tools and diagnostic logs; normal gameplay works when off. Restart after changes.");
         var key = plugin.Config.Bind("Debug", "WindowKey", "F8",
-            "打开/关闭测试窗口的唯一按键，默认 F8；窗口内输入命令或点击生成按钮。None 禁用按键。");
+            "调试窗口开关键，需 DebugMode=true；None 禁用快捷键。修改后重启。\n"
+            + "/ Toggle the test window (requires DebugMode=true); None disables the shortcut. Restart after changes.");
         if (!Enum.TryParse(key.Value.Trim(), true, out _windowKey) || !Enum.IsDefined(typeof(Key), _windowKey))
         {
             _windowKey = Key.F8;

@@ -57,14 +57,19 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
             && existing.Idol == context.Idol && existing.Holder == context.Holder) return;
         if (service._server.Count >= MaximumInstances && !service._server.ContainsKey(context.Idol.netId))
             throw new InvalidOperationException("Monster disguise state capacity exceeded.");
-        NativeMonsterCatalog.Current.Eligible(service._candidates);
+        var catalog = NativeMonsterCatalog.Current;
+        var fallback = catalog.Eligible(service._candidates);
         if (service._candidates.Count == 0)
             throw new InvalidOperationException("No native monster candidate or crying mannequin fallback is loaded.");
         var choice = service._candidates[service._random.Next(service._candidates.Count)];
         service._server[context.Idol.netId] = new ServerRow(context.Idol, context.Holder, choice);
         service._nextSend = 0;
         if (plugin.DebugTools.Enabled)
-            plugin.Log.LogInfo($"[Monster disguise] idol={context.Idol.netId}, holder={context.Holder.netId}, asset={choice}, candidates={service._candidates.Count}.");
+        {
+            var candidates = string.Join(", ", service._candidates.Select(id => $"{catalog.Resolve(id)?.name}({id})"));
+            plugin.Log.LogInfo($"[Monster disguise] idol={context.Idol.netId}, holder={context.Holder.netId}, selected={catalog.Resolve(choice)?.name}({choice}), fallback={fallback}, candidates={service._candidates.Count} [{candidates}].");
+            plugin.Log.LogInfo($"[Monster disguise pool] {catalog.DescribeSources()}.");
+        }
     }
 
     internal static void Release(HeldIdolContext context)

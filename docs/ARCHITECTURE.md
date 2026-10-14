@@ -40,7 +40,7 @@
 
 ## 棋盘进度棋子碰撞
 
-`[QualityOfLife] 关闭棋盘上棋子的碰撞箱` 默认 true，独立于 DebugMode、雕像注册及兼容准入。只遍历当前 `BoardGameManager.Instance.PawnManager.pawns`，关闭每个 `Pawn.Collider` 中非触发器、原本启用的实体碰撞；不修改预制体、棋盘地面、骰子、怪物或 `EnvironmentElements.ChessboardPiece` 事件棋子。棋子显示、进度和移动动画沿用原版。
+`[QualityOfLife] DisableBoardPawnCollision` 默认 true，独立于 DebugMode、雕像注册及兼容准入。首次加载自动迁移旧键 `关闭棋盘上棋子的碰撞箱` 的值并移除旧键；新旧键同时存在时优先英文键。只遍历当前 `BoardGameManager.Instance.PawnManager.pawns`，关闭每个 `Pawn.Collider` 中非触发器、原本启用的实体碰撞；不修改预制体、棋盘地面、骰子、怪物或 `EnvironmentElements.ChessboardPiece` 事件棋子。棋子显示、进度和移动动画沿用原版。
 
 原版客户端棋盘启动、服务器 PawnManager 启动及进度棋子重新显示后立即应用，并每秒通过当前棋盘的已知列表维护，覆盖后续棋盘/实例替换与重连；不逐帧扫描场景或反射。各端按本机配置执行，不增加网络消息或同步 Unity 的 collider.enabled，因此联机建议全部参与端保持一致；不据此承诺只装房主有效。该开关没有改变任何雕像定义、身份或内容版本。
 
@@ -95,25 +95,30 @@ flowchart LR
 | 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 6 | OwnerNativeGameplay |
 | 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 3 | OwnerNativeGameplay |
 | 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 5 | OwnerNativeGameplay |
-| 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 2 | ServerGameplay |
+| 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 3 | ServerGameplay |
 | 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 3 | LocalPresentation |
+| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 5 | ServerGameplay |
 | 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
 | 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 2 | LocalPresentation |
 | 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
 
-当前启用的十三种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+十四种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
-0.2.30 暂停注册怪相雕像 `monster_disguise`，保留源码、图案与独立身份：配置 ID `0x4D4900000000000C`、assetId `0x4D49000C`、ContentVersion=2。它不参与注册、自然池、F8、测试房或兼容清单，不创建 MonsterDisguiseRuntime、外观与专用快照处理器；疑神使用的共享 NativeMonsterCatalog 保持。下文怪相设计仅记录保留实现，当前不启用。启用清单减少会自动改变 Manifest，其余类型身份与 ContentVersion 不变；各端需要匹配新版，旧实例不迁移，升级后重开房间。
+0.2.30 公开稳定版曾暂停 `monster_disguise`，仅注册十三种；0.2.33 整合版保留其最新修复并恢复注册，当前仍以表内十四种为准。怪相进入自然候选池、F8、测试房和兼容清单，并创建其专用外观／快照运行时；十三种稳定版与十四种整合版的清单不同，各端需更新匹配版本并重新建房，旧实例不作自动类型迁移。
 
 ### 怪声、外观与最终画面
 
-疑神由服务器在持有者附近选地面上方的空闲位置，随机挑选原版有效的三维短怪声。每次事件使用 `NetworkAudioManager.TargetPlayOneShot` 给已认证、Ready、清单兼容的玩家发送相同事件/位置；通过 `HearingSenseManager.AddVolumeEvent` 新增一条听觉事件，仅调整该新事件的位置，保留原版持有者来源、Tag 和寿命。不保存一次性声响，晚加入不重放。放下停止后续事件，已发出的短音自然结束；实际怪物追踪另需有怪地图验收。
+疑神由服务器随机挑选原版有效的三维短怪声，在持有者当前位置播放。每次事件使用 `NetworkAudioManager.TargetPlayOneShot` 给已认证、Ready、清单兼容的玩家发送相同事件/位置；通过 `HearingSenseManager.AddVolumeEvent` 新增一条普通玩家来源的听觉事件，沿用原版位置、Tag 和寿命。声音与听觉来源一致，怪物按原版听觉和行为决定是否调查持有者，不强制设置仇恨。不保存一次性声响，晚加入不重放。放下停止后续事件，已发出的短音自然结束；实际怪物寻声另需有怪地图验收。
 
 `HeldAppearanceRuntime` 在每个客户端读取原版同步的持有关系，按类型维护观察者外观；宽体/大头无需新玩法协议。`VisualRigCopy` 只创建 Transform、MeshFilter、MeshRenderer、SkinnedMeshRenderer，以原生网格、材质与骨骼姿态构造自有视觉副本。入口为完整 `WorldRigInstance`，不能把实际指向颈部的 `RigGameObject` 当作整个人物；空骨骼槽保留，外部蒙皮引用只复制所需骨骼链并换算相对坐标。隐藏原网格时保存并按所有权恢复 `forceRenderingOff`，不缩放玩家根节点或碰撞，不复制脚本、网络、AI、音效与粒子玩法。宽体的手持显示副本一起变形，避免原尺寸物品悬在变矮的角色上方；物理、库存和网络物品保持原样。角色替换、释放、死亡、断线和销毁均清理副本。第一人称不额外显示自己的世界模型。
 
-怪相的服务器候选池由原版 `MonsterEntity` 游戏事件生成、当前待生成实体及重生登记构成，历史种类保留到当前大局结束/棋盘更换；不包括仅存在于资源库但尚未进入本局的事件、手工生成怪物或游荡雕像。空池使用 `weepingAngelPrefab`。每次拾取只选一次，转交/再次拾取重抽，持有期间不随池变化变脸。历史集合不写入原版存档，读档后以当前原版实体/队列及后续登记重新积累。
+怪相的服务器候选池由原版 `MonsterEntity` 游戏事件生成、当前待生成实体及重生登记构成，历史种类在显式游戏重置、棋盘更换或会话退出时清理；不包括仅存在于资源库但尚未进入本局的事件、手工生成怪物或游荡雕像。`_boardCompleted=true` 可与有效待生成队列并存，不能单独据此清空历史或拒绝队列。空池使用 `weepingAngelPrefab`。每次拾取只选一次，转交/再次拾取重抽，持有期间不随池变化变脸。历史集合不写入原版存档，读档后以当前原版实体/队列及后续登记重新积累。
 
-`MonsterDisguiseRuntime` 以消息号 `0x4D4C` 周期发送完整当前选择表（雕像 netId、持有者 netId、原版怪物 assetId）。接收验证当前服务器连接、认证、Ready、清单、版本、类型、长度、上限、单调序列、重复身份和已知原版资源；尚未生成的物品等待后续快照，空表移除旧状态。处理器不覆盖冲突，断线/会话切换清空。外观只借用原版网格及闲置/移动动画片段，在视觉副本上采样，不执行怪物 Animator、动画事件或 AI。
+模板解析同时读取 Mirror 列表与原版事件管理器的怪物引用，兼容网络根下的实体；模板存在不代表进入候选池。事件管理器替换时重建缓存，真实生成种类不因当时模板未加载而丢弃；补充原版服务器怪物登记入口，并在拾取时立即刷新活跃实体和当前队列。DebugMode 开启时，每次有效拾取记录抽中名称/assetId、完整候选与是否兜底，另列模板数量、历史数量、棋盘完成标记、测试房标记、活跃怪物与队列来源。关闭调试不输出这些拾取诊断。
+
+`MonsterDisguiseRuntime` 以消息号 `0x4D4C` 周期发送完整当前选择表（雕像 netId、持有者 netId、原版怪物 assetId）。接收验证当前服务器连接、认证、Ready、清单、版本、类型、长度、上限、单调序列、重复身份和已知原版资源；尚未生成的物品等待后续快照，空表移除旧状态。处理器不覆盖冲突，断线/会话切换清空。外观只借用原版网格及闲置/移动动画片段，在视觉副本上显式采样。非 Legacy 片段的目标带一个停用、无控制器的 Animator，仅借用 avatar，关闭动画事件与 root motion；不运行原版状态机或 AI。采样后重新应用位置和显示角色的朝向，避免动画根曲线覆盖外观挂接。
+
+怪相由每个客户端为其他玩家建立外观：隐藏原身体、所持雕像及手电外观，显示选中的怪物。持有者本机第一人称不创建外观副本或隐藏状态，保留原版雕像显示和手电照明；本机使用原版世界角色观察视角时仍显示伪装。匹配检查随本机角色/视角变化释放状态，渲染前再检查一次，以覆盖 Tick 后切回第一人称的情况。观察者客户端仅在渲染上下文中临时停用该持有者的实例 Light，结束时恢复该次渲染前的 enabled 状态；原开关、闪烁、强度与感知逻辑在帧间正常运行，不改网络开关或玩法状态。释放、库存/角色或手电对象替换时清理副本，按所有权恢复 renderer 和尚未释放的灯光修改；原本隐藏的 renderer 保持隐藏，其他逻辑已改写的灯光属性不覆盖。
 
 `HeldScreenEffect` 在原生最终渲染结束后，通过 CommandBuffer 复制当前画面并运行内嵌着色器，因此场景与 HUD 同受像素化、白线或径向畸变。只对实际持有者的第一人称游戏相机启用；菜单、调试面板、聊天、死亡/角色或镜头替换、断线/释放均停用。白线从已渲染颜色提取边缘，不读取墙后物体。宽体另在渲染及本地原版交互检测期间临时降低相机并改变水平投影，保持准星与检测一致，结束后恢复自有写入；不修改保存的设置。画面资源构建见 [ScreenEffects](../Assets/ScreenEffects/README.md)。
 
@@ -162,7 +167,7 @@ flowchart LR
 
 自 0.2.16 起，bank 可以提供 `OnServerEmission` 回调；在上述校验通过并记下序号/冷却后、广播前仅执行一次。鸭步定义在自己的回调中调用 `HearingSenseManager.AddVolumeEvent(holder.transform, NoiseRange)`，内置 NoiseRange=18，来源为持有玩家，沿用普通双参数重载的 audience=null、ignoreRange=false 与原版寿命/清理。这里不要求服务器角色 isOwned 或等于 EntityManager.Me，以支持远端持有者；仅客户端播放、重复/拒绝请求均不会添加噪声。
 
-怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新声响事件，已发出的声音按原版寿命自然消失。0.2.26 弹跳也注册 OnServerEmission，经去重/冷却后调用共用 IdolHearing，新增一次普通玩家来源事件；客户端回放不新增噪声。疑神将同次假声位置交给同一入口，保留原版 Tag、来源与寿命，仅重定位新增事件。跳跃失败/手动动作不新增弹簧音效请求，服务器接受的音效与听觉回调一一对应；无需改动音效报文格式。
+怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新声响事件，已发出的声音按原版寿命自然消失。弹跳注册 OnServerEmission，经去重/冷却后调用共用 IdolHearing，新增一次普通玩家来源事件；客户端回放不新增噪声。疑神使用同一入口，以持有者为声音和听觉来源，不再重定位事件。跳跃失败/手动动作不新增弹簧音效请求，服务器接受的音效与听觉回调一一对应；无需改动音效报文格式。
 
 报文固定长度，检查 magic/version/manifest、来源、通道、数量范围、未知 netId、重复序号及非有限位置。连接 ID 复用按实际连接指针清旧记录，处理器重建/卸载只管理自己的委托。事件无快照，不向晚加入者重放旧声响；当前实例与持有状态仍由原版生成/SyncVar 恢复。全部客户端需要兼容 bank 与内容版本。双端真实听感和时序仍待验收。
 
@@ -248,7 +253,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 便签资源与生命周期
 
-十三种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
+十四种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json、共享 paper.note 和按图案 key 选择的 Baked/*.notedelta 创建视觉对象。纯托管 NoteTextureCodec 校验格式/长度/哈希，解压 XOR 差异并还原与旧资源逐字节相同的 RGBA32 完整 mip 链，再沿用已验证的原生上传；不使用 LoadImage。附件挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
@@ -260,7 +265,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 指向名称与短说明
 
-当前十三种启用 MOD 雕像填写 `ShortDescription`，用作顶部谏言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。暂停注册的怪相只保留文案，不参与显示。当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
+当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部谏言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
 
 名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 统一显示“卡里普索拓展包雕像”；true 时返回正式名称，包含“雕像”后缀。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自谏言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
 

@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.30";
+    public const string PluginVersion = "0.2.34";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -59,7 +59,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Registry.Register(RelayIdol.Definition);
         Registry.Register(SuspiciousIdol.Definition);
         Registry.Register(WideBodyIdol.Definition);
-        // Monster disguise is temporarily retired; reserve its key/IDs for later.
+        Registry.Register(MonsterDisguiseIdol.Definition);
         Registry.Register(MosaicIdol.Definition);
         Registry.Register(OutlineIdol.Definition);
         Registry.Register(BigHeadFisheyeIdol.Definition);
@@ -67,9 +67,11 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Spawns = new IdolSpawnIntegration(this);
         _effects = new IdolEffectRuntime(this);
         _naturalSpawning = Config.Bind("Gameplay", "NaturalSpawning", true,
-            "将已注册雕像加入含其 PoolTemplateId（未指定时为 TemplateId）的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
+            "新雕像加入原版自然生成池，保留生成总数和筛选规则，不保证每局出现。修改后重启。\n"
+            + "/ Add new idols to vanilla spawn pools; keep spawn counts and filters. Spawns are not guaranteed. Restart after changes.");
         _showIndividualIdolNames = Config.Bind("UI", "ShowIndividualIdolNames", false,
-            "显示表内原版和 MOD 雕像的具体名称。关闭时原版保留原名，MOD 统一显示“卡里普索拓展包雕像”；顶部谏言仍按类型显示。仅影响本机显示，修改后重启游戏。");
+            "显示已支持原版与 MOD 雕像的各自中文名；关闭时原版保留原名，MOD 统一为“卡里普索拓展包雕像”。谏言不变；仅本机，修改后重启。\n"
+            + "/ Show individual Chinese names for supported vanilla/MOD idols; when off, keep vanilla names and use one shared MOD name. Hints stay enabled. Local only; restart after changes.");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
         PawnCollisions = new QualityOfLife.BoardPawnCollision(this);

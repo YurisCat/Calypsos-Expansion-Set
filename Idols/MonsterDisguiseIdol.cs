@@ -11,7 +11,7 @@ internal sealed class MonsterDisguiseIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "怪物模样，队友着相",
-        ContentVersion = 2,
+        ContentVersion = 5,
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_monster_disguise"),
         CreateRuntime = () => new MonsterDisguiseRuntime()
     };
