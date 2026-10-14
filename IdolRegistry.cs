@@ -45,6 +45,9 @@ internal sealed class IdolRegistry : IDisposable
             || definition.ShortDescription == null || definition.ShortDescription.Length > 80
             || definition.ShortDescription.Contains('\n') || definition.ShortDescription.Contains('\r')
             || definition.ContentVersion == 0 || !Enum.IsDefined(typeof(IdolEffectAuthority), definition.Authority)
+            || definition.SharedVisual is { } visual && (visual.Create == null
+                || !Enum.IsDefined(typeof(IdolVisualAuthority), visual.Authority)
+                || visual.Authority == IdolVisualAuthority.Holder && visual.ShowWhenDropped)
             || definition.InitialWeight is { } weight && (!float.IsFinite(weight) || weight <= 0))
             throw new ArgumentException("Invalid idol key, IDs, factory, authority, version, or initial weight.");
         if (_byKey.ContainsKey(definition.Key) || _byId.ContainsKey(definition.ConfigId)
@@ -258,7 +261,9 @@ internal sealed class IdolRegistry : IDisposable
             var definition = entry.Definition;
             var text = $"{definition.Key}|{definition.ConfigId:X16}|{definition.AssetId:X8}|"
                 + $"{definition.TemplateId:X16}|{definition.PoolTemplateId ?? definition.TemplateId:X16}|"
-                + $"{definition.ContentVersion:X8}|{(int)definition.Authority};";
+                + $"{definition.ContentVersion:X8}|{(int)definition.Authority}|"
+                + $"{(definition.SharedVisual == null ? -1 : (int)definition.SharedVisual.Authority)}|"
+                + $"{definition.SharedVisual?.ShowWhenDropped == true};";
             foreach (var character in text) { hash ^= character; hash *= 1099511628211UL; }
         }
         return hash;

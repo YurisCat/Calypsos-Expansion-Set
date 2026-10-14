@@ -28,6 +28,9 @@ internal sealed class StickyNoteVisuals : IDisposable, IVisualDiagnostics
     private GameObject? _attachment;
     private Vector3[] _suppliedNormals = Array.Empty<Vector3>();
     private Vector3[] _flatNormals = Array.Empty<Vector3>();
+    private static byte[]? _sharedPaper;
+    private static int _paperUsers;
+    private bool _ownsPaperBase;
     private bool _disposed;
 
     internal static IDisposable Create(GameObject prefab)
@@ -101,9 +104,11 @@ internal sealed class StickyNoteVisuals : IDisposable, IVisualDiagnostics
         _mesh.RecalculateTangents();
         // This game's LoadImage wrapper routes through a missing ReadOnlySpan
         // method. Use the verified IntPtr/int wrapper and a complete RGBA mip chain.
-        var rgba = Resource(artworkKey == null ? "paper.rgba" : $"Artwork.{artworkKey}.rgba");
-        if (rgba.Length != 1398100)
-            throw new InvalidOperationException("Invalid 512x512 RGBA note mip chain.");
+        _sharedPaper ??= NoteTextureCodec.DecodeBase(Resource("paper.note"));
+        _paperUsers++;
+        _ownsPaperBase = true;
+        var rgba = artworkKey == null ? _sharedPaper
+            : NoteTextureCodec.Restore(_sharedPaper, Resource($"Artwork.{artworkKey}.notedelta"));
         _paper = new Texture2D(512, 512, TextureFormat.RGBA32, true, false) { name = $"Calypso StickyNote {artworkKey ?? "blank"}" };
         var pinned = GCHandle.Alloc(rgba, GCHandleType.Pinned);
         try { _paper.LoadRawTextureData(pinned.AddrOfPinnedObject(), rgba.Length); }
@@ -162,5 +167,10 @@ internal sealed class StickyNoteVisuals : IDisposable, IVisualDiagnostics
         if (_paper != null) UObject.Destroy(_paper);
         if (_mesh != null) UObject.Destroy(_mesh);
         _attachment = null; _material = null; _paper = null; _mesh = null;
+        if (_ownsPaperBase)
+        {
+            _ownsPaperBase = false;
+            if (--_paperUsers == 0) _sharedPaper = null;
+        }
     }
 }

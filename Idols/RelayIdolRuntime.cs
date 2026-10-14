@@ -30,24 +30,10 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
     private sealed record Peer(IntPtr Connection, long Session);
     internal readonly record struct SnapshotEntry(uint Id, uint Holder, float Fatigue);
     private readonly record struct ClientState(ScoreTool Idol, uint Holder, float Fatigue);
-    private sealed class EyeState : IDisposable
-    {
-        internal readonly ScoreTool Idol;
-        internal readonly IdolEyeOverlay Overlay;
-        internal float Amount;
-        internal EyeState(ScoreTool idol, float amount)
-        {
-            Idol = idol;
-            Amount = amount;
-            Overlay = new IdolEyeOverlay(idol, "Calypso Relay Eyes", "Calypso Relay Eye Feedback", EyeColor(amount));
-        }
-        public void Dispose() => Overlay.Dispose();
-    }
 
     private readonly Dictionary<uint, ServerState> _server = new();
     private readonly Dictionary<int, Peer> _peers = new();
     private readonly Dictionary<uint, ClientState> _client = new();
-    private readonly Dictionary<uint, EyeState> _eyes = new();
     private readonly HashSet<uint> _seen = new(), _messageIds = new();
     private readonly List<uint> _removed = new();
     private readonly List<int> _removedPeers = new();
@@ -90,7 +76,6 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
             ClearClient();
             _connection = connection.Pointer;
         }
-        TickEyes();
     }
 
     private void TickServer(CalypsoExpansionSetPlugin plugin)
@@ -156,6 +141,7 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
                 if (row.Holder != 0) _nextSend = 0;
                 row.Holder = 0;
                 row.Fatigue.Release();
+                CalypsoExpansionSetApi.PublishVisualState(idol, row.Fatigue.Amount);
                 continue;
             }
             var user = UserInstancesManager.Instance != null ? UserInstancesManager.Instance.Get(owner) : null;
@@ -177,6 +163,7 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
             // frame's holder. Dropped items retain fatigue without accumulating.
             if (continuous && !reset) row.Fatigue.Advance(elapsed, _alivePlayers);
             row.Holder = holder.netId;
+            CalypsoExpansionSetApi.PublishVisualState(idol, row.Fatigue.Amount);
         }
         _removed.Clear();
         foreach (var id in _server.Keys) if (!_seen.Contains(id)) _removed.Add(id);
@@ -284,33 +271,6 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
         return true;
     }
 
-    private void TickEyes()
-    {
-        _seen.Clear();
-        foreach (var pair in _client)
-        {
-            var row = pair.Value;
-            var idol = row.Idol;
-            if (idol == null || !NetworkClient.spawned.TryGetValue(pair.Key, out var identity)
-                || identity == null || identity.GetComponent<ScoreTool>() != idol) continue;
-            _seen.Add(pair.Key);
-            if (!_eyes.TryGetValue(pair.Key, out var eye) || eye.Idol != idol)
-            {
-                eye?.Dispose();
-                _eyes[pair.Key] = eye = new EyeState(idol, row.Fatigue);
-            }
-            if (!eye.Overlay.Refresh()) { _seen.Remove(pair.Key); continue; }
-            if (eye.Amount != row.Fatigue)
-            {
-                eye.Amount = row.Fatigue;
-                eye.Overlay.Apply(EyeColor(row.Fatigue));
-            }
-        }
-        _removed.Clear();
-        foreach (var id in _eyes.Keys) if (!_seen.Contains(id)) _removed.Add(id);
-        foreach (var id in _removed) { _eyes[id].Dispose(); _eyes.Remove(id); }
-    }
-
     private void EnsureHandler()
     {
         if (_disposed) return;
@@ -341,8 +301,6 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
         _clientAlivePlayers = 0;
         _connection = IntPtr.Zero;
         _receivedSequence = 0;
-        foreach (var eye in _eyes.Values) eye.Dispose();
-        _eyes.Clear();
     }
 
     internal static void TransportReset(bool server, bool shutdown = false)

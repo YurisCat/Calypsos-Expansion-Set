@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.25";
+    public const string PluginVersion = "0.2.27";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -30,12 +30,15 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal IdolDebugTools DebugTools { get; private set; } = null!;
     internal IdolDebugTeleport Teleports { get; private set; } = null!;
     internal UI.IdolHoverInfo? HoverInfo { get; private set; }
+    internal Visuals.IdolVisualSync? VisualStates { get; private set; }
+    internal QualityOfLife.BoardPawnCollision? PawnCollisions { get; private set; }
     internal Testing.TestRoomLaunch TestRoom { get; private set; } = null!;
 
     private JumpingIdolDriver? _driver;
     private IdolEffectRuntime? _effects;
     private Harmony? _harmony;
     private ConfigEntry<bool> _naturalSpawning = null!;
+    private ConfigEntry<bool> _showIndividualIdolNames = null!;
     private float _nextMaintenance;
     private bool _sessionWeightsInitialized;
     private bool _failed;
@@ -54,14 +57,24 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Registry.Register(ExtremeSpeedIdol.Definition);
         Registry.Register(DelayedMoveIdol.Definition);
         Registry.Register(RelayIdol.Definition);
+        Registry.Register(SuspiciousIdol.Definition);
+        Registry.Register(WideBodyIdol.Definition);
+        Registry.Register(MonsterDisguiseIdol.Definition);
+        Registry.Register(MosaicIdol.Definition);
+        Registry.Register(OutlineIdol.Definition);
+        Registry.Register(BigHeadFisheyeIdol.Definition);
         Sync = new JumpingIdolSync(Log, () => Registry.Ready, () => Registry.Manifest);
         Spawns = new IdolSpawnIntegration(this);
         _effects = new IdolEffectRuntime(this);
         _naturalSpawning = Config.Bind("Gameplay", "NaturalSpawning", true,
             "将已注册雕像加入含其 PoolTemplateId（未指定时为 TemplateId）的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
+        _showIndividualIdolNames = Config.Bind("UI", "ShowIndividualIdolNames", false,
+            "显示每种 MOD 雕像的具体名称。关闭时统一显示“卡里普索拓展包雕像”；顶部谏言仍按类型显示。仅影响本机显示，修改后重启游戏。");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
+        PawnCollisions = new QualityOfLife.BoardPawnCollision(this);
         HoverInfo = new UI.IdolHoverInfo(this);
+        VisualStates = new Visuals.IdolVisualSync(this);
         TestRoom = new Testing.TestRoomLaunch(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
@@ -78,10 +91,12 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Log.LogWarning("Leave the network session before unloading Calypso's Expansion Set.");
             return false;
         }
+        PawnCollisions?.Dispose();
         Instance = null;
         if (_driver != null) UnityEngine.Object.Destroy(_driver);
         _driver = null;
         _effects?.Dispose();
+        VisualStates?.Dispose();
         HoverInfo?.Dispose();
         DebugTools.Dispose();
         TestRoom.Dispose();
@@ -93,6 +108,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 
     internal void Tick()
     {
+        PawnCollisions?.Tick();
         TestRoom.Tick();
         if (_failed) return;
         try
@@ -121,6 +137,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             DebugTools.Tick();
             HoverInfo?.Tick();
             _effects!.Tick();
+            VisualStates?.Tick();
         }
         catch (Exception exception)
         {
@@ -134,6 +151,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         _failed = true;
         _effects?.Dispose();
         Registry.StopContentRuntimes();
+        VisualStates?.Dispose();
         HoverInfo?.Dispose();
         DebugTools.Cancel();
         Log.LogError($"Calypso's Expansion Set runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
@@ -159,6 +177,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal bool CanAddNaturalContent => !_failed && _naturalSpawning.Value && Registry.Ready
         && NetworkServer.active && Sync.AllReadyPeersCompatible;
     internal bool RuntimeFailed => _failed;
+    internal bool ShowIndividualIdolNames => _showIndividualIdolNames.Value;
 
     internal bool LocalGameplayReady(PlayerEntity player) => !DebugTools.PanelOpen && ControlsReady(player);
 

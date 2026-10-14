@@ -17,13 +17,38 @@ namespace CalypsoExpansionSet.UI;
 // by the game; this controller owns only its extra TMP label.
 internal sealed class IdolHoverInfo : IDisposable
 {
+    internal const string GenericIdolName = "卡里普索拓展包雕像";
     private readonly CalypsoExpansionSetPlugin _plugin;
     private UIManager? _ui;
     private TextMeshProUGUI? _reference, _label;
     private GameObject? _object;
+    private Canvas? _canvas;
     private bool _disposed, _faulted, _visible;
     private uint _shownId;
     private float _nativeMessageUntil;
+    private MessageUi? _testMessage;
+    private string? _testPreviousText;
+    private const string TestMessage = "Native tutorial priority test (20s)";
+
+    internal bool TestMessagePriority()
+    {
+        var ui = UIManager.Instance;
+        if (!Testing.TestRoomLaunch.IsActive || !_plugin.DebugTools.Enabled
+            || ui?.globalMessageUi == null || TextVisible(ui.globalMessageUi)) return false;
+        RestoreTestMessage();
+        _testMessage = ui.globalMessageUi;
+        _testPreviousText = _testMessage.CurrentText;
+        _testMessage.SetText(TestMessage);
+        _testMessage.ShowForDuration(20f);
+        return true;
+    }
+
+    private void RestoreTestMessage()
+    {
+        if (_testMessage != null && _testMessage.CurrentText == TestMessage)
+        { _testMessage.Hide(); _testMessage.SetText(_testPreviousText ?? ""); }
+        _testMessage = null; _testPreviousText = null;
+    }
 
     internal IdolHoverInfo(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
@@ -57,13 +82,16 @@ internal sealed class IdolHoverInfo : IDisposable
         try
         {
             var ui = UIManager.Instance;
+            if (_testMessage != null && (!Testing.TestRoomLaunch.IsActive
+                || !NetworkClient.isConnected || !TextVisible(_testMessage) && Time.realtimeSinceStartup >= _nativeMessageUntil))
+                RestoreTestMessage();
             if (ui != _ui || !NetworkClient.isConnected)
             {
                 ReleaseLabel();
                 _nativeMessageUntil = 0;
                 _ui = ui;
             }
-            if (!ControlsReady(out _) || NativeMessageVisible(ui)) Hide();
+            if (!ControlsReady(out _) || NarrationVisible(ui)) Hide();
         }
         catch (Exception error) { Fault(error); }
     }
@@ -85,11 +113,11 @@ internal sealed class IdolHoverInfo : IDisposable
             var idol = real != null ? real.TryCast<ScoreTool>() : null;
             if (!TryDefinition(idol, out var definition)) { Hide(); return; }
             var ui = UIManager.Instance;
-            if (ui == null || ui.rootUI == null || NativeMessageVisible(ui)) { Hide(); return; }
+            if (ui == null || ui.rootUI == null || NarrationVisible(ui)) { Hide(); return; }
             var reference = ui.globalMessageUi != null ? ui.globalMessageUi.text : null;
             if (reference == null || reference.font == null) { Hide(); return; }
             EnsureLabel(ui, reference);
-            if (!Layout(reference, ui.rootUI.transform)) { Hide(); return; }
+            if (!Layout(reference, ui, NativeMessageVisible(ui))) { Hide(); return; }
             if (_label == null) return;
             if (_label.text != definition.ShortDescription) _label.text = definition.ShortDescription;
             if (!_visible) { _object!.SetActive(true); _visible = true; }
@@ -103,12 +131,39 @@ internal sealed class IdolHoverInfo : IDisposable
         catch (Exception error) { Fault(error); }
     }
 
+    // Native IsDisplayed only checks its own CanvasGroup alpha. An inactive
+    // object, transparent ancestor or empty retained text can still return true.
+    private static bool TextVisible(MessageUi? message) =>
+        message != null && message.isActiveAndEnabled && message.text != null
+        && message.text.isActiveAndEnabled && !string.IsNullOrWhiteSpace(message.text.text)
+        && message.text.color.a > 0.01f && VisibleHierarchy(message.text.transform);
+
+    private static bool VisibleHierarchy(Transform transform)
+    {
+        if (!transform.gameObject.activeInHierarchy) return false;
+        var alpha = 1f;
+        var groupsIgnored = false;
+        for (var depth = 0; transform != null && depth < 64; depth++, transform = transform.parent)
+        {
+            var canvas = transform.GetComponent<Canvas>();
+            if (canvas != null && !canvas.enabled) return false;
+            if (groupsIgnored) continue;
+            var group = transform.GetComponent<CanvasGroup>();
+            if (group == null || !group.enabled) continue;
+            alpha *= group.alpha;
+            if (!float.IsFinite(alpha) || alpha <= 0.01f) return false;
+            groupsIgnored = group.ignoreParentGroups;
+        }
+        return true;
+    }
+
+    private static bool NarrationVisible(UIManager? ui) => ui != null && ui.narrationBackground != null
+        && ui.narrationBackground.enabled && ui.narrationBackground.alpha > 0.01f
+        && VisibleHierarchy(ui.narrationBackground.transform);
+
     private bool NativeMessageVisible(UIManager? ui) =>
         Time.realtimeSinceStartup < _nativeMessageUntil
-        || ui != null && (ui.globalMessageUi != null && ui.globalMessageUi.IsDisplayed
-            || ui.messageUi != null && ui.messageUi.IsDisplayed
-            || ui._messageQueue != null && ui._messageQueue.Count != 0
-            || ui.narrationBackground != null && ui.narrationBackground.alpha > 0.001f);
+        || ui != null && (TextVisible(ui.globalMessageUi) || TextVisible(ui.messageUi));
 
     internal void NativeMessageStarting(MessageUi message)
     {
@@ -117,8 +172,8 @@ internal sealed class IdolHoverInfo : IDisposable
         {
             var ui = UIManager.Instance;
             if (ui == null || message != ui.globalMessageUi && message != ui.messageUi) return;
-            // A show tween can still have alpha=0 in its first frame. Yield
-            // before it starts; thereafter the actual native visibility wins.
+            // Reserve a separate line before the first fade-in frame. A queue
+            // alone is not visibility and must never suppress hints forever.
             var fade = float.IsFinite(message.fadeDuration) ? Math.Max(0.1f, message.fadeDuration) : 0.25f;
             _nativeMessageUntil = Time.realtimeSinceStartup + fade;
             Hide();
@@ -135,9 +190,16 @@ internal sealed class IdolHoverInfo : IDisposable
         _object = new GameObject("Calypso Idol Hover Hint");
         _object.SetActive(false);
         _object.layer = reference.gameObject.layer;
-        _object.transform.SetParent(ui.rootUI.transform, false);
-        _label = _object.AddComponent<TextMeshProUGUI>();
+        _object.hideFlags = HideFlags.DontSave;
+        _canvas = _object.AddComponent<Canvas>();
+        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _canvas.sortingOrder = ui.rootUI.sortingOrder + 1;
+        _canvas.targetDisplay = ui.rootUI.targetDisplay;
+        var textObject = new GameObject("Calypso Idol Hover Text") { layer = _object.layer, hideFlags = HideFlags.DontSave };
+        textObject.transform.SetParent(_object.transform, false);
+        _label = textObject.AddComponent<TextMeshProUGUI>();
         _label.raycastTarget = false;
+        _label.maskable = false;
         _label.richText = false;
         _label.enableAutoSizing = true;
         _label.overflowMode = TextOverflowModes.Ellipsis;
@@ -145,30 +207,43 @@ internal sealed class IdolHoverInfo : IDisposable
         rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
     }
 
-    private bool Layout(TextMeshProUGUI reference, Transform root)
+    private bool Layout(TextMeshProUGUI reference, UIManager ui, bool occupied)
     {
         var label = _label!;
         var source = reference.rectTransform;
         var rect = label.rectTransform;
-        // Copy the native top-message text's world layout into our independent
-        // root child. It must not inherit the native message's hidden CanvasGroup.
+        // The independent canvas cannot inherit a disabled/transparent native
+        // message container. Keep its native font and top-message placement.
+        var root = ui.rootUI;
         var sourceScale = source.lossyScale;
-        var parentScale = root.lossyScale;
-        if (parentScale.x == 0 || parentScale.y == 0 || parentScale.z == 0
-            || source.rect.width <= 0 || source.rect.height <= 0) return false;
+        var factor = root.scaleFactor;
+        if (!float.IsFinite(factor) || factor <= 0) factor = Math.Max(0.5f, Screen.height / 1080f);
+        _canvas!.scaleFactor = factor;
+        var camera = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
+        var screen = RectTransformUtility.WorldToScreenPoint(camera, source.position);
+        var width = Math.Abs(source.rect.width * sourceScale.x);
+        var height = Math.Abs(source.rect.height * sourceScale.y);
+        if (!float.IsFinite(width) || !float.IsFinite(height) || width <= 1 || height <= 1
+            || !float.IsFinite(screen.x) || !float.IsFinite(screen.y)
+            || screen.y < 0 || screen.y > Screen.height)
+        {
+            width = Screen.width * 0.85f; height = 64f * factor;
+            screen = new Vector2(Screen.width * 0.5f, Screen.height - 72f * factor);
+        }
         rect.pivot = source.pivot;
-        rect.sizeDelta = source.rect.size;
-        rect.position = source.position;
-        rect.rotation = source.rotation;
-        rect.localScale = new Vector3(sourceScale.x / parentScale.x, sourceScale.y / parentScale.y,
-            sourceScale.z / parentScale.z);
+        rect.sizeDelta = new Vector2(Math.Min(width, Screen.width - 24f) / factor, height / factor);
+        rect.position = new Vector3(screen.x, screen.y - (occupied ? height + 8f * factor : 0f), 0);
+        rect.localRotation = Quaternion.identity;
+        rect.localScale = Vector3.one;
         if (label.font != reference.font) label.font = reference.font;
         if (label.fontSharedMaterial != reference.fontSharedMaterial) label.fontSharedMaterial = reference.fontSharedMaterial;
         label.fontSizeMax = reference.fontSize;
         label.fontSizeMin = Math.Min(18f, reference.fontSize);
         label.fontStyle = reference.fontStyle;
         label.alignment = reference.alignment;
-        label.color = reference.color;
+        var color = reference.color;
+        color.a = 1;
+        label.color = color;
         label.margin = reference.margin;
         return true;
     }
@@ -185,6 +260,7 @@ internal sealed class IdolHoverInfo : IDisposable
         Hide();
         if (_object != null) UObject.Destroy(_object);
         _object = null;
+        _canvas = null;
         _label = _reference = null;
     }
 
@@ -200,6 +276,7 @@ internal sealed class IdolHoverInfo : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        RestoreTestMessage();
         ReleaseLabel();
         _ui = null;
     }
@@ -213,7 +290,9 @@ internal static class IdolNamePatch
     {
         try
         {
-            if (IdolHoverInfo.TryDefinition(__instance, out var definition)) __result = definition.DisplayName;
+            if (IdolHoverInfo.TryDefinition(__instance, out var definition))
+                __result = CalypsoExpansionSetPlugin.Instance!.ShowIndividualIdolNames
+                    ? definition.DisplayName : IdolHoverInfo.GenericIdolName;
         }
         catch (Exception error) { CalypsoExpansionSetPlugin.Instance?.HoverInfo?.Fault(error); }
     }

@@ -17,10 +17,10 @@ internal sealed class DuckStepIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new DuckStepIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        ShortDescription = "脚步鸭叫，小心引怪",
+        ShortDescription = "走路鸭叫，别被听到",
         CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "todo_duck_step", ConfigId, "duck_steps", 6, .15f, .04f,
             EmitNoiseOnServer),
-        ContentVersion = 3
+        ContentVersion = 4
     };
     private static DuckStepIdol? _active;
     private HeldIdolContext _context;

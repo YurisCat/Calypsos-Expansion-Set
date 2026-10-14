@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "todo_big_head_fisheye",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "3bf8b0f3adc8345815e0ae51590fe2653c723b3f22aa95608ebd47e0a5411f1e",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "rgba_sha256": "28b3b28cefcbf031a94c740dbadd878cab32684d8b2620b8e414dec9ac43c24e",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "6f55295f993ff6bda39fa0a6d2948df93863f1b5b826fb81fb5885832d997a53",
+  "packed_bytes": 60795
+}

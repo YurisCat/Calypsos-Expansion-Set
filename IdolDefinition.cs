@@ -28,6 +28,22 @@ public abstract class IdolContentRuntime : IDisposable
     public abstract void Dispose();
 }
 
+// A normalized presentation value, never a client-authoritative gameplay value.
+public enum IdolVisualAuthority { Server, Holder }
+
+public interface IIdolStateVisual : IDisposable
+{
+    void Apply(float value);
+    void Tick(float deltaTime);
+}
+
+public sealed record IdolSharedVisualDefinition(
+    IdolVisualAuthority Authority,
+    Func<ScoreTool, IIdolStateVisual> Create)
+{
+    public bool ShowWhenDropped { get; init; }
+}
+
 public sealed record IdolDefinition(
     string Key,
     string DisplayName,
@@ -48,10 +64,16 @@ public sealed record IdolDefinition(
     public Func<IdolContentRuntime>? CreateRuntime { get; init; }
     // Opt in to a local hover name and a short HUD description. No network UI messages.
     public string ShortDescription { get; init; } = "";
+    // The callback can change owned eyes, other parts or material properties.
+    // The shared service synchronizes one finite value in [0,1] per instance.
+    public IdolSharedVisualDefinition? SharedVisual { get; init; }
 }
 
 public static class CalypsoExpansionSetApi
 {
+    public static void PublishVisualState(ScoreTool idol, float value) =>
+        CalypsoExpansionSetPlugin.Instance?.VisualStates?.Publish(idol, value);
+
     public static void Register(IdolDefinition definition)
     {
         var plugin = CalypsoExpansionSetPlugin.Instance

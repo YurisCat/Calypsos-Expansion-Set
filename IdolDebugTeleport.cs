@@ -15,7 +15,7 @@ internal sealed class IdolDebugTeleport
 
     internal IdolDebugTeleport(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
-    internal bool TryTeleportNext()
+    internal bool TryTeleportNext(string? key = null)
     {
         if (!_plugin.DebugTools.Enabled || _plugin.RuntimeFailed)
             return Failure("Debug teleport is disabled. Enable DebugMode and check the error log.");
@@ -39,7 +39,8 @@ internal sealed class IdolDebugTeleport
             if (identity == null) continue;
             var idol = identity.GetComponent<ScoreTool>();
             if (idol != null && idol.isActiveAndEnabled && idol.netId != 0 && idol.SoItem != null
-                && _plugin.Registry.TryGet(idol.SoItem.Id, out _)) idols.Add(idol);
+                && _plugin.Registry.TryGet(idol.SoItem.Id, out var entry)
+                && (key == null || entry.Definition.Key == key)) idols.Add(idol);
         }
         idols.Sort((left, right) => left.netId.CompareTo(right.netId));
         if (idols.Count == 0) { _lastNetId = 0; return Failure("No live MOD idols in this session. Wait for natural generation or use spawn <key>."); }

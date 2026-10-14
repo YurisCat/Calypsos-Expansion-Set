@@ -1,4 +1,7 @@
 # Raw Unity texture mip chains must keep their exact bytes on every checkout.
 *.rgba binary
+# Lossless note base/difference packages must retain their hashes across checkouts.
+*.note binary
+*.notedelta binary
 # Embedded audio banks must retain their exact PCM bytes.
 *.pcm binary

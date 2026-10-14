@@ -1,5 +1,5 @@
 {
-  "schema": "note-artwork-v1",
+  "schema": "note-artwork-v2",
   "key": "todo_relay",
   "source_size": [
     1024,
@@ -16,5 +16,9 @@
   ],
   "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
   "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
-  "rgba_sha256": "864aa6ed6a5b949a3ccf18ffa9b32dd6ccdc338824ff62b8d991e09052c3c688"
+  "rgba_sha256": "864aa6ed6a5b949a3ccf18ffa9b32dd6ccdc338824ff62b8d991e09052c3c688",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "6e37dcb4c5f35fba4b62f02e8571e0256d5f84b903bade2705f05e1bc8bca6e9",
+  "packed_bytes": 49056
 }

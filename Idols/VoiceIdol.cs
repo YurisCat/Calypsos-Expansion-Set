@@ -21,9 +21,10 @@ internal sealed class VoiceIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new VoiceIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        ShortDescription = "出声前进，安静停步",
+        ShortDescription = "发声前进，闭嘴立定",
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_voice"),
-        ContentVersion = 3
+        SharedVisual = new IdolSharedVisualDefinition(IdolVisualAuthority.Holder, idol => new VoiceEyeGlow(idol)),
+        ContentVersion = 5
     };
 
     // Audio callbacks only publish into this capture. Replacing it discards old
@@ -42,7 +43,6 @@ internal sealed class VoiceIdol : HeldIdolEffect
     private Capture? _capture;
     private Exception? _audioError;
     private bool _faulted;
-    private VoiceEyeGlow? _eyes;
 
     public override void Start(HeldIdolContext context)
     {
@@ -61,9 +61,7 @@ internal sealed class VoiceIdol : HeldIdolEffect
             _active?.Disarm();
             Volatile.Write(ref _active, this);
         }
-        _eyes ??= new VoiceEyeGlow(context.Idol);
-        _eyes.SetMoving(EvaluateMotion());
-        _eyes.Tick(Time.unscaledDeltaTime);
+        PublishEyes(EvaluateMotion());
     }
 
     private bool HasLocalHolder()
@@ -139,7 +137,7 @@ internal sealed class VoiceIdol : HeldIdolEffect
             if (!effect.HasLocalHolder()) { effect.Disarm(); return; }
             move = Vector2.zero;
             var moving = effect.EvaluateMotion();
-            effect._eyes?.SetMoving(moving);
+            effect.PublishEyes(moving);
             if (moving) move = Vector2.up;
         }
         catch (Exception exception) { effect.Fault(exception); }
@@ -168,15 +166,18 @@ internal sealed class VoiceIdol : HeldIdolEffect
     {
         Volatile.Write(ref _capture, null);
         _gate.Reset();
-        _eyes?.SetMoving(false, immediate: true);
+        PublishEyes(false);
     }
 
     private void Disarm()
     {
         if (Volatile.Read(ref _active) == this) Volatile.Write(ref _active, null);
         ClearCapture();
-        _eyes?.Dispose();
-        _eyes = null;
+    }
+
+    private void PublishEyes(bool moving)
+    {
+        if (_context.Idol != null) CalypsoExpansionSetApi.PublishVisualState(_context.Idol, moving ? 1f : 0f);
     }
 
     private void Fault(Exception exception)

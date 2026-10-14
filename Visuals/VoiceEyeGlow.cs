@@ -6,7 +6,7 @@ namespace CalypsoExpansionSet.Visuals;
 // visual-only overlay shares its mesh/transform and draws just after it, so that
 // neither the tween nor other instances are overwritten. Destroying our overlay
 // restores the original eyes without a saved/stale material or block snapshot.
-internal sealed class VoiceEyeGlow : IDisposable
+internal sealed class VoiceEyeGlow : IIdolStateVisual
 {
     internal const float TransitionSeconds = 0.08f;
     internal static readonly Color IdleColor = new(1f, 0.025f, 0.015f, 1f);
@@ -17,9 +17,10 @@ internal sealed class VoiceEyeGlow : IDisposable
 
     internal VoiceEyeGlow(ScoreTool idol)
     {
-        _overlay = new IdolEyeOverlay(idol, "Calypso Voice Eyes (local holder)", "Calypso Voice Eye Feedback", IdleColor);
+        _overlay = new IdolEyeOverlay(idol, "Calypso Voice Eyes (shared)", "Calypso Voice Eye Feedback", IdleColor);
     }
 
+    public void Apply(float value) => SetMoving(value >= 0.5f);
     internal void SetMoving(bool moving, bool immediate = false)
     {
         _moving = moving;
@@ -27,21 +28,21 @@ internal sealed class VoiceEyeGlow : IDisposable
         {
             var previous = _blend.Value;
             _blend.Reset(moving ? 1f : 0f);
-            if (previous != _blend.Value) Apply(_blend.Value);
+            if (previous != _blend.Value) ApplyColor(_blend.Value);
         }
     }
 
-    internal void Tick(float deltaTime)
+    public void Tick(float deltaTime)
     {
         if (_overlay == null) return;
         if (!_overlay.Refresh())
         {
             Dispose();
-            return;
+            throw new InvalidOperationException("The shared voice eye visual was destroyed.");
         }
         var previous = _blend.Value;
         var amount = _blend.Step(_moving, deltaTime);
-        if (previous != amount) Apply(amount);
+        if (previous != amount) ApplyColor(amount);
         var plugin = CalypsoExpansionSetPlugin.Instance;
         if (plugin?.DebugTools.Enabled != true) { _reported = false; return; }
         if (!_reported || _reportedMoving != _moving)
@@ -52,7 +53,7 @@ internal sealed class VoiceEyeGlow : IDisposable
         }
     }
 
-    private void Apply(float amount)
+    private void ApplyColor(float amount)
     {
         _overlay?.Apply(Color.Lerp(IdleColor, MovingColor, amount));
     }

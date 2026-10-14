@@ -81,7 +81,7 @@ internal sealed class IdolDebugTools : IDisposable
         }
         if (!_plugin.LocalGameplayReady(player)) return;
         _pending = null;
-        if (pending.Action == DebugAction.Teleport) _plugin.Teleports.TryTeleportNext();
+        if (pending.Action == DebugAction.Teleport) _plugin.Teleports.TryTeleportNext(string.IsNullOrEmpty(pending.Key) ? null : pending.Key);
         else if (_plugin.SpawnNearPlayer(pending.Key))
             Report($"Spawned {pending.Key} near you. Open {_windowKey} again for another command.");
     }
@@ -128,7 +128,7 @@ internal sealed class IdolDebugTools : IDisposable
         switch (words[0].ToLowerInvariant())
         {
             case "help" when words.Length == 1:
-                Report("list: types | status: registry / network\nspawn <key>: spawn near you\nteleport: next MOD idol\nvisual <key> texture|white|flat: local note comparison");
+                Report("list: types | status: registry / network\nspawn <key>: spawn near you\nteleport [key]: next matching MOD idol\nvisual <key> texture|white|flat: local note comparison");
                 break;
             case "list" when words.Length == 1:
                 Report("Available types: " + string.Join(", ", _plugin.Registry.Entries.Select(entry => entry.Definition.Key)));
@@ -139,14 +139,23 @@ internal sealed class IdolDebugTools : IDisposable
             case "spawn" when words.Length == 2:
                 QueueSpawn(words[1].ToLowerInvariant());
                 break;
-            case "teleport" when words.Length == 1:
-                QueueTeleport();
+            case "teleport" when words.Length is 1 or 2:
+                QueueTeleport(words.Length == 2 ? words[1].ToLowerInvariant() : "");
                 break;
             case "visual" when words.Length == 3:
                 if (!Enabled || !_plugin.Registry.Ready || !_plugin.Registry.TryGet(words[1], out var visualEntry)
                     || visualEntry.Visuals is not Visuals.IVisualDiagnostics diagnostics)
                     Report("No ready visual diagnostics for that key; use list.", true);
                 else Report(diagnostics.SetDiagnosticMode(words[2].ToLowerInvariant()));
+                break;
+            case "inspect" when words.Length == 1:
+                if (Testing.TestRoomAppearanceView.Toggle()) Close();
+                else Report("inspect is only available in the explicit single-player test room.", true);
+                break;
+            case "hintcheck" when words.Length == 1:
+                if (_plugin.HoverInfo?.TestMessagePriority() == true)
+                { Report("Native message shown for 20s; point at a MOD idol to check the separate hint line."); Close(); }
+                else Report("hintcheck requires the explicit single-player test room and an idle native message area.", true);
                 break;
             default:
                 Report("Unknown command. Use help for commands.", true);
@@ -168,14 +177,16 @@ internal sealed class IdolDebugTools : IDisposable
         Close();
     }
 
-    private void QueueTeleport()
+    private void QueueTeleport(string key = "")
     {
         if (!Enabled || _plugin.RuntimeFailed) { Report("Debug teleport is disabled.", true); return; }
         var player = EntityManager.Me;
         var connection = NetworkClient.connection;
         if (!NetworkServer.active || player == null || connection == null)
         { Report("Only the host with a spawned local player can teleport to MOD idols.", true); return; }
-        _pending = new DebugRequest(DebugAction.Teleport, "", player.Pointer, connection.Pointer, Time.frameCount, Time.realtimeSinceStartup + 2f);
+        if (key.Length != 0 && !_plugin.Registry.TryGet(key, out _))
+        { Report($"Unknown type '{key}'. Use list to see registered types.", true); return; }
+        _pending = new DebugRequest(DebugAction.Teleport, key, player.Pointer, connection.Pointer, Time.frameCount, Time.realtimeSinceStartup + 2f);
         Close();
     }
 
@@ -291,6 +302,6 @@ internal sealed class IdolDebugTools : IDisposable
         _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
     }
 
-    internal void Cancel() { _pending = null; Close(); _plugin.Teleports.Reset(); }
+    internal void Cancel() { _pending = null; Close(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
     public void Dispose() => Cancel();
 }

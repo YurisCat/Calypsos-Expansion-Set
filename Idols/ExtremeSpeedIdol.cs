@@ -19,9 +19,9 @@ internal sealed class ExtremeSpeedIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new ExtremeSpeedIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        ShortDescription = "五倍飞奔，空中锁向",
+        ShortDescription = "神行飞速，长驱直入",
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_extreme_speed"),
-        ContentVersion = 5
+        ContentVersion = 6
     };
 
     private static ExtremeSpeedIdol? _active;

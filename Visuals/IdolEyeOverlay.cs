@@ -3,6 +3,23 @@ using UObject = UnityEngine.Object;
 
 namespace CalypsoExpansionSet.Visuals;
 
+internal sealed class IdolEyeProgressVisual : IIdolStateVisual
+{
+    private readonly IdolEyeOverlay _overlay;
+    private readonly Func<float, Color> _color;
+    internal IdolEyeProgressVisual(ScoreTool idol, string name, Func<float, Color> color)
+    {
+        _color = color;
+        _overlay = new IdolEyeOverlay(idol, name, name + " Feedback", color(0));
+    }
+    public void Apply(float value) => _overlay.Apply(_color(value));
+    public void Tick(float deltaTime)
+    {
+        if (!_overlay.Refresh()) throw new InvalidOperationException("The shared eye visual was destroyed.");
+    }
+    public void Dispose() => _overlay.Dispose();
+}
+
 // Native ScoreTool tweens own the original eye PropertyBlock. Draw a separately
 // owned visual over its shared mesh, without changing the native renderer.
 internal sealed class IdolEyeOverlay : IDisposable

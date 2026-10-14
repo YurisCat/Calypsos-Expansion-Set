@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if (ROOT / ".local/research/pydeps").is_dir():
     sys.path.insert(0, str(ROOT / ".local/research/pydeps"))
 from PIL import Image
+from NoteTextureFormat import pack, unpack
 
 ASSETS = ROOT / "Assets/StickyNote"
 FRONT_UV = (0.0203103777, 0.01061930135, 0.9824627042, 0.8712632656)
@@ -71,18 +72,25 @@ def main() -> None:
             parser.error("input must be PNG")
         composed = compose(base, art)
         source_size = art.size
+        paper = mip_bytes(base.convert("RGBA"))
     raw = mip_bytes(composed)
     if len(raw) != 1398100:
         raise ValueError("Unexpected mip chain length.")
     artwork_path = ASSETS / "Artwork" / f"{args.key}.png"
-    baked_path = ASSETS / "Baked" / f"{args.key}.rgba"
+    shared_path = ASSETS / "paper.note"
+    if not shared_path.exists() or unpack(shared_path.read_bytes()) != paper:
+        parser.error("Shared paper differs or is missing; repack all note resources before importing.")
+    packed = pack(raw, paper)
+    if unpack(packed, paper) != raw:
+        raise ValueError("Lossless note round trip failed.")
+    baked_path = ASSETS / "Baked" / f"{args.key}.notedelta"
     metadata_path = baked_path.with_suffix(".json")
     if source in (baked_path.resolve(), metadata_path.resolve()):
         parser.error("input cannot be one of the output files")
     if args.preview:
         preview = args.preview.resolve()
         if preview in (source, artwork_path.resolve(), baked_path.resolve(), metadata_path.resolve(),
-                       (ASSETS / "paper.png").resolve(), (ASSETS / "paper.rgba").resolve()):
+                       (ASSETS / "paper.png").resolve(), shared_path.resolve()):
             parser.error("preview cannot overwrite a source or runtime resource")
         if preview.exists():
             parser.error("preview already exists; choose a new delivery filename")
@@ -93,9 +101,9 @@ def main() -> None:
     # Preserve the exact submitted PNG, including its alpha, for future editing.
     if source != artwork_path.resolve():
         artwork_path.write_bytes(source_bytes)
-    baked_path.write_bytes(raw)
+    baked_path.write_bytes(packed)
     metadata = {
-        "schema": "note-artwork-v1",
+        "schema": "note-artwork-v2",
         "key": args.key,
         "source_size": source_size,
         "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
@@ -104,6 +112,10 @@ def main() -> None:
         "front_uv": FRONT_UV,
         "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
         "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+        "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+        "paper_rgba_sha256": hashlib.sha256(paper).hexdigest(),
+        "packed_sha256": hashlib.sha256(packed).hexdigest(),
+        "packed_bytes": len(packed),
         "rgba_sha256": hashlib.sha256(raw).hexdigest(),
     }
     metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

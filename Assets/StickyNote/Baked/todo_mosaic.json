@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "todo_mosaic",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "563c3c9138c7cd9bae51b5616ba1552ead03bf3c9ec725e2f5ab317d8766c3f1",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "rgba_sha256": "303e3c89870c7e5db76e350c8fc0b5364eed781f7d40ba8287ef5bc3adc40f7d",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "7acd3b1aacafd3f47b9711c4c2a89106ccf8baf49e1b2acc5dbf795e8f910bc5",
+  "packed_bytes": 71187
+}

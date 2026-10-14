@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.25</Version>
+    <Version>0.2.27</Version>
     <Product>Calypso's Expansion Set</Product>
     <Authors>YurisCat;Masaicker</Authors>
     <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>
@@ -26,9 +26,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="scripts\ScreenEffectsBuild.cs" />
+    <EmbeddedResource Include="Assets\ScreenEffects\idol_screen.bundle" LogicalName="CalypsoExpansionSet.ScreenEffects.bundle" />
     <EmbeddedResource Include="Assets\StickyNote\note.mesh.json" LogicalName="CalypsoExpansionSet.StickyNote.note.mesh.json" />
-    <EmbeddedResource Include="Assets\StickyNote\paper.rgba" LogicalName="CalypsoExpansionSet.StickyNote.paper.rgba" />
-    <EmbeddedResource Include="Assets\StickyNote\Baked\*.rgba" LogicalName="CalypsoExpansionSet.StickyNote.Artwork.%(Filename).rgba" />
+    <EmbeddedResource Include="Assets\StickyNote\paper.note" LogicalName="CalypsoExpansionSet.StickyNote.paper.note" />
+    <EmbeddedResource Include="Assets\StickyNote\Baked\*.notedelta" LogicalName="CalypsoExpansionSet.StickyNote.Artwork.%(Filename).notedelta" />
     <EmbeddedResource Include="$(IdolAudioPath)\duck_steps.pcm" LogicalName="CalypsoExpansionSet.Audio.duck_steps.pcm" />
     <EmbeddedResource Include="$(IdolAudioPath)\spring_accent.pcm" LogicalName="CalypsoExpansionSet.Audio.spring_accent.pcm" />
   </ItemGroup>
@@ -44,7 +46,8 @@
     <Reference Include="$(InteropPath)\vhs.Audio.dll" Private="false" />
     <Reference Include="$(InteropPath)\DissonanceVoip.dll" Private="false" />
     <Reference Include="$(InteropPath)\Assembly-CSharp*.dll" Private="false" />
-    <Reference Include="$(InteropPath)\Unity*.dll" Private="false" />
+    <Reference Include="$(InteropPath)\UnityEngine.CoreModule.dll" Private="false" Publicize="true" />
+    <Reference Include="$(InteropPath)\Unity*.dll" Exclude="$(InteropPath)\UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="$(InteropPath)\Il2Cppmscorlib.dll" Private="false" />
     <Reference Include="$(InteropPath)\Il2CppSystem*.dll" Private="false" />
     <Reference Include="$(InteropPath)\Mirror*.dll" Private="false" />

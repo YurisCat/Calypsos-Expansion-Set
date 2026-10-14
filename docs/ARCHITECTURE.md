@@ -26,15 +26,25 @@
 | [Idols/JumpingIdol.cs](../Idols/JumpingIdol.cs) | 原力度连续跳跃、自动请求归属与成功起跳音效 |
 | [Idols/SpringIdol.cs](../Idols/SpringIdol.cs) | 暂停注册的旧弹簧编排，保留源码和身份 |
 | [Idols/FovIdol.cs](../Idols/FovIdol.cs) | 近景持有者的本地 FOV 缩放过渡与恢复 |
-| [Idols/VoiceIdol.cs](../Idols/VoiceIdol.cs)、[Idols/VoiceInputGate.cs](../Idols/VoiceInputGate.cs)、[Visuals/VoiceEyeGlow.cs](../Visuals/VoiceEyeGlow.cs) | 声控持有者的方向输入替换、麦克风判定及本地红蓝眼睛 |
+| [Idols/VoiceIdol.cs](../Idols/VoiceIdol.cs)、[Idols/VoiceInputGate.cs](../Idols/VoiceInputGate.cs)、[Visuals/VoiceEyeGlow.cs](../Visuals/VoiceEyeGlow.cs) | 声控持有者的方向输入替换、麦克风判定及全员红蓝眼睛 |
 | [Idols/UpsideDownIdol.cs](../Idols/UpsideDownIdol.cs)、[Idols/DelayedMoveIdol.cs](../Idols/DelayedMoveIdol.cs)、[Idols/ExtremeSpeedIdol.cs](../Idols/ExtremeSpeedIdol.cs) | 渲染期间倒立、方向输入延迟与原生速度计算 |
-| [Idols/DuckStepIdol.cs](../Idols/DuckStepIdol.cs)、[Audio/HeldIdolAudio.cs](../Audio/HeldIdolAudio.cs) | 原版脚步触发、共享一次性音效协议和 FMOD 资源 |
+| [Idols/DuckStepIdol.cs](../Idols/DuckStepIdol.cs)、[Audio/HeldIdolAudio.cs](../Audio/HeldIdolAudio.cs)、[Audio/IdolHearing.cs](../Audio/IdolHearing.cs) | 原版脚步触发、共享一次性音效协议、服务器听觉和 FMOD 资源 |
 | [Idols/RelayIdol.cs](../Idols/RelayIdol.cs)、[Idols/RelayFatigue.cs](../Idols/RelayFatigue.cs)、[Idols/RelayIdolRuntime.cs](../Idols/RelayIdolRuntime.cs) | 接力持有者减速、疲劳公式、服务器实例状态与全员快照 |
 | [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
-| [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs) | 便签网格、纹理、材质与视觉诊断资源 |
+| [Visuals/IdolVisualSync.cs](../Visuals/IdolVisualSync.cs) | 类型无关的雕像外观状态上报、校验、完整快照与实例资源清理 |
+| [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
 | [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs) | 已注册内容的本地指向名称与顶部短说明、原版消息优先和清理 |
+| [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
+
+## 棋盘进度棋子碰撞
+
+`[QualityOfLife] 关闭棋盘上棋子的碰撞箱` 默认 true，独立于 DebugMode、雕像注册及兼容准入。只遍历当前 `BoardGameManager.Instance.PawnManager.pawns`，关闭每个 `Pawn.Collider` 中非触发器、原本启用的实体碰撞；不修改预制体、棋盘地面、骰子、怪物或 `EnvironmentElements.ChessboardPiece` 事件棋子。棋子显示、进度和移动动画沿用原版。
+
+原版客户端棋盘启动、服务器 PawnManager 启动及进度棋子重新显示后立即应用，并每秒通过当前棋盘的已知列表维护，覆盖后续棋盘/实例替换与重连；不逐帧扫描场景或反射。各端按本机配置执行，不增加网络消息或同步 Unity 的 collider.enabled，因此联机建议全部参与端保持一致；不据此承诺只装房主有效。该开关没有改变任何雕像定义、身份或内容版本。
+
+只记录本功能从 enabled=true 改为 false 的 Collider。关闭开关、棋盘列表替换、离开会话及正常卸载时恢复这些仍存活且仍为 false 的组件，原先已禁用的碰撞不被重新启用；销毁对象安全移除。异常回滚已记录修改并单独停用本功能，保留其他模组功能；诊断日志受 DebugMode 控制。具体原版资源/原生研究与编译、托管、游戏验收边界见 [DEVELOPMENT](../DEVELOPMENT.md)。
 
 ## 类型注册
 
@@ -52,6 +62,7 @@
 | ConfigurePrefab | 修改自有预制体，保留必要物品/网络结构 |
 | CreateVisuals | 在自有预制体创建附件并返回 IDisposable；构造抛错前自行回滚 |
 | CreateRuntime | 可选按类型创建 IdolContentRuntime；用于跨持有周期的状态与观察者表现，Tick 由主插件统一调用 |
+| SharedVisual | 可选的 IdolSharedVisualDefinition；选择 Server 或 Holder 状态来源，提供 IIdolStateVisual 工厂，以及是否保留落地显示 |
 
 CreateRuntime 在该类型的自有配置/预制体准备完成后调用，每种类型只创建一次；查找表重建不重新创建，不在放下时销毁。构造失败回滚本次资源，Tick 异常进入主插件失败边界并停止全部内容运行时；正常卸载也清理。运行时自行判断执行端、Ready、场景和网络生命周期，字段不会自动联网或进入原版存档。外部插件使用新增 API 时需更新引用并重新编译。
 
@@ -68,7 +79,7 @@ flowchart LR
 
 创建失败清理本次配置、预制体和视觉资源；整个注册/运行失败时不宣称 ready，并阻止新内容准入。场景重建预制体表或配置查找表时重新登记保持幂等，不覆盖冲突条目。活跃会话不热卸载。
 
-兼容清单按配置 ID 排序，包含 key、配置 ID、assetId、TemplateId、实际 PoolTemplateId、ContentVersion 和执行端；不自动散列委托或资源文件。改变契约时必须提升对应内容版本。
+兼容清单按配置 ID 排序，包含 key、配置 ID、assetId、TemplateId、实际 PoolTemplateId、ContentVersion、执行端和共享外观的状态来源/落地显示设置；不自动散列委托或资源文件。改变契约时必须提升对应内容版本。
 
 ## 内置雕像
 
@@ -76,16 +87,34 @@ flowchart LR
 
 | 名称 | key | 配置 ID | assetId | ContentVersion | 执行端 |
 | --- | --- | --- | --- | --- | --- |
-| 弹跳雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 10 | OwnerNativeGameplay |
-| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 3 | LocalPresentation |
-| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 3 | OwnerNativeGameplay |
-| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 5 | LocalPresentation |
-| 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 3 | OwnerNativeGameplay |
-| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 5 | OwnerNativeGameplay |
-| 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 2 | OwnerNativeGameplay |
-| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 3 | OwnerNativeGameplay |
+| 弹跳雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 11 | OwnerNativeGameplay |
+| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 4 | LocalPresentation |
+| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 5 | OwnerNativeGameplay |
+| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 6 | LocalPresentation |
+| 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 4 | OwnerNativeGameplay |
+| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 6 | OwnerNativeGameplay |
+| 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 3 | OwnerNativeGameplay |
+| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 5 | OwnerNativeGameplay |
+| 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 2 | ServerGameplay |
+| 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 2 | LocalPresentation |
+| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 2 | ServerGameplay |
+| 马赛克雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
+| 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 2 | LocalPresentation |
+| 大头鱼眼雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
 
-八种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+十四种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+
+### 怪声、外观与最终画面
+
+疑神由服务器在持有者附近选地面上方的空闲位置，随机挑选原版有效的三维短怪声。每次事件使用 `NetworkAudioManager.TargetPlayOneShot` 给已认证、Ready、清单兼容的玩家发送相同事件/位置；通过 `HearingSenseManager.AddVolumeEvent` 新增一条听觉事件，仅调整该新事件的位置，保留原版持有者来源、Tag 和寿命。不保存一次性声响，晚加入不重放。放下停止后续事件，已发出的短音自然结束；实际怪物追踪另需有怪地图验收。
+
+`HeldAppearanceRuntime` 在每个客户端读取原版同步的持有关系，按类型维护观察者外观；宽体/大头无需新玩法协议。`VisualRigCopy` 只创建 Transform、MeshFilter、MeshRenderer、SkinnedMeshRenderer，以原生网格、材质与骨骼姿态构造自有视觉副本。入口为完整 `WorldRigInstance`，不能把实际指向颈部的 `RigGameObject` 当作整个人物；空骨骼槽保留，外部蒙皮引用只复制所需骨骼链并换算相对坐标。隐藏原网格时保存并按所有权恢复 `forceRenderingOff`，不缩放玩家根节点或碰撞，不复制脚本、网络、AI、音效与粒子玩法。宽体的手持显示副本一起变形，避免原尺寸物品悬在变矮的角色上方；物理、库存和网络物品保持原样。角色替换、释放、死亡、断线和销毁均清理副本。第一人称不额外显示自己的世界模型。
+
+怪相的服务器候选池由原版 `MonsterEntity` 游戏事件生成、当前待生成实体及重生登记构成，历史种类保留到当前大局结束/棋盘更换；不包括仅存在于资源库但尚未进入本局的事件、手工生成怪物或游荡雕像。空池使用 `weepingAngelPrefab`。每次拾取只选一次，转交/再次拾取重抽，持有期间不随池变化变脸。历史集合不写入原版存档，读档后以当前原版实体/队列及后续登记重新积累。
+
+`MonsterDisguiseRuntime` 以消息号 `0x4D4C` 周期发送完整当前选择表（雕像 netId、持有者 netId、原版怪物 assetId）。接收验证当前服务器连接、认证、Ready、清单、版本、类型、长度、上限、单调序列、重复身份和已知原版资源；尚未生成的物品等待后续快照，空表移除旧状态。处理器不覆盖冲突，断线/会话切换清空。外观只借用原版网格及闲置/移动动画片段，在视觉副本上采样，不执行怪物 Animator、动画事件或 AI。
+
+`HeldScreenEffect` 在原生最终渲染结束后，通过 CommandBuffer 复制当前画面并运行内嵌着色器，因此场景与 HUD 同受像素化、白线或径向畸变。只对实际持有者的第一人称游戏相机启用；菜单、调试面板、聊天、死亡/角色或镜头替换、断线/释放均停用。白线从已渲染颜色提取边缘，不读取墙后物体。宽体另在渲染及本地原版交互检测期间临时降低相机并改变水平投影，保持准星与检测一致，结束后恢复自有写入；不修改保存的设置。画面资源构建见 [ScreenEffects](../Assets/ScreenEffects/README.md)。
 
 0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。其跳跃补丁入口已移除，不随 PatchAll 安装；恢复启用时需要重新接入原生跳跃补丁并单独验收。旧效果源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
 
@@ -109,7 +138,7 @@ flowchart LR
 
 每次消费输入重新检查实际持有物、物品归属、本机角色控制权、健康、Ready/兼容和控制状态。静音、麦克风失效、菜单/F8 或控制禁用时清空采样并输出零；恢复后需要新声音样本。转交、放下、死亡、库存/角色切换、断线及卸载撤销覆盖，不必恢复输入字段或订阅。音频回调只发布样本/错误，主线程处理生命周期与异常日志；原生读取异常后停用到释放。原版按键说话决定可用声音输入，真实麦克风/原生补丁执行仍待游戏验收。
 
-声控眼睛只为本机持有者创建。主线程使用与移动相同的 EvaluateMotion 结果：不能前进时红色，声音允许前进时快速转蓝，停止后回红；静音、菜单或样本失效立即重置红色。音频线程不访问 Unity 外观。原版 ScoreTool 眼睛 tween 持续写自己的 MaterialPropertyBlock，因此反馈使用共用原眼睛网格、独立材质与 PropertyBlock 的本地覆盖网格，在原眼睛之后绘制；不改原 renderer/材质/PropertyBlock，不增加碰撞或网络组件。释放时只销毁自有附件与材质，共用网格不销毁。颜色没有新增网络状态或晚加入重放，队友保留原外观；诊断只在 DebugMode 下报告状态变化。
+声控主线程使用与移动相同的 EvaluateMotion 结果向统一外观服务发布 0/1：不能前进时红色，声音允许前进时快速转蓝，停止后回红；静音、菜单或样本失效发布红色。服务器校验实际持有者后将状态同步给所有兼容客户端；不发送音频或音量样本，音频线程不访问 Unity 或网络。原版 ScoreTool 眼睛 tween 持续写自己的 MaterialPropertyBlock，因此每端使用共用原眼睛网格、独立材质与 PropertyBlock 的覆盖网格，在原眼睛之后绘制；不改原 renderer/材质/PropertyBlock，不增加碰撞或网络组件。放下/转交/死亡时清理当前附件，晚加入从当前快照恢复；仅销毁自有附件与材质。诊断只在 DebugMode 下报告。
 
 0.2.12 曾把弹簧保存在 jumping 身份下；拆分后 jumping 恢复跳跃，弹簧另用 spring，调试命令相应改变。没有自动迁移已有存档类型；升级变化见 [CHANGELOG](../CHANGELOG.md)，存档恢复仍待验收。
 
@@ -130,11 +159,21 @@ flowchart LR
 
 自 0.2.16 起，bank 可以提供 `OnServerEmission` 回调；在上述校验通过并记下序号/冷却后、广播前仅执行一次。鸭步定义在自己的回调中调用 `HearingSenseManager.AddVolumeEvent(holder.transform, NoiseRange)`，内置 NoiseRange=18，来源为持有玩家，沿用普通双参数重载的 audience=null、ignoreRange=false 与原版寿命/清理。这里不要求服务器角色 isOwned 或等于 EntityManager.Me，以支持远端持有者；仅客户端播放、重复/拒绝请求均不会添加噪声。
 
-怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新鸭叫事件，已经发出的声音按原版寿命自然消失。跳跃音效没有这个回调。新增玩法用 duck_step.ContentVersion=2 纳入现有清单握手，无需改变音效报文格式。
+怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新声响事件，已发出的声音按原版寿命自然消失。0.2.26 弹跳也注册 OnServerEmission，经去重/冷却后调用共用 IdolHearing，新增一次普通玩家来源事件；客户端回放不新增噪声。疑神将同次假声位置交给同一入口，保留原版 Tag、来源与寿命，仅重定位新增事件。跳跃失败/手动动作不新增弹簧音效请求，服务器接受的音效与听觉回调一一对应；无需改动音效报文格式。
 
 报文固定长度，检查 magic/version/manifest、来源、通道、数量范围、未知 netId、重复序号及非有限位置。连接 ID 复用按实际连接指针清旧记录，处理器重建/卸载只管理自己的委托。事件无快照，不向晚加入者重放旧声响；当前实例与持有状态仍由原版生成/SyncVar 恢复。全部客户端需要兼容 bank 与内容版本。双端真实听感和时序仍待验收。
 
 FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/Audio/README.md)。运行所需的两份 bank 和裁剪/哈希记录保存在仓库 `Assets/Audio`，构建默认从这里嵌入；原始完整录音和试听预览仍由本地工作目录保存。注册失败回滚相应 bank、便签和自有协议处理器；不会修改原版 FMOD 全局监听器或播放其他类型的声音。
+
+## 统一雕像外观状态
+
+`IdolDefinition.SharedVisual` 显式接入共享表现。类型提供 `IIdolStateVisual` 工厂，通过 `Apply(float)` 修改自己的眼睛、其他部位或材质，并用 `Tick/Dispose` 维护和释放资源。`CalypsoExpansionSetApi.PublishVisualState(idol, value)` 只同步每只实例的一个有限 `[0,1]` 标量；不会自动复制任意 Unity 属性，也不传递音频或游戏权威状态。声控用 0/1，接力用疲劳进度。
+
+Server 来源只接受服务器对当前生成物品的发布。Holder 来源只允许实际持有者所属客户端发布；服务器再次核对当前连接、认证、Ready、兼容、配置类型、存活角色、库存与控制权归属，不能由客户端修改 Server 类型的状态。Holder 不允许落地保留，超时回到 0；Server 可设置 ShowWhenDropped 保留实例外观。放下、转交、死亡、物品销毁或失去准入时撤销相应持有者表现。
+
+独立消息号 `0x4D4D`、协议 1，通过可靠通道发送。持有者报告有递增序号、速率限制和心跳；服务器周期发送完整当前实例表供所有兼容玩家及晚加入者恢复。校验 magic/协议/清单、来源、精确长度、数量上限、有限范围、未知配置、重复 ID 与过期序号，整表通过后才替换客户端状态。未知生成实例不提前应用，下一份完整表修复时序。快照反映当前值，不重放历史变化或一次性表现。参数以源码为准。
+
+每端独立持有自身视觉资源，工厂或渲染异常只停用该实例表现，不停止玩法；离开持有状态后允许重新建立。断线/重连清空旧连接状态，处理器按委托所有权登记与移除，不覆盖其他 MOD。当前单通道 API 已用于两类眼睛，其他动态部位需要类型工厂主动接入。外观契约变化仍须提升 ContentVersion，外部插件更新引用后重新编译。
 
 ## 接力疲劳与眼睛
 
@@ -158,7 +197,7 @@ RelayIdol 的 HeldIdolEffect 只由当前持有者所属且有控制权的客户
 
 RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。协议消息号 `0x4D4B`，版本 2，与兼容和音效协议分离；每 0.2 秒及存活人数／持有边界发送完整实例表，包括 configId、manifest、递增序号、存活人数和各实例的 netId、持有角色 netId、疲劳。客户端完整校验后一起提交存活人数与实例状态，按该人数计算下限，不自行猜测其他玩家生死。没有客户端疲劳写入接口。发送资格与存活计数分开，死亡观察者仍接收快照。只发给已认证、Ready、兼容连接；接收检查当前服务器来源、可靠通道、版本、清单、配置身份、精确长度、数量／数值范围、重复和已知物品类型。未知生成 ID 不保存或应用，后续完整快照修复正常的晚加入生成时序；移动执行前再核对当前持有者与实例，断线清理客户端人数和状态。
 
-眼睛对所有客户端可见，包括放在地面的已疲劳物品。每个实例创建自有覆盖网格/材质，使用同一个疲劳值从绿渐红；与声控共用 IdolEyeOverlay 的资源流程，不改原版眼睛 renderer、材质或 tween，不增加网络组件。销毁/出售时移除状态和附件，断开客户端清理快照/表现，服务器关闭清理权威状态；处理器重建只重新登记自己的委托，冲突不覆盖其他 MOD。
+服务器内容运行时将同一个疲劳值发布到统一外观服务，眼睛对所有客户端可见，包括放在地面的已疲劳物品。眼睛不再由接力玩法快照自行创建；每端通过 SharedVisual 工厂创建覆盖网格/材质，从绿渐红。与声控共用 IdolEyeOverlay，不改原版眼睛 renderer、材质或 tween，不增加网络组件。销毁/出售、断线和服务器关闭时分别清理对应的玩法状态及共享外观。
 
 首版状态跟随当前房间内仍存活的网络实例。原版存档重新生成的实例从零开始；没有把疲劳塞入价值/皮肤字段，也没有声称实现存档疲劳持久化。公式、快照及清理已有托管检查，真实双端、角色/场景原生时序、眼睛与实际移动表现均待游戏验收。
 
@@ -206,21 +245,25 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 便签资源与生命周期
 
-八种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型返回便签资源；接力另由 CreateRuntime 管理实例眼睛和疲劳快照。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
+十四种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
-便签从 DLL 内嵌的 note.mesh.json 和按图案 key 选择的预合成 RGBA mip 链创建视觉对象，挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
+便签从 DLL 内嵌的 note.mesh.json、共享 paper.note 和按图案 key 选择的 Baked/*.notedelta 创建视觉对象。纯托管 NoteTextureCodec 校验格式/长度/哈希，解压 XOR 差异并还原与旧资源逐字节相同的 RGBA32 完整 mip 链，再沿用已验证的原生上传；不使用 LoadImage。附件挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
 注册器持有返回的 IDisposable，后续创建失败或正常卸载清理。便签工厂在返回前抛错时自己回滚。指定图案缺失会注册失败，不自动降级为空白。外部注册 API 的视觉回调可选，不自动导入 FBX 或加载其他模型。
 
-原始 bianqian.fbx 已导出为头部局部坐标网格；note.mesh.json 决定形状，paper.rgba 是底色，Baked/<图案 key>.rgba 是带图案的运行贴图。完整资源来源、UV、导入及诊断方法见 [便签说明](../Assets/StickyNote/README.md)。
+纸底只解码一份缓存，各类型仍拥有独立的完整纹理与视觉资源；最后一个类型释放时清理共享托管缓存，初始化失败也释放本次租用。格式固定解压上限，验证压缩数据、共享纸底及输出的 SHA256，不允许跨底图混用。普通构建不调用绘图/压缩工具，修改资源契约需提升对应内容版本。
+
+原始 bianqian.fbx 已导出为头部局部坐标网格；note.mesh.json 决定形状，paper.note 保存共享压缩底色，Baked/<图案 key>.notedelta 保存无损图案差异。完整资源来源、UV、导入及诊断方法见 [便签说明](../Assets/StickyNote/README.md)。
 
 ## 指向名称与短说明
 
-当前八种 MOD 雕像填写 `ShortDescription`；原版雕像不新增说明。外部定义默认空，不强制覆盖其交互显示。非空定义只在自有克隆预制体开启名称、关闭模板描述，ScoreTool 的名称 getter 返回定义的 DisplayName；原版交互动作、输入标签与价格格式继续由原交互 UI 负责。`jumping` 正式显示名统一为“弹跳雕像”，稳定身份与玩法不变。
+当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部谏言；当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。原版雕像不新增说明。外部定义默认空，不强制覆盖其交互显示。非空定义只在自有克隆预制体开启名称、关闭模板描述；ScoreTool 的名称 getter 根据本机 `[UI] ShowIndividualIdolNames` 配置选择显示名：默认 false 统一显示“卡里普索拓展包雕像”，true 返回定义的 `DisplayName`。该配置只控制本机名称，顶部谏言继续按类型显示，不修改定义、配置身份、网络状态或兼容清单。原版交互动作、输入标签与价格格式继续由原交互 UI 负责；F8 调试清单仍使用定义名和稳定 key。`jumping` 正式显示名为“弹跳雕像”。
 
 顶部说明读取本机 PlayerInteraction 的原版 Hovered 目标，通过原版 GetRealInteractable 解析碰撞体上的交互代理，再识别实际雕像。沿用原版距离、遮挡和目标选择，不增加独立射线或按类型分支。只在角色具有控制权、存活、Ready 且兼容时显示；移开、菜单、死亡、失去控制或断线即隐藏。独立 TMP 标签复用原版顶部消息的字体、布局和共享材质，不写原版文本或消息队列，也不截断教程。
 
-原版 globalMessageUi/messageUi 已显示、消息排队或旁白显示时短说明让位；原版 Show/ShowForDuration 开始时立即隐藏并覆盖淡入首帧。UI 替换、断线及正常卸载销毁自有标签；不销毁借用的字体/材质。表现异常只停用短说明并记录一次错误，不停止雕像玩法。诊断受 DebugMode 控制，功能本身不受此开关控制。真实多人、分辨率/语言组合与完整生命周期的验收范围见 DEVELOPMENT/TODO。
+说明使用独立 ScreenSpaceOverlay Canvas，不继承原版 UI 根节点的隐藏状态；按原版消息的屏幕位置、字号及缩放布局，原布局无效时回退到屏幕顶部。原版 IsDisplayed 只检查自身 CanvasGroup.alpha，因此不能用它或消息队列非空作为持续屏蔽条件。现检查实际对象/文字/父级透明度；普通 globalMessageUi/messageUi 可见时，把谏言移到下一行。Show/ShowForDuration 的淡入首帧提前预留该行，不改原版文本或队列；全屏旁白仍隐藏谏言。UI 替换、断线及正常卸载销毁自有画布/标签，不销毁借用的字体/材质。表现异常只停用短说明并记录一次错误，不停止雕像玩法。诊断受 DebugMode 控制，功能本身不受此开关控制。
+
+显式测试房的 `hintcheck` 在原版顶部消息空闲时显示 20 秒诊断消息，用于检查同屏分行；普通游戏拒绝此命令。结束后仅在原文本仍由诊断持有时恢复此前文本，避免覆盖后续原版消息。真实普通地图、多人、分辨率/语言组合与完整生命周期的验收范围见 DEVELOPMENT/TODO。
 
 ## 调试与测试房
 
@@ -242,6 +285,8 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，新增时间不决定位置。各版本的单人游戏证据见 DEVELOPMENT，不能将不同清单版本的结果互相替代。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
 
 ## Interop 禁用项
+
+- 当前本机元数据未保留 AssetBundle `LoadFromMemory` 与同步 `LoadAsset`、ScreenCapture、材质版 `Graphics.Blit`、Animation `AddClip/CrossFade`；不能因 interop DLL 存在恢复包装就视为可调用。0.2.24 初次使用 LoadFromMemory 的隔离测试发生原生访问违例。资源加载改用已保留的异步文件/资源 API，最终画面使用 CommandBuffer，视觉动画使用 `AnimationClip.SampleAnimation`；实际证据见 DEVELOPMENT。
 
 这些条目来自已记录的原生/游戏问题；更换游戏或 interop 后应复核，不从托管模拟通过推断封送正确。
 

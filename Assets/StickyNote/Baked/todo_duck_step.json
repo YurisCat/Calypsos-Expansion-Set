@@ -1,5 +1,5 @@
 {
-  "schema": "note-artwork-v1",
+  "schema": "note-artwork-v2",
   "key": "todo_duck_step",
   "source_size": [
     1024,
@@ -16,5 +16,9 @@
   ],
   "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
   "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
-  "rgba_sha256": "547d747249b8e2d3dda60db30d71369239ca7ba7f8c0814301a135394920c0d2"
+  "rgba_sha256": "547d747249b8e2d3dda60db30d71369239ca7ba7f8c0814301a135394920c0d2",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "a1ceadaa4ea12ad480740a4ca6d509757bae2c7c28b9e345cbc4e76f6a319ce3",
+  "packed_bytes": 52177
 }

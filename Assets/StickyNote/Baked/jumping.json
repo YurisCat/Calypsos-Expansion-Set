@@ -1,5 +1,5 @@
 {
-  "schema": "note-artwork-v1",
+  "schema": "note-artwork-v2",
   "key": "jumping",
   "source_size": [
     1024,
@@ -16,5 +16,9 @@
   ],
   "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
   "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
-  "rgba_sha256": "17766f3314893dd8084a1f64a311413887b27bd57d811119dc9b6df798e1e23a"
+  "rgba_sha256": "17766f3314893dd8084a1f64a311413887b27bd57d811119dc9b6df798e1e23a",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "4fa4562b8a04975fe4cc6df8f1e09860ed95c7064d7c221fb697cd698314aae0",
+  "packed_bytes": 36836
 }

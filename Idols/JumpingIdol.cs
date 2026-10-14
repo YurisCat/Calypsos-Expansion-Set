@@ -9,6 +9,7 @@ namespace CalypsoExpansionSet.Idols;
 internal sealed class JumpingIdol : HeldIdolEffect
 {
     internal const ulong ConfigId = 0x4D49000000000001UL;
+    internal const float NoiseRange = 18f;
     internal static IdolDefinition Definition => new(
         "jumping", "弹跳雕像", ConfigId, 0x4D490001U,
         // 第五个参数是 TemplateId：复制 Score 的配置和预制体，再修改自己的副本。
@@ -16,7 +17,7 @@ internal sealed class JumpingIdol : HeldIdolEffect
     {
         // Slippery 只用于自然池匹配，基础属性和外观仍来自上面的 Score 模板。
         PoolTemplateId = 13601636613369722279UL,
-        ShortDescription = "落地就跳，蹦个不停",
+        ShortDescription = "落地就跳，开怀大笑",
 
         // 目前全部继承模板。需要调整时取消相应示例的注释，只保留要覆盖的字段。
         // InitialWeight = 100f, // 初始相对权重；未指定时沿用原版 100，选中后仍衰减。
@@ -35,11 +36,13 @@ internal sealed class JumpingIdol : HeldIdolEffect
 
         // 实际改变属性、玩法或外观后提升此版本，重新编译并让所有联机端更新。
         CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "todo_jumping",
-            ConfigId, "spring_accent", 4, 0.1f),
-        ContentVersion = 10
+            ConfigId, "spring_accent", 4, 0.1f, onServerEmission: EmitNoiseOnServer),
+        ContentVersion = 11
     };
 
     private const float RequestTimeout = 0.4f;
+    internal static void EmitNoiseOnServer(HeldIdolContext context) =>
+        IdolHearing.Emit(context, ConfigId, NoiseRange, "Jumping");
     private static JumpingIdol? _pending;
     private InputAction.CallbackContext? _jumpContext;
     private HeldIdolContext _context;

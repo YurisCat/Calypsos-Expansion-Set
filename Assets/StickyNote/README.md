@@ -5,14 +5,14 @@
 - 源 FBX：`bianqian.fbx`，SHA256 `613da0a3ff533559eba959a89efdd1bb708bcbc1c6efed2e264708d5bce97c2d`。
 - `note.mesh.json`：将 FBX 变换烘焙到原版 `SM_IdolHead` 的局部坐标。保留原来的 64 个三角面、角点法线与 UV；为保留分裂法线/UV，每角点独立，共 192 个渲染顶点。坐标转换时同时变换法线并调整三角面绕序，没有修复或重新建模。
 - `paper.png`：模型师提供的“不透明胶带”版本底色图，512×512。SHA256 `163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824`。作为所有图案的空白底图保留。
-- `paper.rgba`：该 PNG 解码后的 RGBA32 数据，每级按自底向上的扫描行保存，包含 512×512 到 1×1 的完整 mip 链，共 1,398,100 字节。游戏内通过已核对的 `LoadRawTextureData(IntPtr,int)` 包装上传并生成 mip，绕开本机 `LoadImage` 的缺失 ReadOnlySpan 包装。PNG 保留为可编辑来源，运行时内嵌 RGBA。
+- `paper.note`：所有图案共用的纸底，CSN1 格式头与 zlib 无损压缩。还原为自底向上扫描行、512×512 到 1×1 的完整 RGBA32 mip 链，共 1,398,100 字节；加载后通过已核对的 `LoadRawTextureData(IntPtr,int)` 上传，绕开本机 `LoadImage` 的缺失 ReadOnlySpan 包装。PNG 保留为可编辑来源。
 - `Artwork/jumping.png`：用户提供的临时弹簧图案，1024×1024 透明 PNG，保留提交文件的全部字节。SHA256 `fc19f7d1e12a8a200924be243a2217a6546ff96874d1ff2d4eaeab650951a8eb`。
-- `Baked/jumping.rgba`：将上述图案合成到纸面正面 UV 后的专属完整 mip 链。`Baked/jumping.json` 记录源图、底图、网格和输出哈希；该派生运行资源随模组编译内嵌，不访问用户工作间。
-- `TemporaryIcons.json`、`Artwork/todo_*.png`、`Baked/todo_*`：0.2.23 的八种临时图案，来自待办清单的同款 SVG 几何。正式手绘完成前使用；原 `jumping` 图案保留，不覆盖。
+- `Baked/jumping.notedelta`：上述图案合成后与共享纸底的逐字节 XOR 差异，经 zlib 无损压缩；解码时还原原来的完整 mip 链。`Baked/jumping.json` 记录源图、底图、网格、原 RGBA 和压缩输出哈希。原手绘素材保留，派生资源随模组内嵌。
+- `TemporaryIcons.json`、`Artwork/todo_*.png`、`Baked/todo_*`：0.2.23 的八种临时图案及 0.2.24 新增的六种图案，来自待办清单的同款 SVG 几何。正式手绘完成前使用；原 `jumping` 图案保留，不覆盖。
 
 ## 临时图标
 
-当前启用的八种雕像分别使用 `todo_<类型 key>` 图案。线稿居中放在 1024 画布的建议绘图区，中心为 `(512,554)`；图标范围为 `(212,254)` 至 `(812,854)`，位于模板安全区内。只导出透明线稿，不把模板、虚线或说明文字烘焙到纸面。
+当前启用的十四种雕像分别使用 `todo_<类型 key>` 图案。线稿居中放在 1024 画布的建议绘图区，中心为 `(512,554)`；图标范围为 `(212,254)` 至 `(812,854)`，位于模板安全区内。只导出透明线稿，不把模板、虚线或说明文字烘焙到纸面。
 
 `scripts/PrepareTodoNoteIcons.py` 从仓库内的几何清单生成透明 PNG 和 SVG，需要 Pillow、CairoSVG；之后用下述导入脚本生成运行资源。输出目录须为新目录，脚本拒绝覆盖已有图案。普通构建只读取已提交的资源，不依赖本地待办清单或 Python 绘图环境。
 
@@ -31,11 +31,22 @@ python scripts/PrepareNoteArtwork.py --key todo_relay --input "<输出目录>/to
 python scripts/PrepareNoteArtwork.py --key jumping --input "<透明图案 PNG 路径>"
 ```
 
-脚本保留输入文件，将原图复制为 `Artwork/<key>.png`，合成 `Baked/<key>.rgba` 并写入哈希记录。支持正方形透明 PNG（包括 1024×1024、1080×1080）；如果误导出整张不透明底图会报错。可选 `--preview "<新的预览 PNG 路径>"` 导出完整图集预览，拒绝覆盖已有预览文件。
+脚本保留输入文件，将原图复制为 `Artwork/<key>.png`，写入 `Baked/<key>.notedelta` 和哈希记录。先在导入工具中合成完整贴图与所有 mip，再计算相对纸底的差异；运行时无需重新缩放或混合图案。支持正方形透明 PNG（包括 1024×1024、1080×1080）；如果误导出整张不透明底图会报错。可选 `--preview "<新的预览 PNG 路径>"` 导出完整图集预览，拒绝覆盖已有预览文件。
+
+`scripts/NoteTextureFormat.py` 定义编码，`Visuals/NoteTextureCodec.cs` 解码。格式校验版本、解压长度、压缩 payload 哈希、共享纸底哈希与还原 mip 链哈希；缺失、损坏或底图不匹配时注册失败，不降级为空白。单份纸底在本地注册期间解码一次，最后一份便签资源释放时清除缓存；各类型仍分别拥有上传后的完整纹理，减少的是储存和 DLL 大小，不改变 GPU 纹理格式。
+
+需要从现有 PNG 和哈希记录重新打包或核对所有资源时：
+
+```powershell
+python scripts/PackNoteResources.py
+python scripts/PackNoteResources.py --verify
+```
+
+重新打包要求来源及还原后的 mip 哈希与记录一致。修改图案使用导入脚本更新记录；修改纸底需要重新确认全部图案和资源契约。普通编译只读取已有压缩资源，不执行 Python。旧的逐图案完整 `.rgba` 运行文件已迁移，不再重复保存或内嵌。
 
 画布横向映射到 U=0.020310～0.982463；顶部对应 V=0.871263、底部 V=0.010619。不翻转或镜像图案；按当前网格朝向，画布左侧对应头部局部坐标 +X。只合成纸面正面矩形，胶带、背面、折边使用原底图，最终材质保持不透明。透明的是绘画素材，不是纸本身。
 
-定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。带音效或额外资源的类型保留组合资源所有权。当前八种启用内容均使用各自临时图案；停用的 spring 不创建资源。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
+定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。带音效或额外资源的类型保留组合资源所有权。当前十四种启用内容均使用各自临时图案；停用的 spring 不创建资源。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
 
 更新图案后提升定义的 `ContentVersion`，重新编译、部署并重启游戏。此流程是显式导入工具，不会监控用户文件夹或热替换运行中的纹理。
 

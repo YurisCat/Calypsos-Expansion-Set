@@ -1,5 +1,5 @@
 {
-  "schema": "note-artwork-v1",
+  "schema": "note-artwork-v2",
   "key": "todo_voice",
   "source_size": [
     1024,
@@ -16,5 +16,9 @@
   ],
   "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
   "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
-  "rgba_sha256": "1416e2f15e0b8c16b7e8f641d118a880f74a38678f2c76373c71e39aa1e04081"
+  "rgba_sha256": "1416e2f15e0b8c16b7e8f641d118a880f74a38678f2c76373c71e39aa1e04081",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "aa83a4238a7e669b811c45b0739a5791408c7c2e7a6b817c4ed98b93e8aa19db",
+  "packed_bytes": 53879
 }

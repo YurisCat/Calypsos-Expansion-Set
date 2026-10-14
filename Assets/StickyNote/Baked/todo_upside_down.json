@@ -1,5 +1,5 @@
 {
-  "schema": "note-artwork-v1",
+  "schema": "note-artwork-v2",
   "key": "todo_upside_down",
   "source_size": [
     1024,
@@ -16,5 +16,9 @@
   ],
   "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
   "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
-  "rgba_sha256": "2dd133d47d18f04c403d818d97de8249058a185dc7643584400a8abf8bdc4898"
+  "rgba_sha256": "2dd133d47d18f04c403d818d97de8249058a185dc7643584400a8abf8bdc4898",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "a348d414a2a1720d39d1dedee2a5f3a9f808845b3d76f98b9018fec8527e7c18",
+  "packed_bytes": 61023
 }

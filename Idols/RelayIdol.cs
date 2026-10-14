@@ -13,10 +13,12 @@ internal sealed class RelayIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new RelayIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        ShortDescription = "越拿越慢，换人还原",
+        ShortDescription = "越走越慢，快找伙伴",
         CreateVisuals = CreateVisuals,
         CreateRuntime = () => new RelayIdolRuntime(),
-        ContentVersion = 3
+        SharedVisual = new IdolSharedVisualDefinition(IdolVisualAuthority.Server,
+            idol => new IdolEyeProgressVisual(idol, "Calypso Relay Eyes", RelayIdolRuntime.EyeColor)) { ShowWhenDropped = true },
+        ContentVersion = 5
     };
 
     private static IDisposable CreateVisuals(GameObject prefab)

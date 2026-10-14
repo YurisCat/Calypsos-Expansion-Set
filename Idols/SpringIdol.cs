@@ -34,7 +34,7 @@ internal sealed class SpringIdol : HeldIdolEffect
         // Both built-in types temporarily reuse the existing artwork, with separate visual resources.
         CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "jumping",
             0x4D49000000000002UL, "spring_accent", 4, 3f),
-        ContentVersion = 2
+        ContentVersion = 3
     };
 
     // An authored rhythm, not independent client-side random gameplay results.
