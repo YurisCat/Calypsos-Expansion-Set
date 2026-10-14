@@ -14,7 +14,7 @@ internal sealed class DelayedMoveIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new DelayedMoveIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        ShortDescription = "延迟输入，很难绷住",
+        ShortDescription = "延迟输入，容易走步",
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_delayed_move"),
         ContentVersion = 3
     };

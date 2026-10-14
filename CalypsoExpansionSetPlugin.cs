@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.27";
+    public const string PluginVersion = "0.2.29";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -69,7 +69,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         _naturalSpawning = Config.Bind("Gameplay", "NaturalSpawning", true,
             "将已注册雕像加入含其 PoolTemplateId（未指定时为 TemplateId）的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
         _showIndividualIdolNames = Config.Bind("UI", "ShowIndividualIdolNames", false,
-            "显示每种 MOD 雕像的具体名称。关闭时统一显示“卡里普索拓展包雕像”；顶部谏言仍按类型显示。仅影响本机显示，修改后重启游戏。");
+            "显示表内原版和 MOD 雕像的具体名称。关闭时原版保留原名，MOD 统一显示“卡里普索拓展包雕像”；顶部谏言仍按类型显示。仅影响本机显示，修改后重启游戏。");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
         PawnCollisions = new QualityOfLife.BoardPawnCollision(this);

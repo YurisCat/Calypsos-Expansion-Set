@@ -33,7 +33,7 @@
 | [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
 | [Visuals/IdolVisualSync.cs](../Visuals/IdolVisualSync.cs) | 类型无关的雕像外观状态上报、校验、完整快照与实例资源清理 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
-| [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs) | 已注册内容的本地指向名称与顶部短说明、原版消息优先和清理 |
+| [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs)、[UI/OriginalIdolAdvice.cs](../UI/OriginalIdolAdvice.cs) | 已注册内容与原版对照的本地指向名称、顶部短说明、原版消息共存和清理 |
 | [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
@@ -96,11 +96,11 @@ flowchart LR
 | 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 3 | OwnerNativeGameplay |
 | 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 5 | OwnerNativeGameplay |
 | 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 2 | ServerGameplay |
-| 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 2 | LocalPresentation |
+| 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 3 | LocalPresentation |
 | 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 2 | ServerGameplay |
-| 马赛克雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
+| 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
 | 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 2 | LocalPresentation |
-| 大头鱼眼雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
+| 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
 
 十四种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
@@ -115,6 +115,8 @@ flowchart LR
 `MonsterDisguiseRuntime` 以消息号 `0x4D4C` 周期发送完整当前选择表（雕像 netId、持有者 netId、原版怪物 assetId）。接收验证当前服务器连接、认证、Ready、清单、版本、类型、长度、上限、单调序列、重复身份和已知原版资源；尚未生成的物品等待后续快照，空表移除旧状态。处理器不覆盖冲突，断线/会话切换清空。外观只借用原版网格及闲置/移动动画片段，在视觉副本上采样，不执行怪物 Animator、动画事件或 AI。
 
 `HeldScreenEffect` 在原生最终渲染结束后，通过 CommandBuffer 复制当前画面并运行内嵌着色器，因此场景与 HUD 同受像素化、白线或径向畸变。只对实际持有者的第一人称游戏相机启用；菜单、调试面板、聊天、死亡/角色或镜头替换、断线/释放均停用。白线从已渲染颜色提取边缘，不读取墙后物体。宽体另在渲染及本地原版交互检测期间临时降低相机并改变水平投影，保持准星与检测一致，结束后恢复自有写入；不修改保存的设置。画面资源构建见 [ScreenEffects](../Assets/ScreenEffects/README.md)。
+
+宽体在常规 `BeginCameraRendering` 相机参数覆盖之后读取当帧投影，再临时拉伸；不写 FOV、远近裁剪或宽高比。每次保存原投影模式，结束时仅在当前矩阵/模式仍属于宽体的情况下恢复：自动模式调用 `ResetProjectionMatrix`，物理模式恢复 `usePhysicalProperties`，已有自定义模式还原原矩阵。不能只把旧矩阵写回自动相机，这会残留 Explicit 模式，使后续近景 FOV 与测试房视距不能更新投影；也不能对物理相机统一重置，因为重置会切换为普通自动模式。其他逻辑在作用期间更新的相机参数、位置或投影按原有所有权保留。
 
 0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。其跳跃补丁入口已移除，不随 PatchAll 安装；恢复启用时需要重新接入原生跳跃补丁并单独验收。旧效果源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
 
@@ -257,7 +259,11 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 指向名称与短说明
 
-当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部谏言；当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。原版雕像不新增说明。外部定义默认空，不强制覆盖其交互显示。非空定义只在自有克隆预制体开启名称、关闭模板描述；ScoreTool 的名称 getter 根据本机 `[UI] ShowIndividualIdolNames` 配置选择显示名：默认 false 统一显示“卡里普索拓展包雕像”，true 返回定义的 `DisplayName`。该配置只控制本机名称，顶部谏言继续按类型显示，不修改定义、配置身份、网络状态或兼容清单。原版交互动作、输入标签与价格格式继续由原交互 UI 负责；F8 调试清单仍使用定义名和稳定 key。`jumping` 正式显示名为“弹跳雕像”。
+当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部谏言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
+
+名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 统一显示“卡里普索拓展包雕像”；true 时返回正式名称，包含“雕像”后缀。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自谏言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
+
+名称开关不影响顶部谏言，不修改玩法、稳定身份、网络状态或兼容清单；本次本机 UI 文案适配不提升 ContentVersion。原版交互动作、输入标签与价格格式继续由原交互 UI 负责，开发表格中的简介不加入游戏。F8 清单与测试房标签仍使用 MOD 定义名和稳定 key，不扩大原版测试房陈列范围。`jumping` 正式显示名为“弹跳雕像”。
 
 顶部说明读取本机 PlayerInteraction 的原版 Hovered 目标，通过原版 GetRealInteractable 解析碰撞体上的交互代理，再识别实际雕像。沿用原版距离、遮挡和目标选择，不增加独立射线或按类型分支。只在角色具有控制权、存活、Ready 且兼容时显示；移开、菜单、死亡、失去控制或断线即隐藏。独立 TMP 标签复用原版顶部消息的字体、布局和共享材质，不写原版文本或消息队列，也不截断教程。
 

@@ -18,7 +18,7 @@ internal sealed class WideBodyIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "压缩拉长，宽体横梁",
-        ContentVersion = 2,
+        ContentVersion = 3,
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_wide_body"),
         CreateRuntime = () => new HeldAppearanceRuntime(ConfigId,
             player => StretchedPlayerAppearance.Create(player, new Vector3(1.8f, 0.65f, 1f), 1f))
@@ -28,6 +28,7 @@ internal sealed class WideBodyIdol : HeldIdolEffect
     private Camera? _camera;
     private Vector3 _beforePosition, _writtenPosition;
     private Matrix4x4 _beforeProjection, _writtenProjection;
+    private Camera.ProjectionMatrixMode _beforeProjectionMode;
     private bool _faulted;
 
     public override void Start(HeldIdolContext context) { Dispose(); _context = context; _faulted = false; }
@@ -59,6 +60,7 @@ internal sealed class WideBodyIdol : HeldIdolEffect
             if (camera == null || !effect.IsPov(camera)) return;
             effect.Release();
             effect._beforePosition = camera.transform.position;
+            effect._beforeProjectionMode = camera.projectionMatrixMode;
             effect._beforeProjection = camera.projectionMatrix;
             effect._writtenPosition = effect._beforePosition;
             effect._writtenProjection = effect._beforeProjection;
@@ -83,7 +85,15 @@ internal sealed class WideBodyIdol : HeldIdolEffect
         var camera = _camera; _camera = null;
         if (camera == null) return;
         if (camera.transform.position == _writtenPosition) camera.transform.position = _beforePosition;
-        if (camera.projectionMatrix == _writtenProjection) camera.projectionMatrix = _beforeProjection;
+        if (camera.projectionMatrixMode == Camera.ProjectionMatrixMode.Explicit
+            && camera.projectionMatrix == _writtenProjection)
+        {
+            // Restoring a matrix value still leaves Unity in explicit projection
+            // mode. Automatic cameras must resume using their current parameters.
+            if (_beforeProjectionMode == Camera.ProjectionMatrixMode.Explicit) camera.projectionMatrix = _beforeProjection;
+            else if (_beforeProjectionMode == Camera.ProjectionMatrixMode.PhysicalPropertiesBased) camera.usePhysicalProperties = true;
+            else camera.ResetProjectionMatrix();
+        }
     }
 
     private void Fault(Exception error)
@@ -101,7 +111,10 @@ internal sealed class WideBodyIdol : HeldIdolEffect
 [HarmonyPatch(typeof(RenderPipelineManager), "BeginCameraRendering")]
 internal static class WideBodyCameraBeginPatch
 {
-    [HarmonyPostfix] private static void Postfix(Camera camera) => WideBodyIdol.Begin(camera);
+    // Read the projection after normal camera-parameter overrides, including
+    // the test room's far clip. No other camera setting is changed here.
+    [HarmonyPostfix, HarmonyPriority(Priority.Last)]
+    private static void Postfix(Camera camera) => WideBodyIdol.Begin(camera);
 }
 [HarmonyPatch(typeof(RenderPipelineManager), "EndCameraRendering")]
 internal static class WideBodyCameraEndPatch

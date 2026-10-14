@@ -82,7 +82,7 @@
     },
     {
       "key": "mosaic",
-      "title": "马赛克雕像",
+      "title": "像素雕像",
       "icon": "pixel",
       "svg_body": "<path d=\"M3 3h6v6H3zm12 0h6v6h-6zM3 15h6v6H3zm12 0h6v6h-6zM9 9h6v6H9z\"/>"
     },
@@ -94,7 +94,7 @@
     },
     {
       "key": "big_head_fisheye",
-      "title": "大头鱼眼雕像",
+      "title": "大头雕像",
       "icon": "fish",
       "svg_body": "<ellipse cx=\"12\" cy=\"12\" rx=\"10\" ry=\"7\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/>"
     }

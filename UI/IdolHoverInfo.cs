@@ -52,15 +52,20 @@ internal sealed class IdolHoverInfo : IDisposable
 
     internal IdolHoverInfo(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
-    internal static bool TryDefinition(ScoreTool? idol, out IdolDefinition definition)
+    internal static bool TryText(ScoreTool? idol, out IdolHoverText text)
     {
-        definition = null!;
+        text = default;
         var plugin = CalypsoExpansionSetPlugin.Instance;
-        if (idol == null || idol.SoItem == null || plugin == null || plugin.RuntimeFailed || !plugin.Registry.Ready
-            || !plugin.Registry.TryGet(idol.SoItem.Id, out var entry)
-            || string.IsNullOrEmpty(entry.Definition.ShortDescription)) return false;
-        definition = entry.Definition;
-        return true;
+        if (idol == null || idol.SoItem == null || plugin == null || plugin.RuntimeFailed || !plugin.Registry.Ready)
+            return false;
+        if (plugin.Registry.TryGet(idol.SoItem.Id, out var entry))
+        {
+            var definition = entry.Definition;
+            if (string.IsNullOrEmpty(definition.ShortDescription)) return false;
+            text = new(definition.Key, definition.DisplayName, definition.ShortDescription, true);
+            return true;
+        }
+        return OriginalIdolAdvice.TryGet(idol.SoItem.Id, out text);
     }
 
     private bool ControlsReady(out PlayerEntity player)
@@ -111,7 +116,7 @@ internal sealed class IdolHoverInfo : IDisposable
             // Resolve through the game's interface before identifying the item.
             var real = target != null ? target.GetRealInteractable() : null;
             var idol = real != null ? real.TryCast<ScoreTool>() : null;
-            if (!TryDefinition(idol, out var definition)) { Hide(); return; }
+            if (!TryText(idol, out var definition)) { Hide(); return; }
             var ui = UIManager.Instance;
             if (ui == null || ui.rootUI == null || NarrationVisible(ui)) { Hide(); return; }
             var reference = ui.globalMessageUi != null ? ui.globalMessageUi.text : null;
@@ -290,9 +295,29 @@ internal static class IdolNamePatch
     {
         try
         {
-            if (IdolHoverInfo.TryDefinition(__instance, out var definition))
-                __result = CalypsoExpansionSetPlugin.Instance!.ShowIndividualIdolNames
-                    ? definition.DisplayName : IdolHoverInfo.GenericIdolName;
+            if (!IdolHoverInfo.TryText(__instance, out var text)) return;
+            if (CalypsoExpansionSetPlugin.Instance!.ShowIndividualIdolNames)
+            {
+                if (!string.IsNullOrEmpty(text.DisplayName)) __result = text.DisplayName;
+            }
+            else if (text.IsMod) __result = IdolHoverInfo.GenericIdolName;
+        }
+        catch (Exception error) { CalypsoExpansionSetPlugin.Instance?.HoverInfo?.Fault(error); }
+    }
+}
+
+[HarmonyPatch(typeof(GameplayElement), nameof(GameplayElement.DisplayInteractibleName), MethodType.Getter)]
+internal static class IdolNameVisibilityPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(GameplayElement __instance, ref bool __result)
+    {
+        try
+        {
+            if (CalypsoExpansionSetPlugin.Instance?.ShowIndividualIdolNames != true) return;
+            var idol = __instance.TryCast<ScoreTool>();
+            if (IdolHoverInfo.TryText(idol, out var text) && !text.IsMod
+                && !string.IsNullOrEmpty(text.DisplayName)) __result = true;
         }
         catch (Exception error) { CalypsoExpansionSetPlugin.Instance?.HoverInfo?.Fault(error); }
     }
