@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.22";
+    public const string PluginVersion = "0.2.23";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -29,6 +29,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal IdolSpawnIntegration Spawns { get; private set; } = null!;
     internal IdolDebugTools DebugTools { get; private set; } = null!;
     internal IdolDebugTeleport Teleports { get; private set; } = null!;
+    internal UI.IdolHoverInfo? HoverInfo { get; private set; }
     internal Testing.TestRoomLaunch TestRoom { get; private set; } = null!;
 
     private JumpingIdolDriver? _driver;
@@ -60,6 +61,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             "将已注册雕像加入含其 PoolTemplateId（未指定时为 TemplateId）的原版自然候选池；保持原版数量和筛选规则。修改后重启游戏。");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
+        HoverInfo = new UI.IdolHoverInfo(this);
         TestRoom = new Testing.TestRoomLaunch(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
@@ -80,6 +82,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         if (_driver != null) UnityEngine.Object.Destroy(_driver);
         _driver = null;
         _effects?.Dispose();
+        HoverInfo?.Dispose();
         DebugTools.Dispose();
         TestRoom.Dispose();
         _harmony?.UnpatchSelf();
@@ -116,6 +119,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Sync.Tick();
             Registry.TickContentRuntimes();
             DebugTools.Tick();
+            HoverInfo?.Tick();
             _effects!.Tick();
         }
         catch (Exception exception)
@@ -130,6 +134,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         _failed = true;
         _effects?.Dispose();
         Registry.StopContentRuntimes();
+        HoverInfo?.Dispose();
         DebugTools.Cancel();
         Log.LogError($"Calypso's Expansion Set runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
         // Keep registered resources alive until live entities have been destroyed.

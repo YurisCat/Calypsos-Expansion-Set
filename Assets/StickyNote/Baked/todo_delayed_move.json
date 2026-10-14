@@ -1,0 +1,20 @@
+{
+  "schema": "note-artwork-v1",
+  "key": "todo_delayed_move",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "63e280078fff83c993492551ff1f69f08f2b06ec86d32240880af36aeabd95cd",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "rgba_sha256": "e49833cefec53ee6c540c64f8c8b44ad566eb498969441f7fe92b70df5390b01"
+}

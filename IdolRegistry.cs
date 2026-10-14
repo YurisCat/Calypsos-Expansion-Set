@@ -42,6 +42,8 @@ internal sealed class IdolRegistry : IDisposable
                 !(character is >= 'a' and <= 'z' or >= '0' and <= '9' or '.' or '-' or '_'))
             || string.IsNullOrWhiteSpace(definition.DisplayName) || definition.ConfigId == 0
             || definition.AssetId == 0 || definition.TemplateId == 0 || definition.PoolTemplateId == 0 || definition.CreateEffect == null
+            || definition.ShortDescription == null || definition.ShortDescription.Length > 80
+            || definition.ShortDescription.Contains('\n') || definition.ShortDescription.Contains('\r')
             || definition.ContentVersion == 0 || !Enum.IsDefined(typeof(IdolEffectAuthority), definition.Authority)
             || definition.InitialWeight is { } weight && (!float.IsFinite(weight) || weight <= 0))
             throw new ArgumentException("Invalid idol key, IDs, factory, authority, version, or initial weight.");
@@ -152,6 +154,13 @@ internal sealed class IdolRegistry : IDisposable
             identity.sceneId = 0;
             identity.assetId = definition.AssetId;
             definition.ConfigurePrefab?.Invoke(prefab);
+            if (!string.IsNullOrEmpty(definition.ShortDescription))
+            {
+                // Only our clone opts in. Preserve native action/input/value UI;
+                // the short description is rendered by the local hover controller.
+                idol.DisplayInteractibleName = true;
+                idol.DisplayDescription = false;
+            }
             if (definition.CreateVisuals != null)
                 visuals = definition.CreateVisuals(prefab)
                     ?? throw new InvalidOperationException($"CreateVisuals returned no resource lifetime: {definition.Key}.");

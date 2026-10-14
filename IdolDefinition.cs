@@ -46,6 +46,8 @@ public sealed record IdolDefinition(
     // locally if construction throws. The registry disposes it on rollback/unload.
     public Func<GameObject, IDisposable>? CreateVisuals { get; init; }
     public Func<IdolContentRuntime>? CreateRuntime { get; init; }
+    // Opt in to a local hover name and a short HUD description. No network UI messages.
+    public string ShortDescription { get; init; } = "";
 }
 
 public static class CalypsoExpansionSetApi

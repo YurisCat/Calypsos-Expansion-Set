@@ -21,8 +21,9 @@ internal sealed class VoiceIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new VoiceIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab),
-        ContentVersion = 2
+        ShortDescription = "出声前进，安静停步",
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_voice"),
+        ContentVersion = 3
     };
 
     // Audio callbacks only publish into this capture. Replacing it discards old

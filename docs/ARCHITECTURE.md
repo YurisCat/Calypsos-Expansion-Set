@@ -32,6 +32,7 @@
 | [Idols/RelayIdol.cs](../Idols/RelayIdol.cs)、[Idols/RelayFatigue.cs](../Idols/RelayFatigue.cs)、[Idols/RelayIdolRuntime.cs](../Idols/RelayIdolRuntime.cs) | 接力持有者减速、疲劳公式、服务器实例状态与全员快照 |
 | [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs) | 便签网格、纹理、材质与视觉诊断资源 |
+| [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs) | 已注册内容的本地指向名称与顶部短说明、原版消息优先和清理 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
 
@@ -44,6 +45,7 @@
 | 可选字段 | 当前含义 |
 | --- | --- |
 | ContentVersion | 默认 1；手工维护玩法、配置和外观契约版本 |
+| ShortDescription | 默认空；非空时启用本类型的正式交互名称与顶部短说明，最多 80 字符且不含换行 |
 | PoolTemplateId | 自然池匹配标记；为空时使用 TemplateId，必须是有效雕像配置 |
 | InitialWeight | 初始相对权重，未指定使用原版默认值；不是百分比 |
 | ConfigureData | 修改自有配置副本，不能改稳定身份 |
@@ -74,14 +76,14 @@ flowchart LR
 
 | 名称 | key | 配置 ID | assetId | ContentVersion | 执行端 |
 | --- | --- | --- | --- | --- | --- |
-| 跳跃雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 9 | OwnerNativeGameplay |
-| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 2 | LocalPresentation |
-| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 2 | OwnerNativeGameplay |
-| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 4 | LocalPresentation |
-| 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 2 | OwnerNativeGameplay |
-| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 4 | OwnerNativeGameplay |
-| 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 1 | OwnerNativeGameplay |
-| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 1 | OwnerNativeGameplay |
+| 弹跳雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 10 | OwnerNativeGameplay |
+| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 3 | LocalPresentation |
+| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 3 | OwnerNativeGameplay |
+| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 5 | LocalPresentation |
+| 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 3 | OwnerNativeGameplay |
+| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 5 | OwnerNativeGameplay |
+| 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 2 | OwnerNativeGameplay |
+| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 2 | OwnerNativeGameplay |
 
 八种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
@@ -200,13 +202,21 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 便签资源与生命周期
 
-跳跃的图案 key 为 `jumping`，类型 key 与图案 key 分开，沿用已导入的弹簧图案。其余七种使用空白 paper.rgba，等待各自图案。跳跃和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型返回便签资源；接力另由 CreateRuntime 管理实例眼睛和疲劳快照。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
+八种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型返回便签资源；接力另由 CreateRuntime 管理实例眼睛和疲劳快照。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json 和按图案 key 选择的预合成 RGBA mip 链创建视觉对象，挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
 注册器持有返回的 IDisposable，后续创建失败或正常卸载清理。便签工厂在返回前抛错时自己回滚。指定图案缺失会注册失败，不自动降级为空白。外部注册 API 的视觉回调可选，不自动导入 FBX 或加载其他模型。
 
-原始 bianqian.fbx 已导出为头部局部坐标网格；note.mesh.json 决定形状，paper.rgba 是底色，Baked/jumping.rgba 是带图案的运行贴图。完整资源来源、UV、导入及诊断方法见 [便签说明](../Assets/StickyNote/README.md)。
+原始 bianqian.fbx 已导出为头部局部坐标网格；note.mesh.json 决定形状，paper.rgba 是底色，Baked/<图案 key>.rgba 是带图案的运行贴图。完整资源来源、UV、导入及诊断方法见 [便签说明](../Assets/StickyNote/README.md)。
+
+## 指向名称与短说明
+
+当前八种 MOD 雕像填写 `ShortDescription`；原版雕像不新增说明。外部定义默认空，不强制覆盖其交互显示。非空定义只在自有克隆预制体开启名称、关闭模板描述，ScoreTool 的名称 getter 返回定义的 DisplayName；原版交互动作、输入标签与价格格式继续由原交互 UI 负责。`jumping` 正式显示名统一为“弹跳雕像”，稳定身份与玩法不变。
+
+顶部说明读取本机 PlayerInteraction 的原版 Hovered 目标，通过原版 GetRealInteractable 解析碰撞体上的交互代理，再识别实际雕像。沿用原版距离、遮挡和目标选择，不增加独立射线或按类型分支。只在角色具有控制权、存活、Ready 且兼容时显示；移开、菜单、死亡、失去控制或断线即隐藏。独立 TMP 标签复用原版顶部消息的字体、布局和共享材质，不写原版文本或消息队列，也不截断教程。
+
+原版 globalMessageUi/messageUi 已显示、消息排队或旁白显示时短说明让位；原版 Show/ShowForDuration 开始时立即隐藏并覆盖淡入首帧。UI 替换、断线及正常卸载销毁自有标签；不销毁借用的字体/材质。表现异常只停用短说明并记录一次错误，不停止雕像玩法。诊断受 DebugMode 控制，功能本身不受此开关控制。真实多人、分辨率/语言组合与完整生命周期的验收范围见 DEVELOPMENT/TODO。
 
 ## 调试与测试房
 

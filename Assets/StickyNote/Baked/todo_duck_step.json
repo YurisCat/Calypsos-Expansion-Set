@@ -1,0 +1,20 @@
+{
+  "schema": "note-artwork-v1",
+  "key": "todo_duck_step",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "41b3e41073875686db2fe4e383dabcadc682accd9a2fb142b9f411e680cdc3f4",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "rgba_sha256": "547d747249b8e2d3dda60db30d71369239ca7ba7f8c0814301a135394920c0d2"
+}

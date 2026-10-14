@@ -1,0 +1,20 @@
+{
+  "schema": "note-artwork-v1",
+  "key": "todo_extreme_speed",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "4cc109c9c77c58f7d15e0f59b55c3f18cd5d8d432b737e6f2c82f9a632dcf2fa",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "rgba_sha256": "eb3a9b77cbbf007f4a6606ccadb2fb902c4a7c77316562623cd4abb33c6ef3df"
+}

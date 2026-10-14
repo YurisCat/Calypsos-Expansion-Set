@@ -10,12 +10,13 @@ internal sealed class JumpingIdol : HeldIdolEffect
 {
     internal const ulong ConfigId = 0x4D49000000000001UL;
     internal static IdolDefinition Definition => new(
-        "jumping", "跳跃雕像", ConfigId, 0x4D490001U,
+        "jumping", "弹跳雕像", ConfigId, 0x4D490001U,
         // 第五个参数是 TemplateId：复制 Score 的配置和预制体，再修改自己的副本。
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new JumpingIdol())
     {
         // Slippery 只用于自然池匹配，基础属性和外观仍来自上面的 Score 模板。
         PoolTemplateId = 13601636613369722279UL,
+        ShortDescription = "落地就跳，蹦个不停",
 
         // 目前全部继承模板。需要调整时取消相应示例的注释，只保留要覆盖的字段。
         // InitialWeight = 100f, // 初始相对权重；未指定时沿用原版 100，选中后仍衰减。
@@ -33,9 +34,9 @@ internal sealed class JumpingIdol : HeldIdolEffect
         // },
 
         // 实际改变属性、玩法或外观后提升此版本，重新编译并让所有联机端更新。
-        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "jumping",
+        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "todo_jumping",
             ConfigId, "spring_accent", 4, 0.1f),
-        ContentVersion = 9
+        ContentVersion = 10
     };
 
     private const float RequestTimeout = 0.4f;

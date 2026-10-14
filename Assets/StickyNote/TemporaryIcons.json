@@ -1,0 +1,66 @@
+{
+  "schema": "ces-todo-note-icons-v1",
+  "source": "Local idol workbench line icons; temporary artwork for development.",
+  "canvas": [
+    1024,
+    1024
+  ],
+  "icon_box": [
+    212,
+    254,
+    812,
+    854
+  ],
+  "stroke": "#26372D",
+  "stroke_width": 1.6,
+  "items": [
+    {
+      "key": "jumping",
+      "title": "弹跳雕像",
+      "icon": "jump",
+      "svg_body": "<path d=\"M4 21h16M12 17V4m-5 5 5-5 5 5\"/>"
+    },
+    {
+      "key": "near_view",
+      "title": "近景雕像",
+      "icon": "near",
+      "svg_body": "<circle cx=\"10\" cy=\"10\" r=\"6\"/><path d=\"m15 15 6 6M7 10h6m-3-3v6\"/>"
+    },
+    {
+      "key": "voice",
+      "title": "声控雕像",
+      "icon": "voice",
+      "svg_body": "<rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\"/><path d=\"M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8\"/>"
+    },
+    {
+      "key": "upside_down",
+      "title": "倒立雕像",
+      "icon": "flip",
+      "svg_body": "<rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\"/><path d=\"m8 10 4-4 4 4m-8 4 4 4 4-4\"/>"
+    },
+    {
+      "key": "duck_step",
+      "title": "鸭步雕像",
+      "icon": "duck",
+      "svg_body": "<path d=\"M4 13h7V8a4 4 0 0 1 8 0h3l-3 3v4a7 7 0 0 1-14 0zM2 21h20\"/>"
+    },
+    {
+      "key": "extreme_speed",
+      "title": "极速雕像",
+      "icon": "speed",
+      "svg_body": "<path d=\"m13 2-8 12h6l-1 8 9-13h-6z\"/>"
+    },
+    {
+      "key": "delayed_move",
+      "title": "迟钝雕像",
+      "icon": "delay",
+      "svg_body": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 7v5l3 2\"/>"
+    },
+    {
+      "key": "relay",
+      "title": "接力雕像",
+      "icon": "relay",
+      "svg_body": "<path d=\"M4 7h13l-3-3m3 3-3 3M20 17H7l3-3m-3 3 3 3\"/><circle cx=\"4\" cy=\"17\" r=\"2\"/><circle cx=\"20\" cy=\"7\" r=\"2\"/>"
+    }
+  ]
+}

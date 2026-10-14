@@ -15,8 +15,9 @@ internal sealed class UpsideDownIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.LocalPresentation, () => new UpsideDownIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        CreateVisuals = StickyNoteVisuals.Create,
-        ContentVersion = 4
+        ShortDescription = "画面倒立，视角反向，左右对调",
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_upside_down"),
+        ContentVersion = 5
     };
     private static UpsideDownIdol? _active;
     private HeldIdolContext _context;

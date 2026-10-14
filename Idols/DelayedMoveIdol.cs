@@ -14,8 +14,9 @@ internal sealed class DelayedMoveIdol : HeldIdolEffect
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new DelayedMoveIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
-        CreateVisuals = StickyNoteVisuals.Create,
-        ContentVersion = 1
+        ShortDescription = "起步慢半拍，停步也延后",
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_delayed_move"),
+        ContentVersion = 2
     };
 
     private static DelayedMoveIdol? _active;

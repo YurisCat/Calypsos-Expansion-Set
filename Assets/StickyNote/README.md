@@ -8,6 +8,20 @@
 - `paper.rgba`：该 PNG 解码后的 RGBA32 数据，每级按自底向上的扫描行保存，包含 512×512 到 1×1 的完整 mip 链，共 1,398,100 字节。游戏内通过已核对的 `LoadRawTextureData(IntPtr,int)` 包装上传并生成 mip，绕开本机 `LoadImage` 的缺失 ReadOnlySpan 包装。PNG 保留为可编辑来源，运行时内嵌 RGBA。
 - `Artwork/jumping.png`：用户提供的临时弹簧图案，1024×1024 透明 PNG，保留提交文件的全部字节。SHA256 `fc19f7d1e12a8a200924be243a2217a6546ff96874d1ff2d4eaeab650951a8eb`。
 - `Baked/jumping.rgba`：将上述图案合成到纸面正面 UV 后的专属完整 mip 链。`Baked/jumping.json` 记录源图、底图、网格和输出哈希；该派生运行资源随模组编译内嵌，不访问用户工作间。
+- `TemporaryIcons.json`、`Artwork/todo_*.png`、`Baked/todo_*`：0.2.23 的八种临时图案，来自待办清单的同款 SVG 几何。正式手绘完成前使用；原 `jumping` 图案保留，不覆盖。
+
+## 临时图标
+
+当前启用的八种雕像分别使用 `todo_<类型 key>` 图案。线稿居中放在 1024 画布的建议绘图区，中心为 `(512,554)`；图标范围为 `(212,254)` 至 `(812,854)`，位于模板安全区内。只导出透明线稿，不把模板、虚线或说明文字烘焙到纸面。
+
+`scripts/PrepareTodoNoteIcons.py` 从仓库内的几何清单生成透明 PNG 和 SVG，需要 Pillow、CairoSVG；之后用下述导入脚本生成运行资源。输出目录须为新目录，脚本拒绝覆盖已有图案。普通构建只读取已提交的资源，不依赖本地待办清单或 Python 绘图环境。
+
+```powershell
+python scripts/PrepareTodoNoteIcons.py --output "<新的输出目录>"
+python scripts/PrepareNoteArtwork.py --key todo_relay --input "<输出目录>/todo_relay.png"
+```
+
+后续正式手绘可使用新的图案 key 导入，并修改相应定义的视觉回调、提升 ContentVersion。临时图案与已有手绘来源各自保留，便于核对。
 
 ## 导入图案
 
@@ -21,7 +35,7 @@ python scripts/PrepareNoteArtwork.py --key jumping --input "<透明图案 PNG �
 
 画布横向映射到 U=0.020310～0.982463；顶部对应 V=0.871263、底部 V=0.010619。不翻转或镜像图案；按当前网格朝向，画布左侧对应头部局部坐标 +X。只合成纸面正面矩形，胶带、背面、折边使用原底图，最终材质保持不透明。透明的是绘画素材，不是纸本身。
 
-定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。0.2.13 的跳跃雕像（`jumping`）和弹簧雕像（`spring`）都暂时传入 `"jumping"`，复用已有弹簧图案，各自创建独立网格、材质和纹理；以后更换各自图案时修改对应定义。当前本项目的两种 MOD 雕像均使用便签。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
+定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。带音效或额外资源的类型保留组合资源所有权。当前八种启用内容均使用各自临时图案；停用的 spring 不创建资源。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
 
 更新图案后提升定义的 `ContentVersion`，重新编译、部署并重启游戏。此流程是显式导入工具，不会监控用户文件夹或热替换运行中的纹理。
 
@@ -31,8 +45,10 @@ python scripts/PrepareNoteArtwork.py --key jumping --input "<透明图案 PNG �
 
 DebugMode 开启时，F8 命令：
 
-- `visual jumping texture` 或 `visual spring texture`：对应类型的已合成图案＋纸底＋原模型法线，默认。
-- `visual jumping white` 或 `visual spring white`：对应类型的纯白底色＋原模型法线，隔离底色图影响。
-- `visual jumping flat` 或 `visual spring flat`：对应类型的纯白底色＋逐面几何法线，进一步比较法线插值。
+- `visual jumping texture`：对应类型的已合成图案＋纸底＋原模型法线，默认。
+- `visual jumping white`：对应类型的纯白底色＋原模型法线，隔离底色图影响。
+- `visual jumping flat`：对应类型的纯白底色＋逐面几何法线，进一步比较法线插值。
+
+将 `jumping` 换成其他已注册类型的 key 可检查其便签。
 
 诊断仅改变本端该类型的便签显示，不修改原模型文件、其他类型、玩法或网络状态；结束比较后使用该类型的 `visual <key> texture` 恢复。便签资源随注册失败回滚或退出会话后的正常卸载清理，活跃房间禁止热卸载。
