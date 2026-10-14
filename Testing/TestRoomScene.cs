@@ -31,6 +31,7 @@ internal sealed class TestRoomScene : IDisposable
     private static readonly Color TestAmbient = new(0.85f, 0.88f, 0.92f);
     internal int OriginalCount { get; private set; }
     internal int ModCount { get; private set; }
+    internal TestRoomViewDistance? ViewDistance { get; private set; }
 
     internal TestRoomScene(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
@@ -42,6 +43,11 @@ internal sealed class TestRoomScene : IDisposable
         foreach (var data in lookup.scoreTools)
         {
             if (data == null || _plugin.Registry.TryGet(data.Id, out _) || !ids.Add(data.Id)) continue;
+            if (data.prefab != null && data.prefab.GetComponent<MissingPieceTool>() != null)
+            {
+                _plugin.Log.LogInfo($"[Test room] excluded special item {data.name}: MissingPiece is not an idol exhibit.");
+                continue;
+            }
             if (data.prefab != null && data.prefab.GetComponent<Entities.Monster.MonsterEntity>() != null)
             {
                 _plugin.Log.LogInfo($"[Test room] excluded monster-disguised item {data.name}: the gallery must contain no monsters.");
@@ -184,6 +190,7 @@ internal sealed class TestRoomScene : IDisposable
                 pedestal.Height, $"MOD {modCatalog[index].Definition.Key}", true);
             ModCount++;
         }
+        ViewDistance = new TestRoomViewDistance(_plugin, _root, TestRoomLayout.ViewDistance(catalog.Count, modCatalog.Length));
         _plugin.Log.LogInfo($"[Test room] gallery created: originals={OriginalCount} at rear, mods={ModCount} at center; "
             + $"pedestal=SM_SocleStatue, height={pedestal.Height:F3}m; spacing={TestRoomLayout.Spacing}x{TestRoomLayout.RowSpacing}m; connected door opened.");
     }
@@ -322,6 +329,8 @@ internal sealed class TestRoomScene : IDisposable
     }
     public void Dispose()
     {
+        ViewDistance?.Dispose();
+        ViewDistance = null;
         foreach (var idol in _idols)
             if (idol != null && NetworkServer.active && idol.netId != 0) NetworkServer.Destroy(idol.gameObject);
         _idols.Clear();

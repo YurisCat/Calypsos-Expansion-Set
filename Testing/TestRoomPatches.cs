@@ -4,6 +4,8 @@ using EnhancedFramework.Core;
 using HarmonyLib;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Mirror;
+using UnityEngine;
+using UnityEngine.Rendering;
 using _200_Dev.Entities;
 using _200_Dev.Utility;
 using _200_Dev.Utility.Runtime.NetworkManager;
@@ -97,5 +99,32 @@ internal static class TestStandaloneLinkedIdolPatch
         if (!TestRoomLaunch.IsActive || __instance.spawnTool != null) return true;
         CalypsoExpansionSetPlugin.Instance!.Log.LogInfo("[Test room] standalone Linked idol has no SpawnTool parent; skipped that parent's cache-registration coroutine.");
         return false;
+    }
+}
+
+[HarmonyPatch(typeof(RenderPipelineManager), "BeginCameraRendering")]
+internal static class TestRoomViewDistanceBeginPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(Camera camera)
+        => CalypsoExpansionSetPlugin.Instance?.TestRoom?.ViewDistance?.Begin(camera);
+}
+
+[HarmonyPatch(typeof(RenderPipelineManager), "EndCameraRendering")]
+internal static class TestRoomViewDistanceEndPatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(Camera camera)
+        => CalypsoExpansionSetPlugin.Instance?.TestRoom?.ViewDistance?.End(camera);
+}
+
+[HarmonyPatch(typeof(RenderPipelineManager), "DoRenderLoop_Internal")]
+internal static class TestRoomViewDistanceFinallyPatch
+{
+    [HarmonyFinalizer]
+    private static Exception? Finalizer(Exception? __exception)
+    {
+        CalypsoExpansionSetPlugin.Instance?.TestRoom?.ViewDistance?.End();
+        return __exception;
     }
 }

@@ -32,6 +32,13 @@ internal static class TestRoomLayout
     internal static float End(int originalCount, int modCount)
         => Math.Max(36f, OriginalSlot(originalCount - 1, originalCount, modCount).Z + 4f);
 
+    internal static float ViewDistance(int originalCount, int modCount)
+    {
+        var end = End(originalCount, modCount);
+        // Cover the gallery diagonal and ceiling, with a small entrance margin.
+        return MathF.Ceiling((MathF.Sqrt(Width * Width + end * end + 6f * 6f) + 10f) / 10f) * 10f;
+    }
+
     private static void ValidateCount(int count, bool allowEmpty)
     {
         if (count < (allowEmpty ? 0 : 1) || count > 128)

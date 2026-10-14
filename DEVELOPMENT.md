@@ -2,6 +2,22 @@
 
 本文保留按版本/日期记录的研究、原生证据与编译、模拟、游戏验收历史。历史章节中的“当前”属于记录当时的语境；查询现行实现请看 [设计说明](docs/ARCHITECTURE.md)，最新状态看 [TODO](TODO.md)，使用方式看 [README](README.md)。
 
+## 2026-10-14：0.2.25 测试房移除 MissingPiece 展品与视距覆盖
+
+本机 Player.log 与用户提供的 20:47:44.024 堆栈确认：独立生成的 MissingPieceTool 在拾取后的 CliOnEquipInternal 装备流程抛出 NullReferenceException，沿 InventoryNew 和 Mirror CommandMessage 回到本机服务器消息处理。此前生成阶段另有无法应用普通雕像皮肤的警告，不能将两处错误混为一处，也没有据此宣称整个 MOD 已停用。
+
+按要求仅在测试房构建原版展品清单时，通过预制体的 MissingPieceTool 组件过滤该特殊剧情道具。基座、标签和网络物品都由同一份过滤后的清单创建，因此对应钻石和基座一起消失，不留下空位；后部改为 19 项，首排 10 项、次排 9 项居中。保留 Final 等其余展品及八种 MOD，不改原版配置、预制体、自然生成或通用拾取方法；内容 ID、ContentVersion 与协议不变，插件／程序集提升至 0.2.25。
+
+**验证**：scripts/Build.ps1 仅编译 Release/x64/net6.0，**0 警告／0 错误**；DLL **0.2.25.0**，SHA256 **`111A50C9347F39F8107F17A1C431990E760D3694265875AFEBFB5158F0D2B3DC`**。核对过滤位于排序及所有展品创建循环之前，git diff --check 通过。构建输出在忽略的 `.local/verification/test-room-0225-build.txt`；本轮未新增模拟、部署或启动游戏，新版陈列仍待实测。
+
+**光照与视距研究**：移除 MissingPiece 的阶段，测试房仍强制设置场景环境补光、方向光与顶灯，并关闭 RenderSettings.fog；自有材质也设置自发光参数，但没有调整相机远裁剪面。用户报告远处墙地变黑、走近恢复；原版 EnvironmentVisualOverrideManager 的 OverrideData 包含 fogFarClipPlane、farClipPlane 和 lightCullerDistance，且对应原生 SetFarClipPlanes 会更新虚拟相机，说明可见范围与亮度是不同控制。原生研究重新核对 GameAssembly SHA256 为 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`；相关 Apply／SetFarClipPlanes RVA 为 `0x327C290`／`0x327C550`。尚未读取本轮运行中相机、材质或渲染通道的实际距离值，不能仅凭远处变黑就认定具体黑色边界来源。该阶段保留光照与视距设置。
+
+**后续视距处理**：按确认的会话范围，TestRoomScene 成功完成展品创建后持有 TestRoomViewDistance，按陈列区对角线、高度和入口余量计算最低远裁剪距离；当前 19 原版／8 MOD 为 60 米，支持清单上限时为 120 米。仅针对 SetFovShakeData 绑定的本机实际游戏相机，在根对象有效、DebugMode 开启且服务器／本机客户端可用时启用；相连初始房也使用该视距，普通启动没有覆盖对象。原版距离更大时不写入，每次渲染、房间销毁或渲染循环异常后按所有权恢复最新原版值，其他代码改写的值保留；异常只停用本次视距覆盖。没有修改原版虚拟相机 lens、环境 profile、配置、光照或网络协议。
+
+**渲染顺序静态证据**：在上述同哈希 GameAssembly 中，UniversalRenderPipeline.RenderCameraStack（RVA `0x27B0470`）主相机路径于 `0x27B0F94` 调用 CameraRenderingScope 构造，于 `0x27B1007`／`0x27B1033` 调用 CreateCameraData／InitializeAdditionalCameraData。该 scope 构造在 `0x27C37FE` 调用 RenderPipelineManager.BeginCameraRendering（`0x2A1DB50`），Dispose 在 `0x27C363E` 调用 EndCameraRendering（`0x2A1E1B0`）。据此选择渲染回调内施加／恢复远裁剪距离，沿用已有倒立效果的回调与循环 Finalizer 入口；没有把 interop 包装空方法体视为原生实现。
+
+**最终验证**：scripts/Build.ps1 仅编译 Release/x64/net6.0，**0 警告／0 错误**；DLL **0.2.25.0**，SHA256 **`3899CC71DFA3074D4F0AC7B705F65E9C339E688D58E12262BEE85F14A26C955E`**。`.local/verification/TestRoom0225` 直接编译实际 TestRoomViewDistance 与 TestRoomLayout 源码，**60 项托管检查通过**，覆盖支持布局尺寸、有效／失效会话和根对象、DebugMode／初始化门禁、其他相机隔离、最新原版基准、相机替换、其他写入所有权、断线中恢复、重复销毁、异常及部分 setter 写入回滚、恢复失败重试和单次错误日志。输出在忽略的 `test-room-0225-view-build.txt`／`test-room-0225-view-managed.txt`，git diff --check 通过。替代 Unity／Mirror／日志对象不构成真实渲染、性能或联机验收；本轮未部署、启动游戏、提交或推送。远处黑色边界是否完全消失仍待游戏验证，其他测试模式加载和退出隔离问题保留待办。
+
 ## 2026-10-14：0.2.24 接力存活人数切档与空中减速
 
 接力按已确认规则改为单人／多人两档，权威参数保存在 RelayFatigue。服务器每次更新读取兼容、认证、Ready 连接的当前角色与血量，死亡旁观者不计入；拿起与持续持有使用当前档位。死亡、复活、角色替换及进出房间只切换后续累积速率和速度下限，疲劳和眼睛颜色保留，同人重拿仍续接。任意两人实际往返接手均归零，没有全员轮次要求。满疲劳时档位切换采用各自下限，不重新获得一整段持有时间。

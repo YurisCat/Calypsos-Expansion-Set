@@ -26,6 +26,7 @@ internal sealed class TestRoomLaunch : IDisposable
     private bool _finished;
     private bool _hadSession;
     internal bool Active => _enabled;
+    internal TestRoomViewDistance? ViewDistance => _enabled ? _room?.ViewDistance : null;
     internal static bool IsActive => CalypsoExpansionSetPlugin.Instance?.TestRoom?.Active == true;
 
     internal TestRoomLaunch(CalypsoExpansionSetPlugin plugin)
