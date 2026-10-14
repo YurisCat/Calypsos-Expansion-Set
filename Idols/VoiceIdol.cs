@@ -22,7 +22,7 @@ internal sealed class VoiceIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab),
-        ContentVersion = 1
+        ContentVersion = 2
     };
 
     // Audio callbacks only publish into this capture. Replacing it discards old
@@ -41,6 +41,7 @@ internal sealed class VoiceIdol : HeldIdolEffect
     private Capture? _capture;
     private Exception? _audioError;
     private bool _faulted;
+    private VoiceEyeGlow? _eyes;
 
     public override void Start(HeldIdolContext context)
     {
@@ -59,7 +60,9 @@ internal sealed class VoiceIdol : HeldIdolEffect
             _active?.Disarm();
             Volatile.Write(ref _active, this);
         }
-        PrepareCapture();
+        _eyes ??= new VoiceEyeGlow(context.Idol);
+        _eyes.SetMoving(EvaluateMotion());
+        _eyes.Tick(Time.unscaledDeltaTime);
     }
 
     private bool HasLocalHolder()
@@ -133,19 +136,25 @@ internal sealed class VoiceIdol : HeldIdolEffect
             // Recheck at consumption time: pickup/drop, ownership and menus can
             // change between our Update and the native movement FixedUpdate.
             if (!effect.HasLocalHolder()) { effect.Disarm(); return; }
-            var microphone = effect.PrepareCapture();
-            var capture = Volatile.Read(ref effect._capture);
             move = Vector2.zero;
-            if (microphone == null || capture == null) return;
-            var timestamp = Interlocked.Read(ref capture.Timestamp);
-            if (timestamp == 0) return;
-            var threshold = microphone.amplitudeThreshold;
-            if (!float.IsFinite(threshold) || threshold <= 0f) threshold = DefaultThreshold;
-            var moving = effect._gate.Evaluate(Volatile.Read(ref capture.Amplitude), threshold,
-                timestamp / (double)Stopwatch.Frequency, Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+            var moving = effect.EvaluateMotion();
+            effect._eyes?.SetMoving(moving);
             if (moving) move = Vector2.up;
         }
         catch (Exception exception) { effect.Fault(exception); }
+    }
+
+    private bool EvaluateMotion()
+    {
+        var microphone = PrepareCapture();
+        var capture = Volatile.Read(ref _capture);
+        if (microphone == null || capture == null) return false;
+        var timestamp = Interlocked.Read(ref capture.Timestamp);
+        if (timestamp == 0) return false;
+        var threshold = microphone.amplitudeThreshold;
+        if (!float.IsFinite(threshold) || threshold <= 0f) threshold = DefaultThreshold;
+        return _gate.Evaluate(Volatile.Read(ref capture.Amplitude), threshold,
+            timestamp / (double)Stopwatch.Frequency, Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
     }
 
     private void CheckAudioError()
@@ -158,12 +167,15 @@ internal sealed class VoiceIdol : HeldIdolEffect
     {
         Volatile.Write(ref _capture, null);
         _gate.Reset();
+        _eyes?.SetMoving(false, immediate: true);
     }
 
     private void Disarm()
     {
         if (Volatile.Read(ref _active) == this) Volatile.Write(ref _active, null);
         ClearCapture();
+        _eyes?.Dispose();
+        _eyes = null;
     }
 
     private void Fault(Exception exception)

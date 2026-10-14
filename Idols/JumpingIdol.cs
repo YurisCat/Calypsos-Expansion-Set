@@ -1,12 +1,16 @@
 using UnityEngine.InputSystem;
-using CalypsoExpansionSet.Visuals;
+using UnityEngine;
+using Entities.Player.Behaviours;
+using HarmonyLib;
+using CalypsoExpansionSet.Audio;
 
 namespace CalypsoExpansionSet.Idols;
 
 internal sealed class JumpingIdol : HeldIdolEffect
 {
+    internal const ulong ConfigId = 0x4D49000000000001UL;
     internal static IdolDefinition Definition => new(
-        "jumping", "跳跃雕像", 0x4D49000000000001UL, 0x4D490001U,
+        "jumping", "跳跃雕像", ConfigId, 0x4D490001U,
         // 第五个参数是 TemplateId：复制 Score 的配置和预制体，再修改自己的副本。
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new JumpingIdol())
     {
@@ -29,26 +33,118 @@ internal sealed class JumpingIdol : HeldIdolEffect
         // },
 
         // 实际改变属性、玩法或外观后提升此版本，重新编译并让所有联机端更新。
-        // Both built-in types temporarily reuse the existing artwork, with separate visual resources.
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "jumping"),
-        ContentVersion = 8
+        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "jumping",
+            ConfigId, "spring_accent", 4, 0.1f),
+        ContentVersion = 9
     };
 
+    private const float RequestTimeout = 0.4f;
+    private static JumpingIdol? _pending;
     private InputAction.CallbackContext? _jumpContext;
+    private HeldIdolContext _context;
+    private PlayerMovement? _movement;
+    private float _requestStamp, _requestTime;
+    private bool _faulted;
+
+    public override void Start(HeldIdolContext context)
+    {
+        Dispose();
+        _context = context;
+        _faulted = false;
+    }
 
     public override void Tick(HeldIdolContext context)
     {
-        if (!context.GameplayReady)
-            return;
+        _context = context;
+        if (_faulted || !LocalHeldGuard.Ready(context, ConfigId)) { ClearPending(); return; }
         var movement = context.Holder.PlayerMovement;
         var controller = context.Holder.LocomotionController;
+        if (_movement != null && (_movement != movement || !movement._jumpRequested
+            || movement._jumpRequestTime != _requestStamp || Time.time - _requestTime > RequestTimeout))
+            ClearPending();
         if (movement == null || controller == null || !movement.isOwned || !movement._isGrounded
-            || movement._jumpRequested || controller.IsJumping)
+            || movement._jumpRequested || controller.IsJumping || _movement != null)
             return;
         // The native callback ignores ctx, but its IL2CPP wrapper requires a boxed value.
         _jumpContext ??= new InputAction.CallbackContext();
         controller.OnJumpInputPerformed_OnceState(_jumpContext);
+        if (!movement._jumpRequested || movement._jumpInitiated) return;
+        _movement = movement;
+        _requestStamp = movement._jumpRequestTime;
+        _requestTime = Time.time;
+        _pending = this;
     }
 
-    public override void Dispose() => _jumpContext = null;
+    internal static JumpingIdol? BeforeNativeJump(PlayerMovement movement)
+    {
+        var effect = _pending;
+        if (effect == null) return null;
+        try
+        {
+            if (movement != effect._movement) return null;
+            if (effect._faulted || !LocalHeldGuard.Ready(effect._context, ConfigId)
+                || effect._context.Holder.PlayerMovement != movement
+                || !movement._jumpRequested || movement._jumpRequestTime != effect._requestStamp
+                || Time.time - effect._requestTime > RequestTimeout)
+            {
+                effect.ClearPending();
+                return null;
+            }
+            // Observe acceptance of this queued auto-jump without changing its
+            // native force, stamina, eligibility or animation.
+            return !movement._jumpInitiated && !movement._jumpConsumed && movement._isGrounded ? effect : null;
+        }
+        catch (Exception error) { effect.Fault(error); return null; }
+    }
+
+    internal static void AfterNativeJump(PlayerMovement movement, JumpingIdol? effect, Exception? error)
+    {
+        if (effect == null) return;
+        try
+        {
+            if (error != null) { effect.Fault(error); return; }
+            if (_pending != effect || movement == null || movement != effect._movement
+                || !movement._jumpInitiated && !movement._jumpConsumed) return;
+            effect.ClearPending(); // A subsequent native call cannot emit twice.
+            if (!LocalHeldGuard.Ready(effect._context, ConfigId)) return;
+            HeldIdolAudio.Emit(effect._context);
+            if (CalypsoExpansionSetPlugin.Instance?.DebugTools.Enabled == true)
+                CalypsoExpansionSetPlugin.Instance.Log.LogInfo(
+                    $"[Jumping] accepted auto-jump with random spring sound: idol={effect._context.Idol.netId}, holder={effect._context.Holder.netId}.");
+        }
+        catch (Exception exception) { effect.Fault(exception); }
+    }
+
+    private void ClearPending()
+    {
+        if (_pending == this) _pending = null;
+        _movement = null;
+    }
+    private void Fault(Exception error)
+    {
+        if (_faulted) return;
+        _faulted = true;
+        ClearPending();
+        CalypsoExpansionSetPlugin.Instance?.Log.LogError($"Jumping effect disabled until released: {error}");
+    }
+    public override void Dispose()
+    {
+        ClearPending();
+        _jumpContext = null;
+        _context = default;
+    }
+}
+
+[HarmonyPatch(typeof(PlayerMovement), nameof(PlayerMovement.HandleJumpRequest))]
+internal static class JumpingAudioPatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(PlayerMovement __instance, out JumpingIdol? __state)
+        => __state = JumpingIdol.BeforeNativeJump(__instance);
+    [HarmonyFinalizer]
+    private static Exception? Finalizer(PlayerMovement __instance, JumpingIdol? __state, Exception? __exception)
+    {
+        JumpingIdol.AfterNativeJump(__instance, __state, __exception);
+        return __exception;
+    }
 }

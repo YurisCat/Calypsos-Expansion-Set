@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.17";
+    public const string PluginVersion = "0.2.19";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -44,7 +44,8 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Instance = this;
         Registry = new IdolRegistry(Log);
         Registry.Register(JumpingIdol.Definition);
-        Registry.Register(SpringIdol.Definition);
+        // SpringIdol is temporarily retired. Keep its key/IDs reserved in its
+        // source; it must not enter the natural pool, debug list or test gallery.
         Registry.Register(FovIdol.Definition);
         Registry.Register(VoiceIdol.Definition);
         Registry.Register(UpsideDownIdol.Definition);

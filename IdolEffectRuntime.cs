@@ -83,7 +83,8 @@ internal sealed class IdolEffectRuntime : IDisposable
                 running = new Running(idol, holder, effect);
                 _active.Add(id, running);
                 effect.Start(context);
-                _plugin.Log.LogInfo($"[Effect start] {entry.Definition.Key}: netId={id}, holder={holder.netId}, authority={entry.Definition.Authority}.");
+                if (_plugin.DebugTools.Enabled)
+                    _plugin.Log.LogInfo($"[Effect start] {entry.Definition.Key}: netId={id}, holder={holder.netId}, authority={entry.Definition.Authority}.");
             }
             running.Effect.Tick(context);
         }
@@ -100,7 +101,7 @@ internal sealed class IdolEffectRuntime : IDisposable
         if (!_active.Remove(id, out var running)) return;
         try { running.Effect.Dispose(); }
         catch (Exception exception) { _plugin.Log.LogError($"Effect cleanup failed for netId={id}: {exception}"); }
-        _plugin.Log.LogInfo($"[Effect stop] netId={id}.");
+        if (_plugin.DebugTools.Enabled) _plugin.Log.LogInfo($"[Effect stop] netId={id}.");
     }
 
     public void Dispose()

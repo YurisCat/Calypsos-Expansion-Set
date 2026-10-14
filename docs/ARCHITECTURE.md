@@ -23,10 +23,10 @@
 | [IdolSpawnIntegration.cs](../IdolSpawnIntegration.cs) | 当前 ItemSet 的批次副本、自然候选接入与结果统计 |
 | [IdolEffectRuntime.cs](../IdolEffectRuntime.cs) | 识别当前持有物，按类型/执行端启动、更新和停止效果 |
 | [JumpingIdolSync.cs](../JumpingIdolSync.cs) | 全类型兼容准入与服务器实例/调试来源记录；保留历史文件名 |
-| [Idols/JumpingIdol.cs](../Idols/JumpingIdol.cs) | 原力度连续跳跃 |
-| [Idols/SpringIdol.cs](../Idols/SpringIdol.cs) | 弹簧编排、原生单次力度补丁与可选测量 |
-| [Idols/FovIdol.cs](../Idols/FovIdol.cs) | 近景持有者的本地 FOV 覆盖与恢复 |
-| [Idols/VoiceIdol.cs](../Idols/VoiceIdol.cs)、[Idols/VoiceInputGate.cs](../Idols/VoiceInputGate.cs) | 声控持有者的方向输入替换、麦克风采样与音量判定 |
+| [Idols/JumpingIdol.cs](../Idols/JumpingIdol.cs) | 原力度连续跳跃、自动请求归属与成功起跳音效 |
+| [Idols/SpringIdol.cs](../Idols/SpringIdol.cs) | 暂停注册的旧弹簧编排，保留源码和身份 |
+| [Idols/FovIdol.cs](../Idols/FovIdol.cs) | 近景持有者的本地 FOV 缩放过渡与恢复 |
+| [Idols/VoiceIdol.cs](../Idols/VoiceIdol.cs)、[Idols/VoiceInputGate.cs](../Idols/VoiceInputGate.cs)、[Visuals/VoiceEyeGlow.cs](../Visuals/VoiceEyeGlow.cs) | 声控持有者的方向输入替换、麦克风判定及本地红蓝眼睛 |
 | [Idols/UpsideDownIdol.cs](../Idols/UpsideDownIdol.cs)、[Idols/DelayedMoveIdol.cs](../Idols/DelayedMoveIdol.cs)、[Idols/ExtremeSpeedIdol.cs](../Idols/ExtremeSpeedIdol.cs) | 渲染期间倒立、方向输入延迟与原生速度计算 |
 | [Idols/DuckStepIdol.cs](../Idols/DuckStepIdol.cs)、[Audio/HeldIdolAudio.cs](../Audio/HeldIdolAudio.cs) | 原版脚步触发、共享一次性音效协议和 FMOD 资源 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs) | 便签网格、纹理、材质与视觉诊断资源 |
@@ -69,30 +69,31 @@ flowchart LR
 
 | 名称 | key | 配置 ID | assetId | ContentVersion | 执行端 |
 | --- | --- | --- | --- | --- | --- |
-| 跳跃雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 8 | OwnerNativeGameplay |
-| 弹簧雕像 | spring | 0x4D49000000000002 | 0x4D490002 | 2 | OwnerNativeGameplay |
-| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 1 | LocalPresentation |
-| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 1 | OwnerNativeGameplay |
-| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 2 | LocalPresentation |
+| 跳跃雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 9 | OwnerNativeGameplay |
+| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 2 | LocalPresentation |
+| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 2 | OwnerNativeGameplay |
+| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 4 | LocalPresentation |
 | 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 2 | OwnerNativeGameplay |
-| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 1 | OwnerNativeGameplay |
+| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 2 | OwnerNativeGameplay |
 | 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 1 | OwnerNativeGameplay |
 
-八种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+七种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+
+0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。旧源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
 
 0.2.17 合并并行开发时保留远端已发布声控的 ID/assetId 后缀 04，将尚未发布的倒立试验身份移到空闲后缀 08、ContentVersion=2。原七种试验构建的清单和游戏证据仍按当时身份记录；没有将旧本地试验的倒立存档自动迁移为新 ID，升级测试需重开房间，联机清单必须一致。
 
-跳跃雕像在落地、没有原版待处理跳跃且未处于跳跃状态时，继续调用原版跳跃输入，保持原力度；不另加落地等待，也不在拿起时清空体力。
+跳跃雕像在落地、没有原版待处理跳跃且未处于跳跃状态时，继续调用原版跳跃输入，保持原力度；不另加落地等待，也不在拿起时清空体力。每次由此效果成功发起的自动跳跃，随机播放已有四段弹簧音效之一。
 
-弹簧采用固定编排：四次小跳后正常跳，再五次小跳后稍高跳，循环执行。首次等待 0.15 秒，成功起跳后所有节拍落地等待 1 秒；小跳目标约半米，力度系数 0.58，并按原版 JumpForceMultiplier 把起跳速度上限限制为 3.6；正常/稍高节拍系数为 1 / 1.12。实际高度依赖原版重力、地形和角色条件，测得高度见对应版本验收记录。
+效果保存自己的原生请求、角色和请求时间戳。HandleJumpRequest 前检查当前持有物、所有权、健康/控制状态、超时、是否仍为该请求以及尚未接受的标志；原生正常返回并出现起跳接受标志后，先清除待处理记录，再发出一次音效请求。手动请求、排队但未接受、过期、替换、释放和异常均不发声，重复处理不能重复发声；服务器继续决定随机片段。原生异常保留传播，并停用效果到释放。
 
-弹簧先通过原版输入排队，再按物品、持有者、角色控制权、请求时间戳及超时核对待处理请求。在匹配的 HandleJumpRequest 单次调用内临时调整该角色 jumpForce，Finalizer 恢复自己的写入；不持久改共享配置、刚体速度或重力倍率。若其他 MOD 已写入不同力度，不覆盖其值。原生调用异常后停用本次效果直到释放。
-
-两种均不主动写体力，继续沿用原版起跳体力处理。菜单/控制禁用时不新增动作；空中和既有请求优先完成。手动跳跃不强制变成弹簧节拍，可推迟自动节奏。放下/转交/失效时停止效果，但不截断已经由原版接受的跳跃。
+跳跃不写力度、体力、刚体速度或重力；继续沿用原版动作资格、动画和体力处理。菜单/控制禁用时不新增动作并取消音效归属；放下/转交/失效时清理待处理请求，不截断原版已经接受的跳跃。停用的 spring 历史节拍、力度与高度证据见 DEVELOPMENT。
 
 近景雕像内置 FOV=15°，不提供 CFG 参数，不写原版 GraphicsSettings 或虚拟镜头配置。当前游戏原版默认 FOV=65°，设置范围为 30°～90°；这是设置范围，奔跑/抖动/取景等运行期叠加另行处理，原生证据见 [DEVELOPMENT](../DEVELOPMENT.md#fov-research-0214)。
 
-近景在原版 SetFovShakeData.LateUpdate 前撤销仍属于自己的上次 FOV 写入，让原版计算正常视野；Finalizer 在原版成功返回后保存结果，再覆盖最终 Camera.fieldOfView。每次核对实际持有物、本机角色控制权、健康/Ready/兼容状态、控制可用及镜头关联的 playerPerlinShake，只作用于站立/蹲下视角。菜单/F8、放下、转交、死亡、角色/镜头替换、断线或卸载时恢复自己仍持有的写入；若游戏或其他 MOD 已写不同值则保留。异常时停用到释放，原生异常保持传播，不逐帧重试或刷屏。Unity 镜头更新顺序及与其他 MOD 并用仍需游戏验收。
+近景在原版 SetFovShakeData.LateUpdate 前撤销仍属于自己的上次 FOV 写入，让原版计算正常视野；Finalizer 在原版成功返回后，以当帧原生 FOV 为基准，按平滑权重混合到目标值。拿起的首次有效相机帧开始缩放；正常放下、切换或转交允许原持有者短暂保留回程过渡，快速重新拿起从当前权重续接，不闪回默认视野。过渡时长以 FovIdol 常量为准，不写设置或累计自身偏移。
+
+每次核对实际持有物、本机角色控制权、健康/Ready/兼容状态、控制可用及镜头关联的 playerPerlinShake，只作用于站立/蹲下视角。菜单/F8、死亡、角色失效、回程中镜头替换、断线或卸载立即取消；NetworkClient.Disconnect 与该定义的资源释放也清理已经离开效果执行器的回程。只撤销仍属于自己的最后写入；游戏或其他 MOD 已写不同值时保留。异常时停用到释放，原生异常保持传播。诊断仅在 DebugMode 下限频记录过渡和完成，不持续输出稳定状态。其他镜头 MOD 并用仍需游戏验收。
 
 声控只在当前持有者读取 `InputsManager.Move` 时用 Postfix 替换返回的 Vector2：声音满足条件输出向前，否则输出零。键盘、重绑定按键和手柄摇杆的方向输入都在此入口被替换；不写原版存储的输入值、不解绑动作订阅，转向、跳跃、蹲下、奔跑、交互和放下继续使用原版输入。取消前进输入不会清除原版惯性、重力或外力。
 
@@ -100,24 +101,26 @@ flowchart LR
 
 每次消费输入重新检查实际持有物、物品归属、本机角色控制权、健康、Ready/兼容和控制状态。静音、麦克风失效、菜单/F8 或控制禁用时清空采样并输出零；恢复后需要新声音样本。转交、放下、死亡、库存/角色切换、断线及卸载撤销覆盖，不必恢复输入字段或订阅。音频回调只发布样本/错误，主线程处理生命周期与异常日志；原生读取异常后停用到释放。原版按键说话决定可用声音输入，真实麦克风/原生补丁执行仍待游戏验收。
 
+声控眼睛只为本机持有者创建。主线程使用与移动相同的 EvaluateMotion 结果：不能前进时红色，声音允许前进时快速转蓝，停止后回红；静音、菜单或样本失效立即重置红色。音频线程不访问 Unity 外观。原版 ScoreTool 眼睛 tween 持续写自己的 MaterialPropertyBlock，因此反馈使用共用原眼睛网格、独立材质与 PropertyBlock 的本地覆盖网格，在原眼睛之后绘制；不改原 renderer/材质/PropertyBlock，不增加碰撞或网络组件。释放时只销毁自有附件与材质，共用网格不销毁。颜色没有新增网络状态或晚加入重放，队友保留原外观；诊断只在 DebugMode 下报告状态变化。
+
 0.2.12 曾把弹簧保存在 jumping 身份下；拆分后 jumping 恢复跳跃，弹簧另用 spring，调试命令相应改变。没有自动迁移已有存档类型；升级变化见 [CHANGELOG](../CHANGELOG.md)，存档恢复仍待验收。
 
 ## 四种效果与共享音效
 
-- **倒立**（[UpsideDownIdol](../Idols/UpsideDownIdol.cs)）：只在实际本机 POV 世界相机渲染期间临时绕视轴旋转 180°，在 EndCameraRendering 和渲染 Finalizer 释放；不把旋转保留到下一次输入/物理更新，不反转输入轴。筛选实际相机及站/蹲视角，HUD/菜单相机不修改。自身旧写入被其他代码替换时不覆盖。
+- **倒立**（[UpsideDownIdol](../Idols/UpsideDownIdol.cs)）：只在实际本机 POV 世界相机渲染期间临时绕视轴旋转 180°，在 EndCameraRendering 和渲染 Finalizer 释放；同时对持有者 `InputsManager.Look` 的最终返回值取反两个轴，对 Move 只取反水平轴，实现 A/D 对调而 W/S 保持。原版灵敏度、鼠标反转设置及手柄时间步处理先完成，不写设置或原始输入字段。画面和输入使用相同的相机/角色/站蹲 POV 门禁；HUD、菜单与指针坐标不反转。自身旧旋转被其他代码替换时不覆盖。
 - **迟钝**（[DelayedMoveIdol](../Idols/DelayedMoveIdol.cs)）：修改原版 InputsManager.Move getter 的本机返回值。方向与零输入均入固定容量的 0.3 秒队列，帧停顿取最新到期值；不存储或重放视角、交互、跳跃等动作。控制关闭、释放或角色失效清队列。
-- **极速**（[ExtremeSpeedIdol](../Idols/ExtremeSpeedIdol.cs)）：在持有者的原版 PlayerMovement.FixedUpdate 与 Update 单次调用内，把 SpeedMultiplier 乘 4，Finalizer 恢复仍属于自己的字段；FixedUpdate 下的地面/流沙速度计算以及 Update 的动画归一化读到一致倍率。保留原版空中运动、加速度、碰撞、持有物减速、FOV 和体力流程，不直接写刚体速度。空中、冰面/流沙与极端速度的完整边界仍待实测。
+- **极速**（[ExtremeSpeedIdol](../Idols/ExtremeSpeedIdol.cs)）：在持有者的原版 PlayerMovement.FixedUpdate 与 Update 单次调用内，把 SpeedMultiplier 乘 4，Finalizer 恢复仍属于自己的字段；FixedUpdate 下的地面/流沙速度计算以及 Update 的动画归一化读到一致倍率。另在本机 Move getter 返回最后按下的一个 WASD 方向，松键不停止，新按键切换且不产生斜向叠加；保留原版游戏方向反转标志。键盘按下边沿独立采样，能区分 W+S 抵消和一帧内短按；同一输入帧多个新按键以 W/A/S/D 固定顺序择一。菜单期间暂停输出并忽略菜单打字，返回游戏恢复之前方向。放下、失效、角色或键盘替换清理状态。固定四键触发，不注入系统按键、不粘滞其他动作，不修改按键绑定；尚未触发 WASD 时保留原版方向输入。原版空中运动、加速度、碰撞、持有物减速、FOV 和体力流程保留，不直接写刚体速度。空中、冰面/流沙与极端速度的完整边界仍待实测。
 - **鸭步**（[DuckStepIdol](../Idols/DuckStepIdol.cs)）：只在持有者原版 PlayFootSteps 成功重置步频计时后附加音效请求，核对地面、实际位移和当前持有物。停止、顶墙、腾空或控制禁用时不额外叫；奔跑频率继续跟原版步频。保留原版脚步，服务器每次确认鸭叫再添加一次原版怪物听觉事件。
 
-前三种不新增自有网络状态：持有身份、动作和运动继续走原版同步。倒立仅本机显示；迟钝/极速仅有控制权的本机角色执行。释放/转交等清理沿用 HeldIdolEffect，其他玩家不会重复施加倍率或输入延迟。
+前三种不新增自有网络状态：持有身份、动作和运动继续走原版同步。倒立只改变持有者的画面、视角输入和左右移动输入；迟钝/极速仅有控制权的本机角色执行。释放/转交等清理沿用 HeldIdolEffect，其他玩家不会重复施加倍率或输入延迟。
 
-[HeldIdolAudio](../Audio/HeldIdolAudio.cs) 为鸭步和弹簧共用的一次性表现协议，消息 ID=`0x4D4A`、协议版本=1；与兼容准入消息 `0x4D49` 分开。类型通过资源回调注册自己的 bank，不在主插件或网络层增加逐种分支。弹簧只在 native HandleJumpRequest 接受编排中的 accent 节拍后调用 Emit，小跳/普通跳不触发。
+[HeldIdolAudio](../Audio/HeldIdolAudio.cs) 为鸭步和跳跃共用的一次性表现协议，消息 ID=`0x4D4A`、协议版本=1；与兼容准入消息 `0x4D49` 分开。类型通过资源回调注册自己的 bank，不在主插件或网络层增加逐种分支。跳跃只在 native HandleJumpRequest 接受自己的自动请求后调用 Emit，每次成功自动起跳均可触发；沿用 `spring_accent` 资源名和四段原始音频。
 
-持有者客户端只报告雕像 netId 与递增序号，不决定片段或位置。服务器检验实际连接指针、认证、Ready、类型清单、实例、持有者归属、健康、手持状态、序号与最小间隔；鸭步还检查连续位置变化。随后服务器从当前 bank 中随机选一段，避免同持有者/实例/音效组的相邻重复，使用服务器角色位置广播。观察者和持有者都只播放这一次广播，不做本地预测双播。此路径是受验证的所有者动作通知，并非服务器重新模拟每一次脚步或整段弹簧编排。
+持有者客户端只报告雕像 netId 与递增序号，不决定片段或位置。服务器检验实际连接指针、认证、Ready、类型清单、实例、持有者归属、健康、手持状态、序号与最小间隔；鸭步还检查连续位置变化。随后服务器从当前 bank 中随机选一段，避免同持有者/实例/音效组的相邻重复，使用服务器角色位置广播。观察者和持有者都只播放这一次广播，不做本地预测双播。此路径是受验证的所有者动作通知，并非服务器重新模拟每一次脚步或跳跃。
 
 自 0.2.16 起，bank 可以提供 `OnServerEmission` 回调；在上述校验通过并记下序号/冷却后、广播前仅执行一次。鸭步定义在自己的回调中调用 `HearingSenseManager.AddVolumeEvent(holder.transform, NoiseRange)`，内置 NoiseRange=18，来源为持有玩家，沿用普通双参数重载的 audience=null、ignoreRange=false 与原版寿命/清理。这里不要求服务器角色 isOwned 或等于 EntityManager.Me，以支持远端持有者；仅客户端播放、重复/拒绝请求均不会添加噪声。
 
-怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新鸭叫事件，已经发出的声音按原版寿命自然消失。弹簧没有这个回调。新增玩法用 duck_step.ContentVersion=2 纳入现有清单握手，无需改变音效报文格式。
+怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新鸭叫事件，已经发出的声音按原版寿命自然消失。跳跃音效没有这个回调。新增玩法用 duck_step.ContentVersion=2 纳入现有清单握手，无需改变音效报文格式。
 
 报文固定长度，检查 magic/version/manifest、来源、通道、数量范围、未知 netId、重复序号及非有限位置。连接 ID 复用按实际连接指针清旧记录，处理器重建/卸载只管理自己的委托。事件无快照，不向晚加入者重放旧声响；当前实例与持有状态仍由原版生成/SyncVar 恢复。全部客户端需要兼容 bank 与内容版本。双端真实听感和时序仍待验收。
 
@@ -157,7 +160,7 @@ FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/A
 
 兼容协议由 JumpingIdolSync 统一处理，消息 ID=0x4D49、协议版本=3。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。
 
-雕像生成、配置、物品持有状态及实例晚加入恢复使用原版网络 prefab/SyncVar；没有重复的自有实例 marker 快照。跳跃/弹簧只有持有者所属端编排动作，观察者依靠原版运动/动画同步看到结果；弹簧力度不另作自有网络字段广播。原版路径接入、托管模拟与真实双端验收是不同证据，当前边界查看 [TODO](../TODO.md)。
+雕像生成、配置、物品持有状态及实例晚加入恢复使用原版网络 prefab/SyncVar；没有重复的自有实例 marker 快照。跳跃只有持有者所属端发起原版动作，观察者依靠原版运动/动画同步看到结果，声音走一次性广播。极速的按键锁定属于当前持有者输入，不向观察者发送虚拟按键或历史方向快照；原版运动仍负责同步。原版路径接入、托管模拟与真实双端验收是不同证据，当前边界查看 [TODO](../TODO.md)。
 
 近景由当前持有者客户端执行，房主和观察者不重复修改画面，也不广播 FOV。转交后新持有者按原版持有状态启用自己的效果，晚加入按当前物品/持有状态恢复；没有新增权威玩法状态或随机结果。全部参与端仍需注册兼容类型，真实双端的持有/转交时序尚待验证。
 
@@ -167,7 +170,7 @@ FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/A
 
 ## 便签资源与生命周期
 
-跳跃/弹簧的图案 key 为 `jumping`，类型 key 与图案 key 分开，暂用同一图案。其余六种使用空白 paper.rgba，等待各自图案。弹簧和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型直接返回 StickyNoteVisuals。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
+跳跃的图案 key 为 `jumping`，类型 key 与图案 key 分开，沿用已导入的弹簧图案。其余六种使用空白 paper.rgba，等待各自图案。跳跃和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，其他类型直接返回 StickyNoteVisuals。每种类型创建独立 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json 和按图案 key 选择的预合成 RGBA mip 链创建视觉对象，挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
@@ -179,7 +182,7 @@ FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/A
 
 调试 UI 是 MOD 自有 F8 窗口，不依赖场景中缺失的原版控制台。命令和配置的使用说明见 [README](../README.md)。
 
-- DebugMode 默认 false，统一控制测试窗口、调试操作与诊断日志；关闭 F8 不改变配置开关。关闭 DebugMode 清理诊断活动，不影响雕像玩法，必要状态与异常日志保留。
+- DebugMode 默认 false，统一控制测试窗口、调试操作与诊断日志；关闭 F8 不改变配置开关。效果启动/停止、逐次起跳/脚步/音效、输入变化和倍率观测均受此开关控制，周期诊断有节流。关闭 DebugMode 清理诊断活动，不影响雕像玩法，注册/兼容状态与异常日志保留。
 - list / spawn <key> 从注册清单生成；快捷按钮只显示前三种，其他类型用命令。每种同时最多一只手动实例，出售/销毁后释放配额；自然实例不占配额。
 - 直接 SrvSpawnToolOnGround 不包含自然批次的皮肤/价值初始化。调试生成读取 idolsScoreData，未指定皮肤时选 Bronze，用原版 Skin / CurrentValue 同步 setter 初始化；不要调用下节的越界包装。
 - teleport 按 netId 循环查找存活自然/调试 MOD 雕像，验证地面与角色空间后调用原版 TargetTeleport；关闭窗口恢复控制后下一帧执行，角色/连接变化或超时取消。
@@ -188,7 +191,7 @@ FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/A
 
 后部摆放 20 种非怪物原版雕像（含两种特殊拼图；排除怪物 WanderingDice），两排各 10 个。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。
 
-布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，当前为 delayed_move → duck_step → extreme_speed → jumping → near_view → spring → upside_down → voice，新增时间不决定位置。八种合并布局尚待游戏验收；原七种试验构建的单人游戏证据见 DEVELOPMENT。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
+布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，当前为 delayed_move → duck_step → extreme_speed → jumping → near_view → upside_down → voice，新增时间不决定位置。各版本的单人游戏证据见 DEVELOPMENT，不能将不同清单版本的结果互相替代。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
 
 ## Interop 禁用项
 
