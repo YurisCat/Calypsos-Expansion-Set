@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.19</Version>
+    <Version>0.2.21</Version>
     <Product>Calypso's Expansion Set</Product>
     <Authors>YurisCat;Masaicker</Authors>
     <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>

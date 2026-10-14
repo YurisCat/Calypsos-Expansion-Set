@@ -2,6 +2,28 @@
 
 本文保留按版本/日期记录的研究、原生证据与编译、模拟、游戏验收历史。历史章节中的“当前”属于记录当时的语境；查询现行实现请看 [设计说明](docs/ARCHITECTURE.md)，最新状态看 [TODO](TODO.md)，使用方式看 [README](README.md)。
 
+## 2026-10-14：0.2.21 极速水平恒速、空中锁向与奔跑禁用
+
+本次仅调整极速三项行为：原版地面／空中速度路径执行后，在 FixedUpdate Finalizer 校正刚体 X/Z；起跳／离地锁定最后实际推进的世界水平方向，空中不采样方向、镜头仍可转，落地恢复原有向量记忆；持有期间阻止统一奔跑动作和状态入口，已在 Run 时调用原版 CliTryToWalk 正常退出。不改变其他雕像、方向组合／松开记忆规则或菜单门禁。版本为 0.2.21，极速 ContentVersion=4，稳定身份及协议格式不变。
+
+水平校正使用正常／老化站立步行基准乘五，并按 `1-linearDamping*fixedDeltaTime` 预补偿 PhysX 水平阻尼；不修改原版 Y、阻尼、跳跃力度、重力或刚体运动学状态。无原版地面／空中速度路径、异常、失去持有资格及运动学刚体不新增推进；无效阻尼停用到释放。水平加速／惯性／地形减速由恒速推进替代，墙体、斜坡、平台和外力仍参与物理，不将固定推进等同于所有地形上的恒定位移；真实物理积分和高速碰撞仍需实测。
+
+**原生静态证据**：本次再次核对 GameAssembly SHA256 为 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`。FixedUpdate（RVA `0x2FA2A90`）先读取 Move、探测地面，再走 SetAirVelocity／HandleGroundMovement，随后 HandleJumpRequest（`0x2FA3740`）和 UpdateFallingState（`0x2FAB660`）；HandleGroundMovement（`0x2FA36C0`）调用 SetGroundVelocity（`0x2FA7DC0`）。起跳处理与下落处理都会写空中 linearDamping，因此仅提高 MaxSpeed 或只禁止空中输入不足以恒速。奔跑回调（`0x321E250`）和 Controller.Update（`0x321EE40`，部分意愿判断内联）均消费 CanRunCheck（`0x321CE60`）；另拦截 CliTryToRun 及统一回调，避免 Hold／Toggle 和设备差异。CliTryToWalk（`0x321D810`）调用 IsRunning setter（`0x321F7B0`）并正常切状态；setter 更新原版动画及网络动画，未直接改奔跑 backing field。
+
+**同步边界**：仅当前持有者所属且 movement.isOwned 的客户端修正原版刚体，不在服务器／观察者重复推进、不新增移动协议。本机 PlayerEntity interop 暴露 MainNetworkTransform（NetworkTransformBase）；继续由原版角色位置和动作同步传播结果，未改其组件或配置。此接口研究及所有者隔离模拟不构成真实双端、插值或晚加入验收。
+
+**验证**：`scripts/Build.ps1` 仅编译 Release/x64/net6.0，0 警告／0 错误；DLL 版本 **0.2.21.0**，SHA256 **`1DC89484083278ED05767489AA67DB833A9790C513574A1ABBBD51C5A922CF6E`**。`.local/verification/ExtremeSpeed0221` 直接编译实际极速源码，**219 项托管检查通过**，包含原有 92 项及各方向／模拟摇杆恒速、不同阻尼的模拟积分、Y／阻尼保留、原版步骤末尾接受起跳、空中转镜头／输入忽略、跳跃顶点／落地／离开边缘、UI 在空中与落地恢复、老化基准、无运动路径／运动学／远端隔离、奔跑入口与已有 Run 正常退出、蹲姿／跳跃状态保留、释放与异常。替代对象及公式模拟不能证明 Unity 原生物理、真实手柄或联机表现。未部署、启动游戏、暂存或提交；地面／空中实测速率、Shift／手柄奔跑、菜单及完整生命周期／双端仍待验收。
+
+## 2026-10-14：0.2.20 极速统一方向与水平目标速度
+
+极速从固定物理 WASD 的单键记忆改为读取原版统一动作回调保存的 `InputsManager.move`。拿起首帧默认前进，之后保存相对角色朝向的二维有效向量；支持键盘组合斜向、重绑定、手柄及设备混用，超过死区后归一化。零输入、松键／回中和相反键抵消不清除最后方向，输出继续应用原版 GameplayInvert 标志。菜单／聊天／F8 仅暂停方向采样，持续移动与倍率保留；返回后先松开方向／摇杆回中才接受新输入，真正全局暂停仍遵守。极速单独检查持有身份与执行资格，公共门禁及其他雕像不变。
+
+目标速度改为当前正常／老化角色的原版站立步行配置乘五。只在当前持有者的 CalculateSpeed、SetAirVelocity 与 Update 单次调用内临时写 MaxSpeed、抵消 ToolSlowPower 除数，统一地面／空中及动画基准；蹲行和奔跑不再改变水平目标。Finalizer 仅撤销仍属于自己的写入，部分写入失败及原生异常也恢复并停用到释放。未写共享状态配置、刚体速度、跳跃力度或重力；原版输入平滑、加速度、惯性、地形、碰撞与体力继续运行，因此目标一致不代表每帧实际速度恒定。版本为 0.2.20，extreme_speed.ContentVersion=3，稳定身份及消息格式不变。
+
+**原生研究**：重新核对 GameAssembly SHA256 为 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`，通过对应方法指针表与本机 interop token 定位。CalculateSpeed（RVA `0x2FA1000`）使用 MaxSpeed、输入幅度及 SpeedMultiplier/ToolSlowPower，没有前后／侧向符号差异；SetAirVelocity（`0x2FA71E0`，MaxSpeed 读取点 `0x2FA7781`）直接使用 MaxSpeed 作为空中目标／限速，未使用该地面倍率，故不能只把四倍改五倍。Update（`0x2FAB8F0`）动画归一化也读 MaxSpeed 和持有物除数。PlayerWalkState.OnStateEnter（`0x32238F0`）按 transformationStatus 选择 Speed／SpeedAged；共享步行配置只读。OnMoveStartedAndPerformed（`0x2E92AC0`）读取原版动作的 Vector2 并写入 move，OnMoveCanceled（`0x2E92A70`）清零同一字段；getter 的反转与实际输入采样分开处理。这些是原生静态研究，未称为本次游戏实测。
+
+**验证**：`scripts/Build.ps1` 仅编译 Release/x64/net6.0，0 警告/0 错误，DLL 版本 **0.2.20.0**，SHA256 **`460F2BB9FBA5129030BED46ABF5956EAB25E3A71079D91AF200B014A26B7233C`**。`.local/verification/ExtremeSpeed0220` 直接编译实际极速源码，**92 项托管检查通过**，覆盖首帧前进、八方向与模拟摇杆等幅、松开／抵消／死区／无效样本、输入源隔离和轴反转、菜单冻结方向但保留速度、恢复回中门禁、全局暂停、站蹲跑／老化共同基准、其他运动实例隔离、字段恢复与其他代码写入保留、DebugMode=false，以及切换／转交／死亡／所有权／角色替换／断线／兼容失效、部分 setter 失败与原生异常恢复。托管替代对象不能证明真实硬件、Unity 原生补丁或联机通过。`git diff --check` 通过；未部署、启动游戏或提交。真实手柄／重绑定／混用、ESC／聊天及 F8 连续推进、起跳与高速碰撞、地形及多人／完整生命周期仍待游戏验收。
+
 ## 2026-10-14：停用弹簧补丁与使用说明精简
 
 移除已停用 spring 的 Harmony 跳跃补丁入口及无用引用，保留旧效果源码和独立身份；启用内容的玩法、ContentVersion 与兼容清单不变。README 保留效果、安装、配置、调试、测试房及构建操作，删除固定类型排序、完整 key 枚举、命名对照和重复 API 细节，开发信息改用对应文档链接；设计说明也只保留排序规则。
