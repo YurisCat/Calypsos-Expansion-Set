@@ -22,6 +22,11 @@ internal sealed class IdolDebugTools : IDisposable
     private string _command = "spawn jumping";
     private string _result = "Commands: list | status | spawn <key> | teleport\nExample: spawn jumping";
     private GUIStyle? _resultStyle;
+    private Rect _windowRect;
+    private bool _windowPositioned;
+    private int _dragControl;
+    private Vector2 _idolScroll;
+    private string[] _spawnLabels = Array.Empty<string>();
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
 
@@ -97,6 +102,8 @@ internal sealed class IdolDebugTools : IDisposable
     private void Close()
     {
         if (!PanelOpen) return;
+        if (_dragControl != 0 && GUIUtility.hotControl == _dragControl) GUIUtility.hotControl = 0;
+        _dragControl = 0;
         PanelOpen = false;
         var inputs = InputsManager.Instance;
         var currentMap = inputs != null ? inputs.currentActionMap : null;
@@ -191,29 +198,97 @@ internal sealed class IdolDebugTools : IDisposable
 
     private void DrawPanel()
     {
-        var width = Mathf.Min(640f, Screen.width - 40f);
-        var x = Mathf.Max(20f, (Screen.width - width) * 0.5f);
-        const float y = 40f;
-        GUI.Box(new Rect(x, y, width, 380), $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close)");
+        _windowRect.width = Mathf.Max(1f, Mathf.Min(640f, Screen.width - 20f));
+        _windowRect.height = Mathf.Max(1f, Mathf.Min(520f, Screen.height - 20f));
+        if (!_windowPositioned)
+        {
+            _windowRect.position = new Vector2((Screen.width - _windowRect.width) * 0.5f, 40f);
+            _windowPositioned = true;
+        }
+        ClampWindowPosition();
+        HandleWindowDrag();
+        var x = _windowRect.x;
+        var y = _windowRect.y;
+        var width = _windowRect.width;
+        GUI.Box(_windowRect, $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close; drag title)");
         GUI.Label(new Rect(x + 15, y + 30, width - 30, 25), "Enter command here: spawn jumping   |   list   |   status");
+        // TextField consumes Return, so capture submission before drawing it.
+        var guiEvent = Event.current;
+        var submit = guiEvent.type == EventType.KeyDown
+            && (guiEvent.keyCode == KeyCode.Return || guiEvent.keyCode == KeyCode.KeypadEnter);
+        if (submit) guiEvent.Use();
         // Named-control APIs use span bindings that are broken in this game's interop.
         _command = GUI.TextField(new Rect(x + 15, y + 60, width - 115, 30), _command, 128);
         var execute = GUI.Button(new Rect(x + width - 90, y + 60, 75, 30), "Run");
-        var guiEvent = Event.current;
-        if (guiEvent.type == EventType.KeyDown && (guiEvent.keyCode == KeyCode.Return || guiEvent.keyCode == KeyCode.KeypadEnter))
-        { guiEvent.Use(); execute = true; }
-        if (execute) Execute();
-        var entries = _plugin.Registry.Entries;
-        for (var index = 0; index < Math.Min(entries.Count, 3); index++)
-            if (GUI.Button(new Rect(x + 15 + index * ((width - 30) / 3), y + 105, (width - 40) / 3, 30),
-                    $"Spawn {entries[index].Definition.Key}"))
-                QueueSpawn(entries[index].Definition.Key);
-        if (GUI.Button(new Rect(x + 15, y + 145, width - 30, 30), "Teleport to next MOD idol")) QueueTeleport();
+        if (submit || execute) Execute();
+        GUI.Label(new Rect(x + 15, y + 100, width - 30, 25), "MOD idols: click to spawn; scroll for more");
+        var listHeight = Mathf.Max(1f, _windowRect.height - 340f);
+        DrawSpawnButtons(new Rect(x + 15, y + 125, width - 30, listHeight));
+        var actionsY = y + 135 + listHeight;
+        if (GUI.Button(new Rect(x + 15, actionsY, width - 30, 30), "Teleport to next MOD idol")) QueueTeleport();
         _resultStyle ??= new GUIStyle { wordWrap = true, fontSize = 14 };
         _resultStyle.normal.textColor = Color.white;
-        GUI.Label(new Rect(x + 15, y + 185, width - 30, 125), _result, _resultStyle);
+        GUI.Label(new Rect(x + 15, actionsY + 40, width - 30, 125), _result, _resultStyle);
         var count = NetworkServer.active ? $"Debug instances: {_plugin.Sync.ServerDebugCount}" : "Spawning is host only";
-        GUI.Label(new Rect(x + 15, y + 340, width - 30, 25), $"{count}. Max one test idol per type; natural idols excluded.");
+        GUI.Label(new Rect(x + 15, y + _windowRect.height - 35, width - 30, 25), $"{count}. Max one test idol per type; natural idols excluded.");
+    }
+
+    private void DrawSpawnButtons(Rect viewport)
+    {
+        var entries = _plugin.Registry.Entries;
+        if (_spawnLabels.Length != entries.Count)
+            _spawnLabels = entries.Select(entry => $"Spawn {entry.Definition.DisplayName} ({entry.Definition.Key})").ToArray();
+        if (entries.Count == 0)
+        {
+            GUI.Label(viewport, "No MOD idols registered.");
+            return;
+        }
+        var columns = viewport.width >= 460f ? 2 : 1;
+        var contentWidth = Mathf.Max(1f, viewport.width - 20f);
+        var buttonWidth = (contentWidth - (columns - 1) * 8f) / columns;
+        var rows = (entries.Count + columns - 1) / columns;
+        _idolScroll = GUI.BeginScrollView(viewport, _idolScroll,
+            new Rect(0, 0, contentWidth, rows * 38f), false, true);
+        try
+        {
+            for (var index = 0; index < entries.Count; index++)
+                if (GUI.Button(new Rect(index % columns * (buttonWidth + 8f), index / columns * 38f, buttonWidth, 30f),
+                        _spawnLabels[index]))
+                    QueueSpawn(entries[index].Definition.Key);
+        }
+        finally { GUI.EndScrollView(); }
+    }
+
+    private void HandleWindowDrag()
+    {
+        var control = GUIUtility.GetControlID(0x43455344, FocusType.Passive);
+        var guiEvent = Event.current;
+        if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && GUIUtility.hotControl == 0
+            && new Rect(_windowRect.x, _windowRect.y, _windowRect.width, 25f).Contains(guiEvent.mousePosition))
+        {
+            GUIUtility.hotControl = _dragControl = control;
+            guiEvent.Use();
+        }
+        else if (_dragControl == control && GUIUtility.hotControl == control)
+        {
+            if (guiEvent.type == EventType.MouseDrag)
+            {
+                _windowRect.position += guiEvent.delta;
+                ClampWindowPosition();
+                guiEvent.Use();
+            }
+            else if (guiEvent.type == EventType.MouseUp && guiEvent.button == 0)
+            {
+                GUIUtility.hotControl = _dragControl = 0;
+                guiEvent.Use();
+            }
+        }
+    }
+
+    private void ClampWindowPosition()
+    {
+        _windowRect.x = Mathf.Clamp(_windowRect.x, 0f, Mathf.Max(0f, Screen.width - _windowRect.width));
+        _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
     }
 
     internal void Cancel() { _pending = null; Close(); _plugin.Teleports.Reset(); }
