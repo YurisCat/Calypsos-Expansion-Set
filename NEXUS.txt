@@ -1,0 +1,205 @@
+[center][size=6][color=#B78A50][b]Calypso's Expansion Set[/b][/color][/size][/center]
+
+[center]14 new idols with unusual carrying challenges, sticky-note symbols and short Chinese hints for custom and supported vanilla idols.[/center]
+
+
+[size=4][color=#B78A50][b]The Idols[/b][/color][/size]
+
+[b][color=#B78A50]01 ·[/color] Jumping[/b]
+Repeats normal-strength jumps with random jump sounds.
+
+[b][color=#B78A50]02 ·[/color] Close-Up[/b]
+Smoothly zooms in when picked up and restores your view when put down.
+
+[b][color=#B78A50]03 ·[/color] Voice-Controlled[/b]
+[b]Microphone volume drives forward movement[/b], replacing keyboard/gamepad directions; turning and other actions remain available. Shared eyes: red when idle, blue when sound permits movement.
+
+[b][color=#B78A50]04 ·[/color] Upside-Down[/b]
+[b]Flips the view[/b], reverses both look axes and left/right movement; forward/backward movement, HUD and menus stay normal.
+
+[b][color=#B78A50]05 ·[/color] Duck-Step[/b]
+Random duck calls accompany your footsteps.
+
+[b][color=#B78A50]06 ·[/color] Extreme-Speed[/b]
+Continuous horizontal movement at [b]5× normal walking speed[/b], even while crouching, jumping or in menus. Steer on the ground; direction locks in the air. No sprint boost; put it down to stop.
+
+[b][color=#B78A50]07 ·[/color] Delayed-Movement[/b]
+Movement changes and releases arrive [b]0.3 seconds late[/b]; looking and interacting stay immediate.
+
+[b][color=#B78A50]08 ·[/color] Relay[/b]
+Carrying builds fatigue and slows ground/air movement; [b]passing to someone else resets it[/b]. Putting it down only pauses fatigue. Rules follow the living-player count, with gentler solo rules; shared eyes fade from green to red.
+
+[b][color=#B78A50]09 ·[/color] Suspicious[/b]
+Random monster sounds come [b]from the holder[/b] and can draw hearing-capable monsters to them.
+
+[b][color=#B78A50]10 ·[/color] Wide-Body[/b]
+Wider, shorter body with a lower, stretched view; [b]collision size stays normal[/b].
+
+[b][color=#B78A50]11 ·[/color] Monster-Disguise[/b]
+Each pickup chooses a monster appearance from this run's spawned or pending/respawning types, falling back to the weeping doll. Hides the held idol and flashlight while carried; grants no monster powers or targeting changes.
+
+[b][color=#B78A50]12 ·[/color] Pixel[/b]
+Pixelates the world and HUD.
+
+[b][color=#B78A50]13 ·[/color] Outline[/b]
+White outlines on black for the world and HUD; [b]no seeing through walls[/b].
+
+[b][color=#B78A50]14 ·[/color] Big-Head[/b]
+Others see your enlarged head; you get a strong fisheye view of the world and HUD.
+
+
+[size=4][color=#B78A50][b]Shared Notes[/b][/color][/size]
+
+[list]
+[*]New idols join vanilla spawn pools without increasing the spawn total; encounters remain random.[/*]
+
+[*]Jumping, Duck-Step and Suspicious sounds can be heard nearby and can alert monsters.[/*]
+
+[*]Pixel, Outline and Big-Head menus remain clear.[/*]
+[/list]
+
+
+[size=4][color=#B78A50][b]Setup & Multiplayer[/b][/color][/size]
+
+[list=1]
+[*]Install [url=https://builds.bepinex.dev/projects/bepinex_be/788/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788%2B5b766a3.zip]BepInEx 6 IL2CPP — Windows x64[/url] in the Invokyr folder; launch once, then close the game.[/*]
+
+[*]Place [b]CalypsoExpansionSet.dll[/b] in [b]BepInEx/plugins/CalypsoExpansionSet/[/b] or [b]BepInEx/plugins/[/b], then launch normally.[/*]
+[/list]
+
+[quote]
+[b]Every player needs a compatible mod version; use the same release.[/b]
+[/quote]
+
+
+[size=4][color=#B78A50][b]Options & Notes[/b][/color][/size]
+
+Edit [b]BepInEx/config/calypso.invokyr.expansionset.cfg[/b] after first launch; restart after changes.
+
+[b]Default settings[/b]
+[spoiler]
+[b]NaturalSpawning = true[/b]
+New idols enter natural spawn pools.
+
+[b]DisableBoardPawnCollision = true[/b]
+Walk through board progress pawns to move and kick dice more easily. Visuals, animations, board, dice and event pieces stay normal. Local setting; matching settings recommended.
+
+[b]ShowIndividualIdolNames = false[/b]
+Enable individual Chinese names; otherwise keep vanilla names and use one shared MOD name. Hover hints remain enabled.
+
+[b]DebugMode = false[/b]
+Optional test tools/logs. Enable it for the F8 window; only the host can spawn idols. Normal play needs no debug mode.
+[/spoiler]
+
+[i]In-game names and hints are currently Chinese.[/i]
+
+[i]Development release: full multiplayer/save compatibility remains unverified; relay fatigue and disguise history are not saved.[/i]
+
+Detailed setup, testing and limitations are on GitHub below.
+
+
+[center][size=6][color=#B78A50][b]卡里普索拓展包[/b][/color][/size][/center]
+
+[center]为 Invokyr 添加 14 种搬运挑战各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向谏言。[/center]
+
+
+[size=4][color=#B78A50][b]雕像一览[/b][/color][/size]
+
+[b][color=#B78A50]01 ·[/color] 弹跳[/b]
+按原版力度自动连续跳跃，随机播放起跳音效。
+
+[b][color=#B78A50]02 ·[/color] 近景[/b]
+拿起平滑放大视野，放下平滑恢复。
+
+[b][color=#B78A50]03 ·[/color] 声控[/b]
+[b]麦克风音量驱动前进[/b]，替代键盘／手柄方向输入，仍可转向和执行其他动作；待机红眼、声音允许前进时蓝眼，全员可见。
+
+[b][color=#B78A50]04 ·[/color] 倒立[/b]
+[b]画面倒立[/b]，视角双轴及左右移动反向；前后移动、HUD 与菜单正常。
+
+[b][color=#B78A50]05 ·[/color] 鸭步[/b]
+走路时跟随脚步随机鸭叫。
+
+[b][color=#B78A50]06 ·[/color] 极速[/b]
+持续以[b]正常步行的五倍水平速度[/b]移动，蹲下、跳跃和菜单中也不停；地面可换向，空中锁方向，奔跑不加速，放下停止。
+
+[b][color=#B78A50]07 ·[/color] 迟钝[/b]
+移动方向与松键[b]延迟 0.3 秒[/b]，视角和交互即时。
+
+[b][color=#B78A50]08 ·[/color] 接力[/b]
+累计持有越久，地面与空中移动越慢；[b]换人清空疲劳[/b]，放下仅暂停。规则随存活人数切换，单人较宽松；眼睛随疲劳由绿渐红，全员可见。
+
+[b][color=#B78A50]09 ·[/color] 疑神[/b]
+[b]持有者身上[/b]随机传来怪物声音，可能引来有听觉的怪物。
+
+[b][color=#B78A50]10 ·[/color] 宽体[/b]
+身体变宽变矮，视点降低、画面横向拉伸，[b]实际碰撞体积不变[/b]。
+
+[b][color=#B78A50]11 ·[/color] 怪相[/b]
+每次拿起随机变为本局已生成、待生成或待重生的怪物外观，空池使用哭泣人偶；持有时隐藏雕像与手电光，不获得怪物能力或改变仇恨。
+
+[b][color=#B78A50]12 ·[/color] 像素[/b]
+场景与 HUD 一起像素化。
+
+[b][color=#B78A50]13 ·[/color] 描边[/b]
+场景与 HUD 变为黑底白线，[b]不透视墙后物体[/b]。
+
+[b][color=#B78A50]14 ·[/color] 大头[/b]
+他人看见大头角色，持有者的场景与 HUD 呈现强烈鱼眼畸变。
+
+
+[size=4][color=#B78A50][b]通用说明[/b][/color][/size]
+
+[list]
+[*]新雕像默认加入原版随机生成池，保留生成总数，遇见哪一种仍由随机抽取决定。[/*]
+
+[*]弹跳、鸭步与疑神的声音附近玩家可听见，也可能引起怪物注意。[/*]
+
+[*]像素、描边与大头的菜单保持清晰。[/*]
+[/list]
+
+
+[size=4][color=#B78A50][b]安装与联机[/b][/color][/size]
+
+[list=1]
+[*]将 [url=https://builds.bepinex.dev/projects/bepinex_be/788/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788%2B5b766a3.zip]BepInEx 6 IL2CPP — Windows x64[/url] 安装到 Invokyr 目录，启动一次后退出。[/*]
+
+[*]将 [b]CalypsoExpansionSet.dll[/b] 放入 [b]BepInEx/plugins/CalypsoExpansionSet/[/b] 或 [b]BepInEx/plugins/[/b]，正常启动游戏。[/*]
+[/list]
+
+[quote]
+[b]房主与所有加入者都需安装兼容版本，建议统一发布版本。[/b]
+[/quote]
+
+
+[size=4][color=#B78A50][b]配置与说明[/b][/color][/size]
+
+首次加载后编辑 [b]BepInEx/config/calypso.invokyr.expansionset.cfg[/b]，修改后重启。
+
+[b]默认配置[/b]
+[spoiler]
+[b]NaturalSpawning = true[/b]
+新雕像参与自然生成。
+
+[b]DisableBoardPawnCollision = true[/b]
+关闭棋盘进度棋子的碰撞，方便移动和踢骰子；显示、动画、棋盘、骰子及事件棋子保持正常。各端独立生效，联机建议一致。
+
+[b]ShowIndividualIdolNames = false[/b]
+开启显示各自中文名；关闭保留原版名称，MOD 使用统一名称，谏言照常显示。
+
+[b]DebugMode = false[/b]
+可选测试工具与日志；开启后按 F8 打开生成窗口（仅房主生成），正常玩法无需调试模式。
+[/spoiler]
+
+[i]游戏内名称与谏言目前为中文。[/i]
+
+[i]当前为开发版本，完整联机与存读档兼容仍待验证；接力疲劳和怪相候选历史不入存档。[/i]
+
+详细安装、测试操作与限制见下方 GitHub。
+
+
+[center]
+[b]Authors / 作者：[/b] [url=https://github.com/YurisCat]YurisCat[/url] · [url=https://github.com/Masaicker]Masaicker[/url]
+
+[b]Source & Guide / 源码与详细说明：[/b] [url=https://github.com/YurisCat/Calypsos-Expansion-Set]GitHub[/url]
+[/center]

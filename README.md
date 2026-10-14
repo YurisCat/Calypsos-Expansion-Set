@@ -27,7 +27,7 @@ Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像及�
 
 ## 安装
 
-需要 Windows x64 版 Invokyr 和 BepInEx 6 IL2CPP。退出游戏后，将 `CalypsoExpansionSet.dll` 放入 `BepInEx/plugins/CalypsoExpansionSet/`，再正常启动游戏。联机时所有玩家都需安装兼容版本。
+需要 Windows x64 版 Invokyr 和 BepInEx 6 IL2CPP。退出游戏后，将 `CalypsoExpansionSet.dll` 放入 `BepInEx/plugins/CalypsoExpansionSet/` 或 `BepInEx/plugins/`，再正常启动游戏。联机时所有玩家都需安装兼容版本。
 
 ## 配置与 F8 调试
 
