@@ -13,7 +13,7 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
 {
     internal const ushort MessageId = 0x4D4B;
     internal const uint Magic = 0x52454C59;
-    internal const byte Protocol = 1, SnapshotKind = 1;
+    internal const byte Protocol = 2, SnapshotKind = 1;
     internal const int HeaderLength = 30, EntryLength = 12, MaximumInstances = 256;
     internal const float SnapshotInterval = 0.2f;
     internal static readonly Color FreshColor = new(0.025f, 1f, 0.06f, 1f);
@@ -57,7 +57,7 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
     private uint _sentSequence, _receivedSequence;
     private long _nextSession;
     private float _lastTime, _nextSend;
-    private int _online = 1;
+    private int _alivePlayers, _clientAlivePlayers;
     private bool _serverWasActive, _disposed;
 
     internal RelayIdolRuntime()
@@ -100,13 +100,19 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
         var elapsed = _serverWasActive ? Math.Max(0f, now - _lastTime) : 0f;
         _lastTime = now;
         _serverWasActive = true;
-        var online = 0;
+        var alivePlayers = 0;
+        var users = UserInstancesManager.Instance;
         foreach (var connection in NetworkServer.connections.Values)
         {
             if (!Eligible(connection, plugin)) continue;
-            online++;
             if (!_peers.TryGetValue(connection.connectionId, out var peer) || peer.Connection != connection.Pointer)
                 _peers[connection.connectionId] = new Peer(connection.Pointer, ++_nextSession);
+            var user = users != null ? users.Get(connection) : null;
+            var player = user != null ? user.playerEntity : connection.identity?.GetComponent<PlayerEntity>();
+            if (player != null && player.isActiveAndEnabled && player.CurrentHealthSync > 0
+                && player.PlayerMovement != null
+                && player.PlayerMovement.connectionToClient?.Pointer == connection.Pointer)
+                alivePlayers++;
         }
         _removedPeers.Clear();
         foreach (var pair in _peers)
@@ -114,14 +120,13 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
                 || current.Pointer != pair.Value.Connection)
                 _removedPeers.Add(pair.Key);
         foreach (var key in _removedPeers) _peers.Remove(key);
-        online = Math.Clamp(online, 1, RelayFatigue.MaximumPlayers);
-        if (online != _online)
+        alivePlayers = Math.Clamp(alivePlayers, 0, RelayFatigue.MaximumPlayers);
+        if (alivePlayers != _alivePlayers)
         {
-            // Never recalculate existing fatigue from total time * new N.
-            // Only subsequent held time accrues at the new rate.
-            _online = online;
+            // Keep fatigue across deaths/revivals; switch only the rate and floor.
+            _alivePlayers = alivePlayers;
             _nextSend = 0;
-            if (plugin.DebugTools.Enabled) plugin.Log.LogInfo($"[Relay] online players={online}; future fatigue rate updated.");
+            if (plugin.DebugTools.Enabled) plugin.Log.LogInfo($"[Relay] alive players={alivePlayers}; fatigue rules updated.");
         }
 
         _seen.Clear();
@@ -166,11 +171,11 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
                 _nextSend = 0;
                 if (plugin.DebugTools.Enabled)
                     plugin.Log.LogInfo($"[Relay] idol={id}, holder={holder.netId}, "
-                        + $"reset={reset}, fatigue={row.Fatigue.Amount:F3}, players={_online}.");
+                        + $"reset={reset}, fatigue={row.Fatigue.Amount:F3}, alive={_alivePlayers}.");
             }
             // The first sample belongs to the pickup boundary, not the previous
             // frame's holder. Dropped items retain fatigue without accumulating.
-            if (continuous && !reset) row.Fatigue.Advance(elapsed, _online);
+            if (continuous && !reset) row.Fatigue.Advance(elapsed, _alivePlayers);
             row.Holder = holder.netId;
         }
         _removed.Clear();
@@ -202,7 +207,7 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
             writer.WriteULong(RelayIdol.ConfigId);
             writer.WriteUInt(_sentSequence);
             writer.WriteUShort((ushort)_server.Count);
-            writer.WriteUShort((ushort)_online);
+            writer.WriteUShort((ushort)_alivePlayers);
             foreach (var pair in _server)
             {
                 writer.WriteUInt(pair.Key);
@@ -234,9 +239,9 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
             if (_connection != source.Pointer) { ClearClient(); _connection = source.Pointer; }
             var sequence = reader.ReadUInt();
             var count = reader.ReadUShort();
-            var online = reader.ReadUShort();
+            var alivePlayers = reader.ReadUShort();
             if (!Newer(sequence, _receivedSequence) || count > MaximumInstances
-                || online is < 1 or > RelayFatigue.MaximumPlayers || reader.Remaining != count * EntryLength) return;
+                || alivePlayers > RelayFatigue.MaximumPlayers || reader.Remaining != count * EntryLength) return;
             _messageIds.Clear();
             for (var index = 0; index < count; index++)
             {
@@ -262,19 +267,20 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
                 if (idol == null || idol.SoItem == null || idol.SoItem.Id != RelayIdol.ConfigId) continue;
                 _client[entry.Id] = new ClientState(idol, entry.Holder, entry.Fatigue);
             }
+            _clientAlivePlayers = alivePlayers;
             _receivedSequence = sequence;
         }
         catch (Exception error) { CalypsoExpansionSetPlugin.Instance?.Fail(error); }
     }
 
-    internal static bool TryGetFatigue(HeldIdolContext context, out float amount)
+    internal static bool TryGetMultiplier(HeldIdolContext context, out float multiplier)
     {
-        amount = 0;
+        multiplier = 1f;
         var service = _instance;
         if (service == null || service._disposed || context.Idol == null || context.Holder == null
             || !service._client.TryGetValue(context.Idol.netId, out var row)
             || row.Idol != context.Idol || row.Holder != context.Holder.netId) return false;
-        amount = row.Fatigue;
+        multiplier = RelayFatigue.Multiplier(row.Fatigue, service._clientAlivePlayers);
         return true;
     }
 
@@ -325,13 +331,14 @@ internal sealed class RelayIdolRuntime : IdolContentRuntime
         _serverWasActive = false;
         _sentSequence = 0;
         _lastTime = _nextSend = 0;
-        _online = 1;
+        _alivePlayers = 0;
         // _nextSession stays monotonic for this runtime lifetime.
     }
 
     private void ClearClient()
     {
         _client.Clear();
+        _clientAlivePlayers = 0;
         _connection = IntPtr.Zero;
         _receivedSequence = 0;
         foreach (var eye in _eyes.Values) eye.Dispose();

@@ -6,8 +6,10 @@ internal readonly record struct RelayCarrier(ulong AccountId, long SessionId);
 
 internal sealed class RelayFatigue
 {
-    internal const float SoloSeconds = 180f;
-    internal const float MinimumMultiplier = 0.25f;
+    internal const float SoloSeconds = 60f;
+    internal const float MultiplayerSeconds = 20f;
+    internal const float SoloMinimumMultiplier = 0.35f;
+    internal const float MultiplayerMinimumMultiplier = 0.25f;
     internal const int MaximumPlayers = 64;
     internal RelayCarrier LastCarrier { get; private set; }
     internal bool HasCarrier { get; private set; }
@@ -26,13 +28,16 @@ internal sealed class RelayFatigue
 
     internal void Release() => Held = false;
 
-    internal void Advance(float seconds, int onlinePlayers)
+    internal void Advance(float seconds, int alivePlayers)
     {
         if (!Held || !float.IsFinite(seconds) || seconds <= 0f) return;
-        var count = Math.Clamp(onlinePlayers, 1, MaximumPlayers);
-        Amount = Math.Clamp(Amount + seconds * count / SoloSeconds, 0f, 1f);
+        var duration = alivePlayers <= 1 ? SoloSeconds : MultiplayerSeconds;
+        Amount = Math.Clamp(Amount + seconds / duration, 0f, 1f);
     }
 
-    internal static float Multiplier(float amount) =>
-        1f - (1f - MinimumMultiplier) * Math.Clamp(float.IsFinite(amount) ? amount : 0f, 0f, 1f);
+    internal static float Multiplier(float amount, int alivePlayers)
+    {
+        var minimum = alivePlayers <= 1 ? SoloMinimumMultiplier : MultiplayerMinimumMultiplier;
+        return 1f - (1f - minimum) * Math.Clamp(float.IsFinite(amount) ? amount : 0f, 0f, 1f);
+    }
 }

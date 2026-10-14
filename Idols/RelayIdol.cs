@@ -16,7 +16,7 @@ internal sealed class RelayIdol : HeldIdolEffect
         ShortDescription = "越拿越慢，换人还原",
         CreateVisuals = CreateVisuals,
         CreateRuntime = () => new RelayIdolRuntime(),
-        ContentVersion = 2
+        ContentVersion = 3
     };
 
     private static IDisposable CreateVisuals(GameObject prefab)
@@ -29,7 +29,7 @@ internal sealed class RelayIdol : HeldIdolEffect
     private HeldIdolContext _context;
     private bool _faulted;
     private float _nextDiagnostic;
-    internal readonly record struct SpeedScope(RelayIdol? Effect, float Original, float Applied);
+    internal readonly record struct SpeedScope(RelayIdol? Effect, float Original, float Applied, bool Air);
 
     public override void Start(HeldIdolContext context)
     {
@@ -46,22 +46,27 @@ internal sealed class RelayIdol : HeldIdolEffect
         if (CalypsoExpansionSetPlugin.Instance?.DebugTools.Enabled != true) _nextDiagnostic = 0;
     }
 
-    internal static SpeedScope BeforeMovement(PlayerMovement movement)
+    internal static SpeedScope BeforeMovement(PlayerMovement movement, bool air = false)
     {
         var effect = _active;
         if (effect == null) return default;
+        SpeedScope scope = default;
         try
         {
             if (effect._faulted || !LocalHeldGuard.Ready(effect._context, ConfigId)
                 || movement != effect._context.Holder.PlayerMovement
-                || !RelayIdolRuntime.TryGetFatigue(effect._context, out var fatigue)) return default;
-            var original = movement.SpeedMultiplier;
-            var applied = original * RelayFatigue.Multiplier(fatigue);
+                || !RelayIdolRuntime.TryGetMultiplier(effect._context, out var multiplier)) return default;
+            // Air consumes MaxSpeed directly; scope it separately to avoid
+            // applying fatigue twice to ground movement in FixedUpdate.
+            var original = air ? movement.MaxSpeed : movement.SpeedMultiplier;
+            var applied = original * multiplier;
             if (!float.IsFinite(original) || original < 0f || !float.IsFinite(applied)) return default;
-            movement.SpeedMultiplier = applied;
-            return new(effect, original, applied);
+            scope = new(effect, original, applied, air);
+            if (air) movement.MaxSpeed = applied;
+            else movement.SpeedMultiplier = applied;
+            return scope;
         }
-        catch (Exception error) { effect.Fault(error); return default; }
+        catch (Exception error) { AfterMovement(movement, scope, error); effect.Fault(error); return default; }
     }
 
     internal static void AfterMovement(PlayerMovement movement, SpeedScope scope, Exception? error)
@@ -69,16 +74,23 @@ internal sealed class RelayIdol : HeldIdolEffect
         if (scope.Effect == null) return;
         try
         {
-            if (movement != null && movement.SpeedMultiplier == scope.Applied)
-                movement.SpeedMultiplier = scope.Original;
+            if (movement != null)
+            {
+                if (scope.Air)
+                {
+                    if (movement.MaxSpeed == scope.Applied) movement.MaxSpeed = scope.Original;
+                }
+                else if (movement.SpeedMultiplier == scope.Applied)
+                    movement.SpeedMultiplier = scope.Original;
+            }
             if (error != null) { scope.Effect.Fault(error); return; }
             var plugin = CalypsoExpansionSetPlugin.Instance;
             if (movement != null && plugin?.DebugTools.Enabled == true
                 && Time.realtimeSinceStartup >= scope.Effect._nextDiagnostic)
             {
                 scope.Effect._nextDiagnostic = Time.realtimeSinceStartup + 3f;
-                plugin.Log.LogInfo($"[Relay speed] current={movement.CurrentSpeed:F3}, "
-                    + $"applied={scope.Applied:F3}, restored={movement.SpeedMultiplier:F3}.");
+                plugin.Log.LogInfo($"[Relay speed] ground={movement.CurrentSpeed:F3}, air={movement.CurrentAirSpeed:F3}, "
+                    + $"scope={(scope.Air ? "air" : "ground")}, applied={scope.Applied:F3}.");
             }
         }
         catch (Exception cleanup) { scope.Effect.Fault(cleanup); }
@@ -97,6 +109,20 @@ internal sealed class RelayIdol : HeldIdolEffect
         if (_active == this) _active = null;
         _context = default;
         _nextDiagnostic = 0;
+    }
+}
+
+[HarmonyPatch(typeof(PlayerMovement), "SetAirVelocity")]
+internal static class RelayAirPatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(PlayerMovement __instance, out RelayIdol.SpeedScope __state)
+        => __state = RelayIdol.BeforeMovement(__instance, true);
+    [HarmonyFinalizer]
+    private static Exception? Finalizer(PlayerMovement __instance, RelayIdol.SpeedScope __state, Exception? __exception)
+    {
+        RelayIdol.AfterMovement(__instance, __state, __exception);
+        return __exception;
     }
 }
 
