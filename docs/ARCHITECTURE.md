@@ -278,7 +278,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 专用测试房要求 --ces-test-room、DebugMode=true、TestRoomEnabled=true 同时满足，普通启动不会自动建房。它沿原版 KCP 流程开本机单人会话，跳过 Logo，在初始房门外建立陈列房、打开连接门并放置玩家；只允许本地连接，阻止事件/怪物生成和存档写入，不自动补刷展品。
 
-后部摆放 19 种原版配置（保留 Final 特殊条目；排除 MissingPieceTool 剧情道具和怪物 WanderingDice），首排 10 个、次排 9 个居中。MissingPiece 在构建展品清单时按预制体组件过滤，不生成对应实体、基座或标签。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。
+后部陈列从原版配置清单按组件过滤后的条目；MissingPiece/Final 预制体均带 MissingPieceTool，连同怪物 WanderingDice 排除，不生成对应实体、基座或标签。当前资源静态复核预计 18 项（首排 10 个、次排 8 个居中），实际数量由运行期清单与 READY 日志确认。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。
 
 视距覆盖由已成功创建的 TestRoomScene 持有，仅在房间根对象仍有效、DebugMode 开启且本机测试会话可用时，对 SetFovShakeData 绑定的实际游戏相机启用；不依赖进程级 IsActive 标记单独判断。远裁剪距离按房间对角线、高度及入口余量计算，只扩大不足的距离。BeginCameraRendering 后、URP 计算相机数据前施加，EndCameraRendering 前恢复；渲染循环 Finalizer 与房间销毁另行兜底，恢复时保留原版或其他 MOD 替换的值。相连初始房沿用该画面视距，不按玩家是否走出陈列区切换；普通启动不创建覆盖对象，不修改虚拟相机、环境 profile、配置或网络状态。此处理只针对相机远裁剪，不保证其他材质／雾／距离裁剪形成的黑色同时消失。
 
