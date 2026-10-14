@@ -97,12 +97,13 @@ flowchart LR
 | 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 5 | OwnerNativeGameplay |
 | 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 2 | ServerGameplay |
 | 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 3 | LocalPresentation |
-| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 2 | ServerGameplay |
 | 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
 | 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 2 | LocalPresentation |
 | 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
 
-十四种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+当前启用的十三种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
+
+0.2.30 暂停注册怪相雕像 `monster_disguise`，保留源码、图案与独立身份：配置 ID `0x4D4900000000000C`、assetId `0x4D49000C`、ContentVersion=2。它不参与注册、自然池、F8、测试房或兼容清单，不创建 MonsterDisguiseRuntime、外观与专用快照处理器；疑神使用的共享 NativeMonsterCatalog 保持。下文怪相设计仅记录保留实现，当前不启用。启用清单减少会自动改变 Manifest，其余类型身份与 ContentVersion 不变；各端需要匹配新版，旧实例不迁移，升级后重开房间。
 
 ### 怪声、外观与最终画面
 
@@ -247,7 +248,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 便签资源与生命周期
 
-十四种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
+十三种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json、共享 paper.note 和按图案 key 选择的 Baked/*.notedelta 创建视觉对象。纯托管 NoteTextureCodec 校验格式/长度/哈希，解压 XOR 差异并还原与旧资源逐字节相同的 RGBA32 完整 mip 链，再沿用已验证的原生上传；不使用 LoadImage。附件挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
@@ -259,7 +260,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 指向名称与短说明
 
-当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部谏言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
+当前十三种启用 MOD 雕像填写 `ShortDescription`，用作顶部谏言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。暂停注册的怪相只保留文案，不参与显示。当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
 
 名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 统一显示“卡里普索拓展包雕像”；true 时返回正式名称，包含“雕像”后缀。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自谏言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
 

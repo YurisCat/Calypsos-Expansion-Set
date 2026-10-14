@@ -2,6 +2,26 @@
 
 本文保留按版本/日期记录的研究、原生证据与编译、模拟、游戏验收历史。历史章节中的“当前”属于记录当时的语境；查询现行实现请看 [设计说明](docs/ARCHITECTURE.md)，最新状态看 [TODO](TODO.md)，使用方式看 [README](README.md)。
 
+## 2026-10-15：0.2.30 最终精简包核对与同步
+
+最终交付 ZIP 已精简为根目录单个 `CalypsoExpansionSet.dll`，2,693,827 字节，ZIP SHA256 `A5CBBD5B2C1F0F255AA77D7D64C956E4B0D375CAE700C4CAC8BD19D63B2EC4DA`。完整性检查通过，包内 DLL 为 3,421,184 字节，SHA256 `D2304F64E1A5B1CCA862B880D329BF14AF8F223D69CB38883D37405A9860CFA5`，与先前编译及 40 项检查的构建一致。此前带说明的完整包记录保留为历史，不能把该旧 ZIP 哈希当作最终包哈希。
+
+后续公开包默认采用单 DLL 精简形式，依赖、安装、更新与署名说明放发布页；同步修改包外发布说明中的安装路径，并刷新已有 ZIP 哈希文件，未重写最终 ZIP。待办清单补充最终包证据，选择、备注、优先级保持。同步前备份工作区，执行 `git pull --ff-only origin main`，结果为 Already up to date，远端无新增提交；当前源码与已验证构建逐份核对，没有新增玩法修改，也未追加游戏测试或部署。
+
+## 2026-10-15：0.2.30 暂停怪相与 Nexus 上传包
+
+**范围与最小改动**：移除插件 Load 中的 MonsterDisguiseIdol.Definition 注册调用，插件/程序集版本提升为 0.2.30。与基线提交 `113b194` 对比，Idols 下全部源码逐字一致，未改变其余雕像玩法、原版谏言、配置 ID、assetId 或 ContentVersion；怪相的源码、图案、key 与独立身份继续保留。未通过新增配置开关维持双套清单，当前统一为十三种启用内容。
+
+注册器按登记定义创建配置、网络预制体及内容运行时；自然池、F8 与测试房均读取同一注册清单。因此暂停怪相后不创建其配置、便签、MonsterDisguiseRuntime、0x4D4C 快照处理器或角色外观。疑神仍使用 MonsterCatalogRuntime/NativeMonsterCatalog 采集原版怪物声音，该共享服务保留，不能随怪相一起删除。怪相断线补丁在专用运行时为空时直接退出，源码保留不等于重新启用。
+
+**编译与检查**：scripts/Build.ps1 仅编译 Release/x64/net6.0，**0 警告/0 错误**。DLL **0.2.30.0**、3,421,184 字节，SHA256 **`D2304F64E1A5B1CCA862B880D329BF14AF8F223D69CB38883D37405A9860CFA5`**。直接读取成品 DLL 的 Load IL，确认只有十三个定义 getter 及十三次 Register，未调用 MonsterDisguiseIdol 或 SpringIdol，疑神保持；内嵌资源包含所有启用图案、纸底、音效与画面资源。使用实际 IdolRegistry/IdolDefinition 源码的 **40 项**程序集/托管检查通过，覆盖暂停类型 key/配置/网络预制体不可查询、运行时不构造/不 Tick、其余十三种身份与版本、重建幂等、模板隔离及正常清理。
+
+同一实际注册器重建的旧十四种清单 Manifest 为 `A8FA4BCBF6B2C6AF`，新十三种为 `CC6C88F1DBDEBD0B`，反向登记仍得到相同新值。此项是托管兼容清单计算，不是游戏或真实联机握手验收；各端需要同版，退出旧会话后重新建房，旧怪相实例不迁移。
+
+**发布包**：生成独立 Nexus ZIP，根目录直接为 BepInEx/plugins/CalypsoExpansionSet/CalypsoExpansionSet.dll，并附中英文安装/配置说明、更新记录、署名和逐文件 SHA256；同目录另附可粘贴到 N 网的发布信息及 ZIP 哈希。只按显式清单写入，不打包个人 CFG、测试入口、PDB、游戏或 BepInEx 依赖，不嵌套压缩包。使用已有 BepInEx 6 IL2CPP be.788 引用编译；用户另行安装 Unity.IL2CPP Windows x64 加载器。ZIP 完整性、文件清单、包内 DLL 与编译产物哈希均核对，回执保存在忽略目录 `.local/verification/nexus-0230-*.json`。
+
+待办清单仅维护 id=2/key=monster_disguise 的暂停状态、证据与恢复后待验项，原简介及选择/备注/优先级保持。本轮只修改源码、编译与准备上传文件，未部署本机 Steam 或副机、未启动游戏、未执行游戏或真实联机验收，未自动上传 Nexus 或提交/推送 Git。已安装的 0.2.29 不会被打包步骤自动覆盖。
+
 ## 2026-10-15：0.2.29 推送准备与本机部署
 
 按后续授权检查 GitHub 远端并准备推送当前宽体修正、名称与谏言改动。fetch 后本地 HEAD 与 origin/main 同为 `47ca684`，无新增远端提交，无需合并；操作前逐份备份全部工作区改动，原索引无暂存内容。保留已有改动、署名和历史，忽略目录及游戏文件不进入 Git。
