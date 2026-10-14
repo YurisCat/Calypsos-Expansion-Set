@@ -1,8 +1,6 @@
 using UnityEngine.InputSystem;
 using UnityEngine;
-using CalypsoExpansionSet.Visuals;
 using Entities.Player.Behaviours;
-using HarmonyLib;
 using CalypsoExpansionSet.Audio;
 
 namespace CalypsoExpansionSet.Idols;
@@ -194,22 +192,5 @@ internal sealed class SpringIdol : HeldIdolEffect
         _remaining = 0.15f;
         _beat = 0;
         _faulted = _observingFlight = _leftGround = false;
-    }
-}
-
-// Only an accepted auto-request belonging to this effect receives a temporary
-// impulse setting. Unrelated/manual jumps and remote players pass unchanged.
-[HarmonyPatch(typeof(PlayerMovement), nameof(PlayerMovement.HandleJumpRequest))]
-internal static class SpringJumpImpulsePatch
-{
-    [HarmonyPrefix]
-    private static void Prefix(PlayerMovement __instance, out SpringIdol.ImpulseScope __state)
-        => __state = SpringIdol.BeforeNativeJump(__instance);
-
-    [HarmonyFinalizer]
-    private static Exception? Finalizer(PlayerMovement __instance, SpringIdol.ImpulseScope __state, Exception? __exception)
-    {
-        SpringIdol.AfterNativeJump(__instance, __state, __exception);
-        return __exception;
     }
 }

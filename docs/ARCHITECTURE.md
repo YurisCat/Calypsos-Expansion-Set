@@ -79,7 +79,7 @@ flowchart LR
 
 七种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
-0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。旧源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
+0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。其跳跃补丁入口已移除，不随 PatchAll 安装；恢复启用时需要重新接入原生跳跃补丁并单独验收。旧效果源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
 
 0.2.17 合并并行开发时保留远端已发布声控的 ID/assetId 后缀 04，将尚未发布的倒立试验身份移到空闲后缀 08、ContentVersion=2。原七种试验构建的清单和游戏证据仍按当时身份记录；没有将旧本地试验的倒立存档自动迁移为新 ID，升级测试需重开房间，联机清单必须一致。
 
@@ -191,7 +191,7 @@ FMOD 资源创建、音量和源文件构建要求见 [音频说明](../Assets/A
 
 后部摆放 20 种非怪物原版雕像（含两种特殊拼图；排除怪物 WanderingDice），两排各 10 个。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。
 
-布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，当前为 delayed_move → duck_step → extreme_speed → jumping → near_view → upside_down → voice，新增时间不决定位置。各版本的单人游戏证据见 DEVELOPMENT，不能将不同清单版本的结果互相替代。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
+布局由 [TestRoomLayout.cs](../Testing/TestRoomLayout.cs) 控制：横距 2.2 米、排距 3.2 米、每排最多 10 个，不满行居中，MOD 增加时延长房间；每区最多 128 种，超出时报错。MOD 类型按稳定 key 的 Ordinal 字母顺序排列，新增时间不决定位置。各版本的单人游戏证据见 DEVELOPMENT，不能将不同清单版本的结果互相替代。顶部只过滤 UI/lobby/waitPlayerBeforeStart 对应键/译文，保留其他 HUD。
 
 ## Interop 禁用项
 
