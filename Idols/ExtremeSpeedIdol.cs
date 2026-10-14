@@ -1,84 +1,239 @@
 using CalypsoExpansionSet.Visuals;
+using Entities.Player;
 using Entities.Player.Behaviours;
+using Entities.Player.States.Data.Stand;
 using HarmonyLib;
+using Mirror;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using User;
+using _200_Dev.Entities;
 
 namespace CalypsoExpansionSet.Idols;
 
 internal sealed class ExtremeSpeedIdol : HeldIdolEffect
 {
     internal const ulong ConfigId = 0x4D49000000000006UL;
-    internal const float Multiplier = 4f;
+    internal const float Multiplier = 5f;
     internal static IdolDefinition Definition => new(
         "extreme_speed", "极速雕像", ConfigId, 0x4D490006U,
         7331884207844971565UL, IdolEffectAuthority.OwnerNativeGameplay, () => new ExtremeSpeedIdol())
     {
         PoolTemplateId = 13601636613369722279UL,
         CreateVisuals = StickyNoteVisuals.Create,
-        ContentVersion = 2
+        ContentVersion = 4
     };
 
     private static ExtremeSpeedIdol? _active;
     private HeldIdolContext _context;
+    private SOPlayerStandWalkState? _walkData;
     private bool _faulted;
     private float _nextDiagnostic;
-    private readonly StickyWasdLatch _latch = new();
-    private IntPtr _keyboard;
-    private int _sampleFrame = -1;
-    private bool _inputSuspended;
+    private int _startFrame;
+    private readonly StickyMoveLatch _latch = new();
+    private bool _inPhysics, _velocityApplied, _airLocked;
+    private Vector3 _groundDirection, _airDirection, _stepDirection;
 
-    public override void Start(HeldIdolContext context) { Dispose(); _context = context; _faulted = false; }
+    public override void Start(HeldIdolContext context)
+    {
+        Dispose();
+        _context = context;
+        _faulted = false;
+        _startFrame = Time.frameCount;
+        // Read the standing-walk configuration once, never change the shared SO.
+        var states = EntityManager.Instance?.PlayerLocomotionEntityStates;
+        if (states != null)
+            for (var index = 0; index < states.Count; index++)
+            {
+                var state = states[index];
+                if (state != null && state.stateType == EntityManager.LocomotionEntityStateType.Walk)
+                {
+                    _walkData = state.entityState?.TryCast<PlayerWalkState>()?.Data;
+                    break;
+                }
+            }
+        if (_walkData == null) throw new InvalidOperationException("Standing-walk speed configuration is unavailable.");
+    }
+
     public override void Tick(HeldIdolContext context)
     {
         _context = context;
-        var inputs = InputsManager.Instance;
-        var ready = CanApply() && inputs != null && inputs.onMove != null && inputs.onMove.enabled;
-        SampleKeys(ready);
-        if (ready) _active = this;
-        else if (_active == this) _active = null;
+        if (CanHold())
+        {
+            _active = this;
+            try
+            {
+                StopRunning();
+                UpdateAirLock(_context.Holder.PlayerMovement);
+                SampleMove(InputsManager.Instance);
+            }
+            catch (Exception error) { Fault(error); }
+        }
+        else
+        {
+            if (_active == this) _active = null;
+            _latch.Reset();
+            ResetMotion();
+        }
         if (CalypsoExpansionSetPlugin.Instance?.DebugTools.Enabled != true) _nextDiagnostic = 0;
     }
-    private bool CanApply() => !_faulted && LocalHeldGuard.Ready(_context, ConfigId);
-    internal readonly record struct SpeedScope(ExtremeSpeedIdol? Effect, float Original, float Applied);
 
-    private void SampleKeys(bool ready)
+    // UI action-map availability is deliberately separate from ownership/life.
+    // Do not weaken LocalHeldGuard: other idols still need its gameplay gate.
+    private bool CanHold()
     {
-        var keyboard = Keyboard.current;
-        if (keyboard == null) { _keyboard = IntPtr.Zero; _latch.Clear(); return; }
-        if (keyboard.Pointer != _keyboard)
-        {
-            _keyboard = keyboard.Pointer;
-            _latch.Clear();
-            _sampleFrame = -1;
-        }
-        var down = (keyboard.wKey.isPressed ? 1 : 0) | (keyboard.aKey.isPressed ? 2 : 0)
-            | (keyboard.sKey.isPressed ? 4 : 0) | (keyboard.dKey.isPressed ? 8 : 0);
-        if (!ready)
-        {
-            _latch.Suspend(down);
-            _inputSuspended = true;
-            _sampleFrame = Time.frameCount;
-            return;
-        }
-        if (_inputSuspended)
-        {
-            // Menu typing must never become gameplay input. Resume the previous
-            // latched direction, and require a new press to change it.
-            _latch.Suspend(down);
-            _inputSuspended = false;
-            _sampleFrame = Time.frameCount;
-            return;
-        }
-        if (_sampleFrame == Time.frameCount) return;
-        _sampleFrame = Time.frameCount;
-        var pressed = (keyboard.wKey.wasPressedThisFrame ? 1 : 0) | (keyboard.aKey.wasPressedThisFrame ? 2 : 0)
-            | (keyboard.sKey.wasPressedThisFrame ? 4 : 0) | (keyboard.dKey.wasPressedThisFrame ? 8 : 0);
+        var plugin = CalypsoExpansionSetPlugin.Instance;
+        var holder = _context.Holder;
+        var idol = _context.Idol;
+        return !_faulted && plugin != null && !plugin.RuntimeFailed
+            && NetworkClient.isConnected && NetworkClient.ready && plugin.Sync.ClientCompatible
+            && holder != null && holder == EntityManager.Me && holder.isActiveAndEnabled
+            && holder.CurrentHealthSync > 0 && holder.PlayerMovement != null && holder.PlayerMovement.isOwned
+            && holder.PlayerMovement.isActiveAndEnabled
+            && holder.LocomotionController != null && holder.LocomotionController.isActiveAndEnabled
+            && idol != null && idol.SoItem != null && idol.SoItem.Id == ConfigId && idol.ItemOwner == holder
+            && holder.InventoryNew != null && holder.InventoryNew.InHand == idol;
+    }
+
+    private bool CanMove() => CanHold() && Time.timeScale > 0f;
+
+    private void SampleMove(InputsManager? inputs)
+    {
+        var plugin = CalypsoExpansionSetPlugin.Instance;
+        var sample = CanMove() && inputs != null && inputs.onMove != null && inputs.onMove.enabled
+            && plugin != null && plugin.LocalGameplayReady(_context.Holder);
         var previous = _latch.Direction;
-        _latch.Read(down, pressed);
-        if (previous != _latch.Direction && CalypsoExpansionSetPlugin.Instance?.DebugTools.Enabled == true)
-            CalypsoExpansionSetPlugin.Instance.Log.LogInfo($"[Extreme speed] sticky WASD=({_latch.Direction.x:F0},{_latch.Direction.y:F0}).");
+        // 'move' is the native unified action callback's value, before gameplay
+        // inversion and our getter patch. It includes bindings and gamepads.
+        if (!sample) _latch.Read(Vector2.zero, false);
+        else if (Time.frameCount != _startFrame && IsGrounded(_context.Holder.PlayerMovement))
+            _latch.Read(inputs!.move, true);
+        if (previous != _latch.Direction && plugin?.DebugTools.Enabled == true)
+            plugin.Log.LogInfo($"[Extreme speed] direction=({_latch.Direction.x:F2},{_latch.Direction.y:F2}).");
+    }
+
+    private static bool IsGrounded(PlayerMovement movement) => movement._isGrounded && !movement._jumpInitiated;
+
+    private float TargetSpeed()
+    {
+        var data = _walkData;
+        if (data == null) throw new InvalidOperationException("Standing-walk speed configuration was lost.");
+        var baseline = _context.Holder.transformationStatus == PlayerEntity.TransformationStatus.Aged
+            ? data.SpeedAged : data.Speed;
+        var target = baseline * Multiplier;
+        if (!float.IsFinite(target) || target <= 0f)
+            throw new InvalidOperationException("Native walking speed is invalid.");
+        return target;
+    }
+
+    private Vector3 WorldDirection(PlayerMovement movement)
+    {
+        var inputs = InputsManager.Instance;
+        var direction = _latch.Direction;
+        if (inputs != null)
+        {
+            if (inputs.GameplayInvertHorizontalInputs) direction.x = -direction.x;
+            if (inputs.GameplayInvertVerticalInputs) direction.y = -direction.y;
+        }
+        var root = movement.root;
+        if (root == null) throw new InvalidOperationException("Player movement root is unavailable.");
+        var world = root.right * direction.x + root.forward * direction.y;
+        world.y = 0f;
+        var magnitude = world.magnitude;
+        if (!float.IsFinite(magnitude) || magnitude <= 0f)
+            throw new InvalidOperationException("Player horizontal direction is invalid.");
+        return world / magnitude;
+    }
+
+    private void UpdateAirLock(PlayerMovement movement)
+    {
+        if (IsGrounded(movement)) { _airLocked = false; return; }
+        if (_airLocked) return;
+        _airDirection = _groundDirection.sqrMagnitude > 0f ? _groundDirection : WorldDirection(movement);
+        _airLocked = true;
+    }
+
+    private void StopRunning()
+    {
+        var controller = _context.Holder.LocomotionController;
+        if (controller.LocomotionEsm?.CurrentStateType == EntityManager.LocomotionEntityStateType.Run)
+            controller.CliTryToWalk(); // Exit through the native state machine (stamina, FOV and animation).
+        else if (controller.IsRunning) controller.IsRunning = false;
+    }
+
+    internal static bool BlockRun(PlayerLocomotionController controller)
+    {
+        var effect = _active;
+        if (effect == null) return false;
+        try { return effect.CanHold() && controller == effect._context.Holder.LocomotionController; }
+        catch (Exception error) { effect.Fault(error); return false; }
+    }
+
+    internal static ExtremeSpeedIdol? BeforePhysics(PlayerMovement movement)
+    {
+        var effect = _active;
+        if (effect == null) return null;
+        try
+        {
+            if (!effect.CanMove() || movement != effect._context.Holder.PlayerMovement) return null;
+            effect.StopRunning();
+            effect.UpdateAirLock(movement);
+            effect._inPhysics = true;
+            effect._velocityApplied = false;
+            return effect;
+        }
+        catch (Exception error) { effect.Fault(error); return null; }
+    }
+
+    internal static void NoteVelocity(PlayerMovement movement)
+    {
+        var effect = _active;
+        if (effect == null || !effect._inPhysics) return;
+        try
+        {
+            if (!effect.CanMove() || movement != effect._context.Holder.PlayerMovement) return;
+            effect.UpdateAirLock(movement);
+            effect.SampleMove(InputsManager.Instance);
+            effect._stepDirection = effect._airLocked ? effect._airDirection : effect.WorldDirection(movement);
+            if (!effect._airLocked) effect._groundDirection = effect._stepDirection;
+            effect._velocityApplied = true;
+        }
+        catch (Exception error) { effect.Fault(error); }
+    }
+
+    internal static void AfterPhysics(PlayerMovement movement, ExtremeSpeedIdol? effect, Exception? error)
+    {
+        if (effect == null) return;
+        effect._inPhysics = false;
+        try
+        {
+            if (error != null) { effect.Fault(error); return; }
+            // Only correct a step that used a native ground/air velocity path.
+            if (!effect._velocityApplied || !effect.CanMove() || movement != effect._context.Holder.PlayerMovement) return;
+            var body = movement.rb;
+            if (body == null || body.isKinematic) return;
+            effect.UpdateAirLock(movement); // HandleJumpRequest may have accepted a jump during this step.
+            var target = effect.TargetSpeed();
+            // PhysX damping runs after FixedUpdate. Precompensate X/Z only;
+            // leaving damping and Y intact preserves native jump/fall integration.
+            var retention = 1f - body.linearDamping * Time.fixedDeltaTime;
+            if (!float.IsFinite(retention) || retention <= 0f || retention > 1f)
+                throw new InvalidOperationException("Player linear damping cannot preserve horizontal speed.");
+            var horizontal = effect._stepDirection * (target / retention);
+            if (!float.IsFinite(horizontal.x) || !float.IsFinite(horizontal.z))
+                throw new InvalidOperationException("Player horizontal velocity is invalid.");
+            var velocity = body.linearVelocity;
+            velocity.x = horizontal.x;
+            velocity.z = horizontal.z;
+            body.linearVelocity = velocity;
+        }
+        catch (Exception failure) { effect.Fault(failure); }
+        finally { effect._velocityApplied = false; }
+    }
+
+    private void ResetMotion()
+    {
+        _inPhysics = _velocityApplied = _airLocked = false;
+        _groundDirection = _airDirection = _stepDirection = Vector3.zero;
     }
 
     internal static void FilterMove(InputsManager inputs, ref Vector2 value)
@@ -87,13 +242,9 @@ internal sealed class ExtremeSpeedIdol : HeldIdolEffect
         if (effect == null || inputs != InputsManager.Instance) return;
         try
         {
-            var ready = effect.CanApply() && inputs.onMove != null && inputs.onMove.enabled;
-            effect.SampleKeys(ready);
-            if (!ready) { if (_active == effect) _active = null; return; }
+            effect.SampleMove(inputs);
+            if (!effect.CanMove()) return;
             var direction = effect._latch.Direction;
-            if (direction == Vector2.zero) return;
-            // These are native gameplay inversion flags, not saved key bindings.
-            // A virtual held W/A/S/D still passes through the game's axis rules.
             if (inputs.GameplayInvertHorizontalInputs) direction.x = -direction.x;
             if (inputs.GameplayInvertVerticalInputs) direction.y = -direction.y;
             value = direction;
@@ -101,76 +252,98 @@ internal sealed class ExtremeSpeedIdol : HeldIdolEffect
         catch (Exception error) { effect.Fault(error); }
     }
 
-    internal static SpeedScope BeforeMovementUpdate(PlayerMovement movement)
+    internal readonly record struct SpeedScope(ExtremeSpeedIdol? Effect, float MaxSpeed, float SpeedMultiplier,
+        float AppliedSpeed, float AppliedMultiplier);
+
+    internal static SpeedScope BeforeSpeed(PlayerMovement movement)
     {
         var effect = _active;
         if (effect == null) return default;
+        SpeedScope scope = default;
         try
         {
-            if (!effect.CanApply() || movement != effect._context.Holder.PlayerMovement) return default;
-            var original = movement.SpeedMultiplier;
-            var applied = original * Multiplier;
-            if (!float.IsFinite(original) || original < 0f || !float.IsFinite(applied)) return default;
-            movement.SpeedMultiplier = applied;
-            return new(effect, original, applied);
+            if (!effect.CanMove() || movement != effect._context.Holder.PlayerMovement) return default;
+            var target = effect.TargetSpeed();
+            // CalculateSpeed and animation divide by ToolSlowPower; air uses
+            // MaxSpeed directly. Cancel only that divisor for one native call.
+            var toolSlow = movement.ToolSlowPower;
+            if (!float.IsFinite(target) || target <= 0f || !float.IsFinite(toolSlow) || toolSlow <= 0f)
+                throw new InvalidOperationException("Native walking speed or held-tool slowdown is invalid.");
+            scope = new(effect, movement.MaxSpeed, movement.SpeedMultiplier, target, toolSlow);
+            movement.MaxSpeed = target;
+            movement.SpeedMultiplier = toolSlow;
+            return scope;
         }
-        catch (Exception error) { effect.Fault(error); return default; }
+        catch (Exception error)
+        {
+            AfterSpeed(movement, scope, error);
+            effect.Fault(error);
+            return default;
+        }
     }
 
-    internal static void AfterMovementUpdate(PlayerMovement movement, SpeedScope scope, Exception? error)
+    internal static void AfterSpeed(PlayerMovement movement, SpeedScope scope, Exception? error)
     {
         if (scope.Effect == null) return;
         try
         {
-            if (movement != null && movement.SpeedMultiplier == scope.Applied)
-                movement.SpeedMultiplier = scope.Original;
+            if (movement != null)
+            {
+                if (movement.MaxSpeed == scope.AppliedSpeed) movement.MaxSpeed = scope.MaxSpeed;
+                if (movement.SpeedMultiplier == scope.AppliedMultiplier) movement.SpeedMultiplier = scope.SpeedMultiplier;
+            }
             if (error != null) { scope.Effect.Fault(error); return; }
             var plugin = CalypsoExpansionSetPlugin.Instance;
             if (movement != null && plugin?.DebugTools.Enabled == true && Time.realtimeSinceStartup >= scope.Effect._nextDiagnostic)
             {
                 scope.Effect._nextDiagnostic = Time.realtimeSinceStartup + 3f;
-                plugin.Log.LogInfo($"[Extreme speed] current={movement.CurrentSpeed:F3}, factor={Multiplier:F1}, "
-                    + $"nativeMultiplier={scope.Original:F3}, restored={movement.SpeedMultiplier:F3}.");
+                plugin.Log.LogInfo($"[Extreme speed] ground={movement.CurrentSpeed:F3}, air={movement.CurrentAirSpeed:F3}, "
+                    + $"target={scope.AppliedSpeed:F3}, factor={Multiplier:F1}.");
             }
         }
         catch (Exception cleanup) { scope.Effect.Fault(cleanup); }
     }
+
     private void Fault(Exception error)
     {
         if (_faulted) return;
         _faulted = true;
         if (_active == this) _active = null;
-        _latch.Clear();
+        _latch.Reset();
+        ResetMotion();
         CalypsoExpansionSetPlugin.Instance?.Log.LogError($"Extreme speed disabled until released: {error}");
     }
 
     public override void Dispose()
     {
         if (_active == this) _active = null;
-        _context = default; _nextDiagnostic = 0;
-        _latch.Clear(); _keyboard = IntPtr.Zero; _sampleFrame = -1; _inputSuspended = false;
+        _context = default;
+        _walkData = null;
+        _nextDiagnostic = 0;
+        _latch.Reset();
+        ResetMotion();
     }
 }
 
-// No OS key injection or action subscriptions. The last newly pressed WASD key
-// wins even when opposite keys cancel the game's combined Move vector. Releasing
-// a key never cancels the latch or selects an older, still-held key. If multiple
-// presses arrive in the same input frame, use deterministic W/A/S/D order.
-internal sealed class StickyWasdLatch
+internal sealed class StickyMoveLatch
 {
-    private int _down;
-    internal Vector2 Direction { get; private set; }
-    internal void Read(int down, int pressed)
+    internal const float DeadZone = 0.1f;
+    internal Vector2 Direction { get; private set; } = Vector2.up;
+    private bool _waitForNeutral;
+
+    internal void Read(Vector2 raw, bool sampling)
     {
-        var fresh = ((down & ~_down) | pressed) & 15;
-        if ((fresh & 1) != 0) Direction = new Vector2(0, 1);
-        if ((fresh & 2) != 0) Direction = new Vector2(-1, 0);
-        if ((fresh & 4) != 0) Direction = new Vector2(0, -1);
-        if ((fresh & 8) != 0) Direction = new Vector2(1, 0);
-        _down = down & 15;
+        if (!sampling) { _waitForNeutral = true; return; }
+        if (!float.IsFinite(raw.x) || !float.IsFinite(raw.y)) return;
+        var magnitude = raw.magnitude;
+        if (!float.IsFinite(magnitude)) return;
+        if (magnitude <= DeadZone) { _waitForNeutral = false; return; }
+        // A key/stick held while leaving UI must first be released/centered.
+        if (_waitForNeutral) return;
+        Direction = raw / magnitude;
     }
-    internal void Suspend(int down) => _down = down & 15;
-    internal void Clear() { _down = 0; Direction = Vector2.zero; }
+
+    internal void Reset() { Direction = Vector2.up; _waitForNeutral = false; }
 }
 
 [HarmonyPatch(typeof(InputsManager), nameof(InputsManager.Move), MethodType.Getter)]
@@ -181,33 +354,94 @@ internal static class ExtremeSpeedInputPatch
         => ExtremeSpeedIdol.FilterMove(__instance, ref __result);
 }
 
-// FixedUpdate calls SetGroundVelocity/SetQuicksandVelocity -> CalculateSpeed.
-// Update separately reads the multiplier when normalizing animation. Scope both
-// native callers, without retaining a setting or directly writing body velocity.
-[HarmonyPatch(typeof(PlayerMovement), "Update")]
-internal static class ExtremeSpeedMovementPatch
+// Scope each speed consumer, so state changes and jump processing never see a
+// retained override. Horizontal correction is separate from native vertical motion.
+[HarmonyPatch(typeof(PlayerMovement), "CalculateSpeed")]
+internal static class ExtremeSpeedGroundPatch
 {
     [HarmonyPrefix]
     private static void Prefix(PlayerMovement __instance, out ExtremeSpeedIdol.SpeedScope __state)
-        => __state = ExtremeSpeedIdol.BeforeMovementUpdate(__instance);
+        => __state = ExtremeSpeedIdol.BeforeSpeed(__instance);
     [HarmonyFinalizer]
     private static Exception? Finalizer(PlayerMovement __instance, ExtremeSpeedIdol.SpeedScope __state, Exception? __exception)
     {
-        ExtremeSpeedIdol.AfterMovementUpdate(__instance, __state, __exception);
+        ExtremeSpeedIdol.AfterSpeed(__instance, __state, __exception);
         return __exception;
     }
+}
+
+[HarmonyPatch(typeof(PlayerMovement), "SetAirVelocity")]
+internal static class ExtremeSpeedAirPatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(PlayerMovement __instance, out ExtremeSpeedIdol.SpeedScope __state)
+        => __state = ExtremeSpeedIdol.BeforeSpeed(__instance);
+    [HarmonyFinalizer]
+    private static Exception? Finalizer(PlayerMovement __instance, ExtremeSpeedIdol.SpeedScope __state, Exception? __exception)
+    {
+        ExtremeSpeedIdol.AfterSpeed(__instance, __state, __exception);
+        if (__exception == null) ExtremeSpeedIdol.NoteVelocity(__instance);
+        return __exception;
+    }
+}
+
+[HarmonyPatch(typeof(PlayerMovement), "SetGroundVelocity")]
+internal static class ExtremeSpeedGroundVelocityPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(PlayerMovement __instance) => ExtremeSpeedIdol.NoteVelocity(__instance);
 }
 
 [HarmonyPatch(typeof(PlayerMovement), "FixedUpdate")]
 internal static class ExtremeSpeedPhysicsPatch
 {
     [HarmonyPrefix]
+    private static void Prefix(PlayerMovement __instance, out ExtremeSpeedIdol? __state)
+        => __state = ExtremeSpeedIdol.BeforePhysics(__instance);
+    [HarmonyFinalizer]
+    private static Exception? Finalizer(PlayerMovement __instance, ExtremeSpeedIdol? __state, Exception? __exception)
+    {
+        ExtremeSpeedIdol.AfterPhysics(__instance, __state, __exception);
+        return __exception;
+    }
+}
+
+[HarmonyPatch(typeof(PlayerLocomotionController), "CanRunCheck")]
+internal static class ExtremeSpeedRunGatePatch
+{
+    [HarmonyPrefix]
+    private static bool Prefix(PlayerLocomotionController __instance, ref bool __result)
+    {
+        if (!ExtremeSpeedIdol.BlockRun(__instance)) return true;
+        __result = false;
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(PlayerLocomotionController), "OnRunInput_ContinuousState")]
+internal static class ExtremeSpeedRunInputPatch
+{
+    [HarmonyPrefix]
+    private static bool Prefix(PlayerLocomotionController __instance) => !ExtremeSpeedIdol.BlockRun(__instance);
+}
+
+[HarmonyPatch(typeof(PlayerLocomotionController), "CliTryToRun")]
+internal static class ExtremeSpeedRunStatePatch
+{
+    [HarmonyPrefix]
+    private static bool Prefix(PlayerLocomotionController __instance) => !ExtremeSpeedIdol.BlockRun(__instance);
+}
+
+[HarmonyPatch(typeof(PlayerMovement), "Update")]
+internal static class ExtremeSpeedAnimationPatch
+{
+    [HarmonyPrefix]
     private static void Prefix(PlayerMovement __instance, out ExtremeSpeedIdol.SpeedScope __state)
-        => __state = ExtremeSpeedIdol.BeforeMovementUpdate(__instance);
+        => __state = ExtremeSpeedIdol.BeforeSpeed(__instance);
     [HarmonyFinalizer]
     private static Exception? Finalizer(PlayerMovement __instance, ExtremeSpeedIdol.SpeedScope __state, Exception? __exception)
     {
-        ExtremeSpeedIdol.AfterMovementUpdate(__instance, __state, __exception);
+        ExtremeSpeedIdol.AfterSpeed(__instance, __state, __exception);
         return __exception;
     }
 }
