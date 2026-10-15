@@ -4,14 +4,11 @@ using Entities.Player.Behaviours;
 using EnvironmentElements;
 using HarmonyLib;
 using Mirror;
-using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 using User;
 using _200_Dev.Entities;
-using _200_Dev.UI.Networking;
-using UObject = UnityEngine.Object;
+using _200_Dev.Entities.Player.Behaviours.Camera;
 
 namespace CalypsoExpansionSet.Lobby;
 
@@ -24,26 +21,28 @@ internal sealed class LobbyBoxRuntime : IDisposable
     private readonly LobbyBoxInteractionUi _interactionUi = new();
     private LobbyBoxModel? _model;
     private Transform? _anchor;
-    private PlayerEntity? _reader;
-    private GameObject? _canvasObject;
-    private TextMeshProUGUI? _text;
-    private Image? _background;
-    private bool _open, _focused, _consumeRelease, _faulted;
-    private float _nextCheck, _nextText;
-    private string _cachedText = "";
+    private readonly LobbyBoxInspection _inspection;
+    private PlayerInteraction? _releaseOwner;
+    private bool _faulted;
+    private float _nextCheck;
     private readonly string _placementPath = Path.Combine(Paths.ConfigPath, "CalypsoExpansionSet", "lobby-box-placement.json");
     private bool _usingDebugPlacement;
     internal Transform? ModelTransform => _model?.Root != null ? _model.Root.transform : null;
     internal string PlacementPath => _placementPath;
     internal bool Ready => ModelTransform != null;
     internal LobbyBoxRuntime(CalypsoExpansionSetPlugin plugin)
-    { _plugin = plugin; Furniture = new LobbyFurniturePreview(plugin); }
+    { _plugin = plugin; Furniture = new LobbyFurniturePreview(plugin); _inspection = new LobbyBoxInspection(plugin); }
 
     internal void Tick()
     {
         if (_faulted) return;
         try
         {
+            if (InputsManager.Instance?.onInteract?.enabled != true || EntityManager.Me?.PlayerInteraction != _releaseOwner)
+                _releaseOwner = null;
+            _inspection.Tick(_model);
+            if (!_inspection.CanClose) _interactionUi.HideReadingPrompt();
+            if (!_inspection.Active && !Controls(out _, out _)) _interactionUi.Hide();
             Furniture.Tick();
             Lighting?.Maintenance();
             Lighting?.Sync();
@@ -81,8 +80,11 @@ internal sealed class LobbyBoxRuntime : IDisposable
         camera = SetFovShakeData.Instance?._cam!;
         return !_faulted && Ready && NetworkClient.ready && player != null && camera != null
             && camera.isActiveAndEnabled && player.CurrentHealthSync > 0 && player.PlayerInteraction != null
-            && player.PlayerInteraction.isOwned && player.PlayerInteraction.CanInteract
-            && _plugin.LocalGameplayReady(player) && !_plugin.RuntimeFailed;
+            && player.PlayerInteraction.isActiveAndEnabled && player.PlayerInteraction.isOwned && player.PlayerInteraction.CanInteract
+            && _plugin.LocalGameplayReady(player) && !_plugin.RuntimeFailed
+            && !Testing.TestRoomAppearanceView.IsInspecting
+            && CameraManager.Instance?.LocalAnimatorState is CameraManager.ECameraAnimatorState.PLAYER_POV_STANDUP
+                or CameraManager.ECameraAnimatorState.PLAYER_POV_CROUCH;
     }
 
     private Vector3 InteractionPoint => _model!.Root.transform.TransformPoint(new Vector3(
@@ -115,15 +117,27 @@ internal sealed class LobbyBoxRuntime : IDisposable
         if (_faulted || EntityManager.Me?.PlayerInteraction != interaction) return;
         try
         {
-            if (!Controls(out var player, out var camera)) { Close(); return; }
-            if (player.InteractionUI == null) { Close(); return; }
-            if (_reader != null && _reader != player) Close();
-            if (!PointVisible(camera, interaction, _open ? 6f : Mathf.Clamp(interaction._maxDistanceByDefault, 0.5f, 4f)))
-            { Close(); return; }
-            _focused = AimedAtBox(camera, interaction);
-            if (_focused && interaction.Hovered != null) interaction.ResetHover();
-            _interactionUi.Show(player.InteractionUI, camera, InteractionPoint, _focused, _open);
-            if (_open) Show(camera); else HideIntroduction();
+            if (_inspection.Active)
+            {
+                _inspection.Tick(_model);
+                if (_inspection.Active)
+                {
+                    if (interaction.Hovered != null) interaction.ResetHover();
+                    var reader = EntityManager.Me;
+                    var output = SetFovShakeData.Instance?._cam;
+                    if (_inspection.CanClose && reader?.InteractionUI != null && output != null)
+                        _interactionUi.Show(reader.InteractionUI, output, InteractionPoint, true, true);
+                    else _interactionUi.Hide();
+                    return;
+                }
+            }
+            if (!Controls(out var player, out var camera) || player.InteractionUI == null)
+            { _interactionUi.Hide(); return; }
+            if (!PointVisible(camera, interaction, Mathf.Clamp(interaction._maxDistanceByDefault, 0.5f, 4f)))
+            { _interactionUi.Hide(); return; }
+            var focused = AimedAtBox(camera, interaction);
+            if (focused && interaction.Hovered != null) interaction.ResetHover();
+            _interactionUi.Show(player.InteractionUI, camera, InteractionPoint, focused, false);
         }
         catch (Exception error) { Fault(error); }
     }
@@ -133,100 +147,60 @@ internal sealed class LobbyBoxRuntime : IDisposable
         if (_faulted || EntityManager.Me?.PlayerInteraction != interaction) return false;
         try
         {
-            if (!Controls(out var player, out var camera)) return false;
-            if (!PointVisible(camera, interaction, _open ? 6f : Mathf.Clamp(interaction._maxDistanceByDefault, 0.5f, 4f)))
-            { Close(); return false; }
-            if (!_open && !AimedAtBox(camera, interaction)) return false;
-            _open = !_open;
-            _reader = _open ? player : null;
-            _consumeRelease = true;
-            _nextText = 0;
+            if (_inspection.Active)
+            {
+                _inspection.Tick(_model);
+                if (!_inspection.Active) return false;
+                // Consume entry-time presses without closing or forwarding them to the world.
+                _inspection.RequestClose(); _interactionUi.Hide(); _releaseOwner = interaction;
+                return true;
+            }
+            if (!Controls(out var player, out var camera) || !AimedAtBox(camera, interaction)) return false;
+            _inspection.Open(player, camera, _model!);
+            _releaseOwner = interaction;
+            _interactionUi.Hide();
             _interactionUi.RefreshText();
-            if (_plugin.DebugTools.Enabled) _plugin.Log.LogInfo($"[Lobby box] introduction {(_open ? "opened" : "closed")} locally.");
+            if (_plugin.DebugTools.Enabled) _plugin.Log.LogInfo($"[Lobby box] inspection opened={_inspection.Active} locally.");
             return true;
         }
-        catch (Exception error) { Fault(error); return false; }
+        catch (Exception error) { Fault(error); return true; }
+    }
+
+    internal void AfterCameraChange(CameraManager manager, bool accepted)
+    {
+        try { _inspection.AfterCameraChange(manager, accepted); }
+        catch (Exception error) { Fault(error); }
+    }
+
+    internal void BeforeCameraTargetChange(CameraManager manager)
+    {
+        try { _inspection.BeforeCameraTargetChange(manager); }
+        catch (Exception error) { Fault(error); }
+    }
+
+    internal void BeforeMovementChange(PlayerEntity player)
+    {
+        try { _inspection.BeforeMovementChange(player); }
+        catch (Exception error) { Fault(error); }
     }
 
     internal bool ConsumeRelease(PlayerInteraction interaction)
     {
-        if (EntityManager.Me?.PlayerInteraction != interaction || !_consumeRelease) return false;
-        _consumeRelease = false;
+        if (_releaseOwner != interaction) return false;
+        _releaseOwner = null;
         return true;
-    }
-
-    private void Show(Camera camera)
-    {
-        var reference = UIManager.Instance?.globalMessageUi?.text;
-        if (reference == null || reference.font == null) { Hide(); return; }
-        if (_canvasObject == null)
-        {
-            _canvasObject = new GameObject("Calypso Box Introduction") { hideFlags = HideFlags.DontSave, layer = 0 };
-            _canvasObject.SetActive(false);
-            _canvasObject.transform.SetParent(_anchor, false);
-            var canvas = _canvasObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            var rect = _canvasObject.GetComponent<RectTransform>();
-            rect.pivot = new Vector2(0.5f, 0);
-            rect.sizeDelta = new Vector2(700, 620);
-            _background = _canvasObject.AddComponent<Image>();
-            _background.color = new Color(0.025f, 0.025f, 0.035f, 0.88f);
-            _background.raycastTarget = false;
-            var labelObject = new GameObject("Text") { hideFlags = HideFlags.DontSave };
-            labelObject.transform.SetParent(_canvasObject.transform, false);
-            _text = labelObject.AddComponent<TextMeshProUGUI>();
-            _text.raycastTarget = false; _text.richText = false; _text.maskable = false;
-            _text.enableAutoSizing = true; _text.fontSizeMax = 32; _text.fontSizeMin = 23;
-            _text.overflowMode = TextOverflowModes.Overflow;
-            var textRect = _text.rectTransform;
-            textRect.anchorMin = Vector2.zero; textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(22, 18); textRect.offsetMax = new Vector2(-22, -18);
-        }
-        if (_text!.font != reference.font) _text.font = reference.font;
-        _text.color = Color.white;
-        _text.alignment = TextAlignmentOptions.TopLeft;
-        var layout = _canvasObject.GetComponent<RectTransform>();
-        layout.sizeDelta = new Vector2(700, 620);
-        var modelTransform = _model!.Root.transform;
-        var localBounds = _model.LocalBounds;
-        var worldBounds = new Bounds(modelTransform.TransformPoint(localBounds.center), Vector3.zero);
-        for (var corner = 0; corner < 8; corner++)
-            worldBounds.Encapsulate(modelTransform.TransformPoint(localBounds.center + new Vector3(
-                (corner & 1) == 0 ? -localBounds.extents.x : localBounds.extents.x,
-                (corner & 2) == 0 ? -localBounds.extents.y : localBounds.extents.y,
-                (corner & 4) == 0 ? -localBounds.extents.z : localBounds.extents.z)));
-        var coverNormal = modelTransform.up.normalized;
-        var coverFace = modelTransform.TransformPoint(new Vector3(localBounds.center.x, localBounds.max.y, localBounds.center.z));
-        var aboveBox = new Vector3(worldBounds.center.x, worldBounds.max.y + 0.08f, worldBounds.center.z);
-        const float textScale = 0.0022f;
-        var outward = LobbyBoxTuning.PanelOutwardOffset(Vector3.Dot(aboveBox - coverFace, coverNormal),
-            Vector3.Dot(camera.transform.right, coverNormal), Vector3.Dot(camera.transform.up, coverNormal),
-            layout.sizeDelta.x * textScale, layout.sizeDelta.y * textScale);
-        _canvasObject.transform.position = aboveBox + coverNormal * outward;
-        _canvasObject.transform.rotation = camera.transform.rotation;
-        // Keep panel size independent from room-root scaling.
-        var parentScale = _anchor!.lossyScale;
-        _canvasObject.transform.localScale = new Vector3(textScale / Mathf.Max(0.001f, Mathf.Abs(parentScale.x)),
-            textScale / Mathf.Max(0.001f, Mathf.Abs(parentScale.y)), textScale / Mathf.Max(0.001f, Mathf.Abs(parentScale.z)));
-        if (Time.realtimeSinceStartup >= _nextText)
-        {
-            _nextText = Time.realtimeSinceStartup + 0.25f;
-            var text = LobbyBoxText.Introduction;
-            if (_cachedText != text) { _text.text = text; _cachedText = text; }
-        }
-        if (!_canvasObject.activeSelf) _canvasObject.SetActive(true);
     }
 
     internal void Apply(LobbyBoxPlacement data)
     {
         data.Validate();
+        Close();
         var transform = ModelTransform ?? throw new InvalidOperationException("The lobby box is not ready.");
         transform.localPosition = Vec(data.Position);
         transform.localRotation = Quaternion.Euler(Vec(data.Rotation));
         transform.localScale = Vec(data.Scale);
         Lighting?.SetBrightness(data.LightBrightness);
         Lighting?.SetPreset(data.LightPreset);
-        _nextText = 0;
     }
 
     internal void Edit(LobbyBoxPlacement data)
@@ -292,16 +266,13 @@ internal sealed class LobbyBoxRuntime : IDisposable
         Apply(data); _usingDebugPlacement = true;
     }
 
-    private void HideIntroduction() { if (_canvasObject != null) _canvasObject.SetActive(false); }
-    private void Hide() { HideIntroduction(); _interactionUi.Hide(); }
-    private void Close() { _open = _focused = false; _reader = null; Hide(); }
+    private void Close() { _inspection.Close(); _interactionUi.Hide(); }
     private void ClearScene()
     {
-        Close(); _consumeRelease = false;
+        Close(); _releaseOwner = null;
+        _inspection.Dispose();
         _interactionUi.Dispose();
         Lighting?.Dispose(); Lighting = null;
-        if (_canvasObject != null) UObject.Destroy(_canvasObject);
-        _canvasObject = null; _text = null; _background = null; _cachedText = "";
         _model?.Dispose(); _model = null; _anchor = null; _usingDebugPlacement = false;
     }
     private void Fault(Exception error)

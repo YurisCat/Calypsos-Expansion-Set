@@ -2,6 +2,35 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.57 — 2026-10-16（盒子阅读布局与过渡 / Box reading layout and transitions）
+
+- 介绍字号缩小 20%，正文区域上移并向右、向下扩大，按屏幕比例保留边距；原版 HUD 和重要消息保持在介绍之上。
+  Reduces introduction text size by 20%, moves the reading area upward and expands it to the right and downward, with proportional margins. Native HUD and important messages remain above the overlay.
+- 拉近镜头期间隐藏关闭提示并忽略关闭操作，原版镜头到位后才显示提示；补齐过渡取消、超时和旧回调隔离。
+  Hides the close prompt and ignores close presses until the native camera transition completes. Handles cancellation, timeouts and stale callbacks.
+- 文字与侧边渐变一起淡出；受伤、死亡、传送等打断立即结束查看，不等待淡出后才交还控制。界面失效、断线、场景清理或新的查看接管时直接释放。
+  Fades the text and side gradient together. Damage, death, teleportation and other interruptions end inspection immediately without waiting for the fade before releasing control. Invalid UI, disconnects, scene cleanup and a new inspection release the old overlay immediately.
+- Release 0 警告／0 错误，1,912 项托管断言通过；本轮未部署或启动游戏，实际排版、过渡和生命周期仍待游戏回测。
+  Release builds without warnings or errors; 1,912 managed assertions pass. Not deployed or launched this round; layout, transitions and lifecycle behavior still require in-game validation.
+
+## 0.2.56 — 2026-10-16（盒子查看修正 / Box inspection fixes）
+
+- 修复先看书／棋盘再看盒子时，关闭镜头跳回上次目标的问题；盒子取景保留到原版返回过渡结束后再交还共享相机，支持快速重开和原版再次接管。
+  Keeps the box camera target through the native return transition, preventing a jump to the previously inspected book/board. Handles rapid reopening and native target changes.
+- 查看期间仅显示右下角“关闭 / Close”及原版交互图标；打开前保留名称／查看介绍。字号与正文布局暂不调整，待进一步讨论。
+  Shows only the interaction icon and “Close” near the bottom-right while reading, retaining the title/read prompt before opening. Text size and body layout remain unchanged pending discussion.
+- Release 0 警告／0 错误，1,713 项托管断言通过；本轮未部署或启动游戏，实际镜头过渡和 UI 待回测。
+  Release builds without warnings or errors; 1,713 managed assertions pass. Not deployed or launched this round; camera transitions and UI still need in-game validation.
+
+## 0.2.55 — 2026-10-16（盒子查看开发版 / Box inspection development build）
+
+- 盒子改用原版检查物品相机，按交互键进入／关闭：盒子在右侧，介绍在左侧，水平翻转原版书本的横向黑色渐变；移除旧世界文字面板，文字滚动／裁切暂缓。
+  Uses the native item inspection camera: interact to open/close, with the box on the right and the introduction on the left. Mirrors the book's horizontal black gradient and replaces the world-space panel. Scrolling and clipping remain deferred.
+- 进入查看暂停移动／转向与工具使用，退出恢复；补齐独立维护和事件清理，原版成功切换镜头或接管控制时退出。摆放、补光与测试房家具逻辑保持。
+  Pauses movement, look and tool use while reading, with independent lifecycle checks and event cleanup. Releases inspection when native camera/control handling takes over. Placement, lighting and test-room furniture behavior are retained.
+- Release 0 警告／0 错误，1,681 项托管断言通过；未部署或启动游戏，真实画面、输入与多人验收待进行。
+  Release builds without warnings or errors; 1,681 managed assertions pass. Not deployed or launched; visuals, input and multiplayer still require in-game validation.
+
 ## 0.2.54 — 2026-10-16（大厅盒子开发版 / Lobby box development build）
 
 - 新增固定桌游盒子，使用已保存的挂墙位置；原版样式交互点支持键盘改键与手柄，中英介绍显示在盒子上方并向封面外移。针对白块图标重建边框与文字组件，靠墙交互统一检查正面交互点。
