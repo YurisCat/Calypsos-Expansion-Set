@@ -15,8 +15,8 @@ internal sealed class DelayedMoveIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "延迟输入，容易走步",
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_delayed_move"),
-        ContentVersion = 3
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_delayed_move"),
+        ContentVersion = 4
     };
 
     private static DelayedMoveIdol? _active;

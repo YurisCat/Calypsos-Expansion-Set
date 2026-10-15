@@ -11,8 +11,8 @@ internal sealed class OutlineIdol : HeldScreenEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "黑底白线，轮廓浮现",
-        ContentVersion = 2,
-        CreateVisuals = prefab => ScreenEffectResources.Create(prefab, "todo_outline")
+        ContentVersion = 3,
+        CreateVisuals = prefab => ScreenEffectResources.Create(prefab, "handdrawn_outline")
     };
     private OutlineIdol() : base(ConfigId, IdolScreenStyle.Outline) { }
 }

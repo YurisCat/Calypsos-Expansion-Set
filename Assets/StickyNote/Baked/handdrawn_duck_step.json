@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "handdrawn_duck_step",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "db53d88505d64bd1d6df5e3d665383519f770e93c72088031d776368c6972557",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "0bc72f23c8aa8a940c8fddadc4ce41031d0ad0495ebdf7aba55165b9c15b06ad",
+  "packed_bytes": 100418,
+  "rgba_sha256": "c370b9f548bfa164b64673cb0b6147cb13864749d031f7a117ad1175979fbd05"
+}

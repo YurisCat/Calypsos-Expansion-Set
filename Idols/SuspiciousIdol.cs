@@ -18,9 +18,9 @@ internal sealed class SuspiciousIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "怪声四起，干吓自己",
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_suspicious"),
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_suspicious"),
         CreateRuntime = () => new MonsterCatalogRuntime(),
-        ContentVersion = 3
+        ContentVersion = 4
     };
     private readonly System.Random _random = new();
     private readonly List<EventReference> _sounds = new();

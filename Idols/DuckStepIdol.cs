@@ -18,9 +18,9 @@ internal sealed class DuckStepIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "走路鸭叫，别被听到",
-        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "todo_duck_step", ConfigId, "duck_steps", 6, .15f, .04f,
+        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "handdrawn_duck_step", ConfigId, "duck_steps", 6, .15f, .04f,
             EmitNoiseOnServer),
-        ContentVersion = 4
+        ContentVersion = 5
     };
     private static DuckStepIdol? _active;
     private HeldIdolContext _context;

@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "handdrawn_wide_body",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "8686b41ed15d65480d0872c8a86555ccbd14df9f5d650d807571d883dcd0a9c0",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "ee223fd34101cef48d235773376b154cc2af90a39c301c163e5dc7bcd26fa349",
+  "packed_bytes": 114946,
+  "rgba_sha256": "af84e993756fc74c5ceb0018089cab5abe4227cd904d92a204af606e4f5e8dd1"
+}

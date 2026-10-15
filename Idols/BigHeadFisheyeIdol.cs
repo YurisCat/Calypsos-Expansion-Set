@@ -12,8 +12,8 @@ internal sealed class BigHeadFisheyeIdol : HeldScreenEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "大头大头，凹眼凸头",
-        ContentVersion = 2,
-        CreateVisuals = prefab => ScreenEffectResources.Create(prefab, "todo_big_head_fisheye"),
+        ContentVersion = 3,
+        CreateVisuals = prefab => ScreenEffectResources.Create(prefab, "handdrawn_big_head_fisheye"),
         CreateRuntime = () => new HeldAppearanceRuntime(ConfigId,
             player => StretchedPlayerAppearance.Create(player, Vector3.one, 2f))
     };

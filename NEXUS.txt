@@ -1,6 +1,6 @@
 [center][size=6][color=#B78A50][b]Calypso's Expansion Set[/b][/color][/size][/center]
 
-[center]14 new idols with unusual carrying challenges, sticky-note symbols and short Chinese hints for custom and supported vanilla idols.[/center]
+[center]14 new idols with unusual carrying challenges, hand-drawn sticky-note symbols and short Chinese/English hints for custom and supported vanilla idols.[/center]
 
 
 [size=4][color=#B78A50][b]The Idols[/b][/color][/size]
@@ -84,13 +84,13 @@ New idols enter natural spawn pools.
 Walk through board progress pawns to move and kick dice more easily. Visuals, animations, board, dice and event pieces stay normal. Local setting; matching settings recommended.
 
 [b]ShowIndividualIdolNames = false[/b]
-Enable individual Chinese names; otherwise keep vanilla names and use one shared MOD name. Hover hints remain enabled.
+Enable individual localized names; otherwise keep vanilla names and use one localized MOD name. Hover hints remain enabled.
 
 [b]DebugMode = false[/b]
 Optional test tools/logs. Enable it for the F8 window; only the host can spawn idols. Normal play needs no debug mode.
 [/spoiler]
 
-[i]In-game names and hints are currently Chinese.[/i]
+[i]Names and hints follow the game language: Chinese or English; other languages currently fall back to English.[/i]
 
 [i]Development release: full multiplayer/save compatibility remains unverified; relay fatigue and disguise history are not saved.[/i]
 
@@ -183,13 +183,13 @@ Detailed setup, testing and limitations are on GitHub below.
 关闭棋盘进度棋子的碰撞，方便移动和踢骰子；显示、动画、棋盘、骰子及事件棋子保持正常。各端独立生效，联机建议一致。
 
 [b]ShowIndividualIdolNames = false[/b]
-开启显示各自中文名；关闭保留原版名称，MOD 使用统一名称，谏言照常显示。
+开启显示游戏语言对应的名称；关闭保留原版名称，MOD 使用对应语言的统一名称，谏言照常显示。
 
 [b]DebugMode = false[/b]
 可选测试工具与日志；开启后按 F8 打开生成窗口（仅房主生成），正常玩法无需调试模式。
 [/spoiler]
 
-[i]游戏内名称与谏言目前为中文。[/i]
+[i]名称与谏言跟随游戏语言，支持中文与英文，其他语言暂回退英文。[/i]
 
 [i]当前为开发版本，完整联机与存读档兼容仍待验证；接力疲劳和怪相候选历史不入存档。[/i]
 

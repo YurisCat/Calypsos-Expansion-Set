@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.50";
+    public const string PluginVersion = "0.2.51";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -70,8 +70,8 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             "新雕像加入原版自然生成池，保留生成总数和筛选规则，不保证每局出现。修改后重启。\n"
             + "/ Add new idols to vanilla spawn pools; keep spawn counts and filters. Spawns are not guaranteed. Restart after changes.");
         _showIndividualIdolNames = Config.Bind("UI", "ShowIndividualIdolNames", false,
-            "显示已支持原版与 MOD 雕像的各自中文名；关闭时原版保留原名，MOD 统一为“卡里普索拓展包雕像”。谏言不变；仅本机，修改后重启。\n"
-            + "/ Show individual Chinese names for supported vanilla/MOD idols; when off, keep vanilla names and use one shared MOD name. Hints stay enabled. Local only; restart after changes.");
+            "按游戏语言显示已支持原版与 MOD 雕像的名称；关闭时原版保留原名，MOD 使用对应语言的统一名称。谏言不变；仅本机，修改后重启。\n"
+            + "/ Show localized names for supported vanilla/MOD idols; when off, keep vanilla names and use one localized MOD name. Hints stay enabled. Local only; restart after changes.");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
         PawnCollisions = new QualityOfLife.BoardPawnCollision(this);

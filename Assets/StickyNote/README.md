@@ -10,9 +10,23 @@
 - `Baked/jumping.notedelta`：上述图案合成后与共享纸底的逐字节 XOR 差异，经 zlib 无损压缩；解码时还原原来的完整 mip 链。`Baked/jumping.json` 记录源图、底图、网格、原 RGBA 和压缩输出哈希。原手绘素材保留，派生资源随模组内嵌。
 - `TemporaryIcons.json`、`Artwork/todo_*.png`、`Baked/todo_*`：0.2.23 的八种临时图案及 0.2.24 新增的六种图案，来自待办清单的同款 SVG 几何。正式手绘完成前使用；原 `jumping` 图案保留，不覆盖。
 
+## 正式手绘与图鉴裁图
+
+0.2.31 导入十四张正式手绘，`Artwork/handdrawn_*.png` 完整保留原 PNG 字节，`Baked/handdrawn_*` 保存合成资源及哈希。0.2.51 整合远端后，十四种启用内容均使用 `handdrawn_<类型 key>`；怪相沿用远端恢复后的玩法，旧 spring 使用的 `jumping` 素材保持。临时图标留作历史来源，不再内嵌到 DLL。
+
+1024×1024 透明绘画画布整体缩放映射到纸面正面，不能先把 UV 坐标套到源画布再裁一次。UV 描述的是 512×512 合成图集中的纸面，像素矩形为 `(10,66)` 到 `(503,507)`，右/下边界不包含。图鉴只截取此区域，输出 `Previews/handdrawn_*.png`，493×441；不展示其他图集区域，不按墨迹包围盒裁切，不翻转图案。
+
+```powershell
+python scripts/PrepareNoteArtwork.py --key handdrawn_duck_step --input "<透明图案 PNG 路径>"
+python scripts/ExportNotePreviews.py --key handdrawn_duck_step
+python scripts/ExportNotePreviews.py --key handdrawn_duck_step --verify
+```
+
+裁图工具从实际无损运行资源还原最大 mip，转回 PNG 扫描方向后裁切；只在导出时需要 Pillow，网页后台仅提供静态图片。二维裁图不模拟纸张弯曲、胶带几何遮挡或光照，贴边图案仍需游戏检查。
+
 ## 临时图标
 
-当前启用的十四种雕像分别使用 `todo_<类型 key>` 图案。线稿居中放在 1024 画布的建议绘图区，中心为 `(512,554)`；图标范围为 `(212,254)` 至 `(812,854)`，位于模板安全区内。只导出透明线稿，不把模板、虚线或说明文字烘焙到纸面。
+历史临时图案使用 `todo_<类型 key>`，当前定义已切换正式手绘。线稿居中放在 1024 画布的建议绘图区，中心为 `(512,554)`；图标范围为 `(212,254)` 至 `(812,854)`，位于模板安全区内。只导出透明线稿，不把模板、虚线或说明文字烘焙到纸面。
 
 `scripts/PrepareTodoNoteIcons.py` 从仓库内的几何清单生成透明 PNG 和 SVG，需要 Pillow、CairoSVG；之后用下述导入脚本生成运行资源。输出目录须为新目录，脚本拒绝覆盖已有图案。普通构建只读取已提交的资源，不依赖本地待办清单或 Python 绘图环境。
 
@@ -21,7 +35,7 @@ python scripts/PrepareTodoNoteIcons.py --output "<新的输出目录>"
 python scripts/PrepareNoteArtwork.py --key todo_relay --input "<输出目录>/todo_relay.png"
 ```
 
-后续正式手绘可使用新的图案 key 导入，并修改相应定义的视觉回调、提升 ContentVersion。临时图案与已有手绘来源各自保留，便于核对。
+正式手绘使用新的图案 key 导入，并修改相应定义的视觉回调、提升 ContentVersion。临时图案与已有手绘来源各自保留，便于核对。
 
 ## 导入图案
 
@@ -46,7 +60,7 @@ python scripts/PackNoteResources.py --verify
 
 画布横向映射到 U=0.020310～0.982463；顶部对应 V=0.871263、底部 V=0.010619。不翻转或镜像图案；按当前网格朝向，画布左侧对应头部局部坐标 +X。只合成纸面正面矩形，胶带、背面、折边使用原底图，最终材质保持不透明。透明的是绘画素材，不是纸本身。
 
-定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。带音效或额外资源的类型保留组合资源所有权。当前十四种启用内容均使用各自临时图案；停用的 spring 不创建资源。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
+定义中使用 `CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "<图案 key>")`；类型 key 与图案 key 可以不同。带音效或额外资源的类型保留组合资源所有权。当前十四种启用内容均使用各自正式手绘；停用的 spring 不创建资源。无图案时可用单参数 `Create` 加载空白纸底。指定图案缺失则注册失败并回滚资源，不静默退回空白。所有客户端随同版 DLL 加载；每种类型拥有独立的材质/纹理生命周期。
 
 更新图案后提升定义的 `ContentVersion`，重新编译、部署并重启游戏。此流程是显式导入工具，不会监控用户文件夹或热替换运行中的纹理。
 

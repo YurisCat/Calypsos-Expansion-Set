@@ -18,13 +18,13 @@ internal sealed class RelayIdol : HeldIdolEffect
         CreateRuntime = () => new RelayIdolRuntime(),
         SharedVisual = new IdolSharedVisualDefinition(IdolVisualAuthority.Server,
             idol => new IdolEyeProgressVisual(idol, "Calypso Relay Eyes", RelayIdolRuntime.EyeColor)) { ShowWhenDropped = true },
-        ContentVersion = 5
+        ContentVersion = 6
     };
 
     private static IDisposable CreateVisuals(GameObject prefab)
     {
         IdolEyeOverlay.Validate(prefab.GetComponent<ScoreTool>());
-        return StickyNoteVisuals.Create(prefab, "todo_relay");
+        return StickyNoteVisuals.Create(prefab, "handdrawn_relay");
     }
 
     private static RelayIdol? _active;

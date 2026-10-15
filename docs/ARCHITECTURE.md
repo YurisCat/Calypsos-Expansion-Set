@@ -34,7 +34,7 @@
 | [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
 | [Visuals/IdolVisualSync.cs](../Visuals/IdolVisualSync.cs) | 类型无关的雕像外观状态上报、校验、完整快照与实例资源清理 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
-| [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs)、[UI/OriginalIdolAdvice.cs](../UI/OriginalIdolAdvice.cs) | 已注册内容与原版对照的本地指向名称、顶部短说明、原版消息共存和清理 |
+| [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs)、[UI/OriginalIdolAdvice.cs](../UI/OriginalIdolAdvice.cs)、[UI/IdolTextLocalization.cs](../UI/IdolTextLocalization.cs) | 已注册内容与原版对照的本地指向名称、顶部短说明、原版消息共存和清理 |
 | [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
@@ -88,20 +88,20 @@ flowchart LR
 
 | 名称 | key | 配置 ID | assetId | ContentVersion | 执行端 |
 | --- | --- | --- | --- | --- | --- |
-| 弹跳雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 11 | OwnerNativeGameplay |
-| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 4 | LocalPresentation |
-| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 5 | OwnerNativeGameplay |
-| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 6 | LocalPresentation |
-| 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 4 | OwnerNativeGameplay |
-| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 6 | OwnerNativeGameplay |
-| 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 3 | OwnerNativeGameplay |
-| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 5 | OwnerNativeGameplay |
-| 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 3 | ServerGameplay |
-| 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 3 | LocalPresentation |
-| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 12 | ServerGameplay |
-| 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
-| 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 2 | LocalPresentation |
-| 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
+| 弹跳雕像 | jumping | 0x4D49000000000001 | 0x4D490001 | 12 | OwnerNativeGameplay |
+| 近景雕像 | near_view | 0x4D49000000000003 | 0x4D490003 | 5 | LocalPresentation |
+| 声控雕像 | voice | 0x4D49000000000004 | 0x4D490004 | 6 | OwnerNativeGameplay |
+| 倒立雕像 | upside_down | 0x4D49000000000008 | 0x4D490008 | 8 | LocalPresentation |
+| 鸭步雕像 | duck_step | 0x4D49000000000005 | 0x4D490005 | 5 | OwnerNativeGameplay |
+| 极速雕像 | extreme_speed | 0x4D49000000000006 | 0x4D490006 | 7 | OwnerNativeGameplay |
+| 迟钝雕像 | delayed_move | 0x4D49000000000007 | 0x4D490007 | 4 | OwnerNativeGameplay |
+| 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 6 | OwnerNativeGameplay |
+| 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 4 | ServerGameplay |
+| 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 5 | LocalPresentation |
+| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 14 | ServerGameplay |
+| 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 3 | LocalPresentation |
+| 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 3 | LocalPresentation |
+| 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 3 | LocalPresentation |
 
 十四种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。
 
@@ -139,7 +139,7 @@ flowchart LR
 
 第三人称位置、旋转、近远裁剪和投影只在 `BeginCameraRendering` 至 `EndCameraRendering` 临时应用，渲染异常由 finalizer 兜底恢复；原版输入、瞄准及角色朝向不会读回第三人称镜头形成跟随反馈。首次实际绘制时开始 0.25 秒缓动，从每帧正常 POV 平滑移向背后取景，并衔接旋转、裁剪和投影；不改保存的 FOV 或原版换装镜头。约 2.25 秒后，或正常放下/换拿/转交时，从当前进度用 0.25 秒返回；返回允许短暂超出持有状态，始终要求同一存活角色、普通 POV 和相机仍就绪。死亡、菜单、断线、角色/镜头替换、原版换装接管和卸载立即释放。转场镜头位于测量的身体包围范围内时，仅在本机此次绘制中隐藏怪物副本及原身体 Renderer，结束后恢复，避免内部表面露出。
 
-普通相机恢复自动投影，原本显式/物理投影恢复相应模式，其他逻辑已改写的字段不覆盖。快照重复不重播，再次拿起同一只/同一种也可重播，返回期间重新拿起仍等待该次拾取的新快照。未开始预览不接管世界模型显隐，原版换装接管时保留其世界模型显示。镜头未加入场景遮挡避让，狭窄空间可能被墙体挡住；真实旋转稳定性、逐种包围盒/动画和多人恢复仍需游戏回测。怪相 ContentVersion=13。
+普通相机恢复自动投影，原本显式/物理投影恢复相应模式，其他逻辑已改写的字段不覆盖。快照重复不重播，再次拿起同一只/同一种也可重播，返回期间重新拿起仍等待该次拾取的新快照。未开始预览不接管世界模型显隐，原版换装接管时保留其世界模型显示。镜头未加入场景遮挡避让，狭窄空间可能被墙体挡住；真实旋转稳定性、逐种包围盒/动画和多人恢复仍需游戏回测。当前 ContentVersion 以定义及上表为准。
 
 怪相外观实例按 `Time.frameCount` 每帧最多推进一次移动判定、动作选片、片段时间和骨骼混合。同帧其他渲染上下文复用已采样姿态，仍处理角色/视角失效、身体与昵称隐藏、世界白雾/灯光及模型位置、旋转、尺寸和显隐；不因零时间差误切待机并重置走路片段。标记归属于外观实例，重拿、换模型或角色后新实例可在同帧正常采样。攻击时钟、移动阈值、片段选择与播放速度保持原规则，未按怪物体型调整步频。
 
@@ -282,7 +282,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 ## 便签资源与生命周期
 
-十四种启用内容的图案 key 均为 `todo_<类型 key>`，取自待办清单同款图标，临时用于正式手绘完成前。类型 key 与图案 key 分开；原 `jumping` 手绘及其合成资源保留。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
+0.2.51 整合版十四种启用内容均使用 `handdrawn_<类型 key>` 正式手绘，保留远端已恢复的怪相注册与玩法。十四个定义均在 0.2.50 的基础上提升 ContentVersion，身份与玩法保持。类型 key 与图案 key 分开；原 `jumping` 手绘和临时 `todo_*` 来源保留，DLL 不再内嵌临时图标。弹跳和鸭步的 CreateVisuals 返回便签与音效 bank 的组合所有权，最终画面类型返回便签与着色器租约；接力由 CreateRuntime 管理疲劳快照，声控与接力由 SharedVisual 管理动态眼睛。每种类型创建独立便签 Mesh、Material、Texture；同类型实例使用其预制体资源。
 
 便签从 DLL 内嵌的 note.mesh.json、共享 paper.note 和按图案 key 选择的 Baked/*.notedelta 创建视觉对象。纯托管 NoteTextureCodec 校验格式/长度/哈希，解压 XOR 差异并还原与旧资源逐字节相同的 RGBA32 完整 mip 链，再沿用已验证的原生上传；不使用 LoadImage。附件挂在自有 Score 预制体 `Dice/SM_IdoleBody/SM_IdolHead` 下。随后原版生成复制带附件的完整预制体；不在场景生成后扫描雕像补挂，不修改原版同模型雕像，也不添加拾取/物理/网络组件。
 
@@ -296,7 +296,11 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部谏言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。当前文案与尽量押韵的风格约定见 [谏言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
 
-名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 统一显示“卡里普索拓展包雕像”；true 时返回正式名称，包含“雕像”后缀。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自谏言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
+名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 统一显示本机语言对应的“卡里普索拓展包雕像”或“Calypso's Expansion Set Idol”；true 时返回本机语言的正式名称，中文含“雕像”、英文含“Idol”后缀。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自谏言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
+
+本地化由 `IdolTextLocalization` 提供英文名称与原创押韵双句；中文继续取原定义与原版对照。译文同时匹配实际配置 ID、key 和 IsMod，不按模板或译名识别。注册定义优先及空说明 opt-out 保持，外部定义无匹配译文时保留其原文，不新增公共 API，也不向游戏 I2 数据源写入词条。译文表不决定注册状态，怪相沿用当前注册清单；持有时的提示隐藏规则优先于本地化。
+
+`IdolHoverInfo` 创建时及 Tick 中最多每半秒读取游戏 `I2.Loc.LocalizationManager.CurrentLanguageCode`，仅缺少代码时读取 CurrentLanguage；不依据系统语言，不在交互 getter 中封送语言字符串、扫描资源或反射。中文 zh/zh-*（含地区变体）保留中文，其他/未知语言回退英文；读取异常保留上次选择，最多记录一次警告并持续重试，不停止提示或玩法。选择保存在本机控制器实例中，不订阅全局事件、不发送网络消息。已有标签每次指向更新文本及原版当前字体，菜单、断线和销毁沿用原清理路径。I2.dll 使用游戏 interop 引用，Private=false，不随插件分发。
 
 名称开关不影响顶部谏言，不修改玩法、稳定身份、网络状态或兼容清单；本次本机 UI 文案适配不提升 ContentVersion。原版交互动作、输入标签与价格格式继续由原交互 UI 负责，开发表格中的简介不加入游戏。F8 清单与测试房标签仍使用 MOD 定义名和稳定 key，不扩大原版测试房陈列范围。`jumping` 正式显示名为“弹跳雕像”。
 

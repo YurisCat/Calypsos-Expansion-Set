@@ -119,6 +119,7 @@ class Workbench:
             self.root / "CHANGELOG.md",
             self.root / "DEVELOPMENT.md",
             *sorted((self.root / "Idols").glob("*.cs")),
+            *sorted((self.root / "Assets/StickyNote/Previews").glob("*.png")),
         ]
 
     def signature(self):
@@ -142,6 +143,10 @@ class Workbench:
                 continue
             key, display_name, config, asset_id = definition.groups()
             content_version = re.search(r"ContentVersion\s*=\s*(\d+)", text)
+            advice = re.search(r'ShortDescription\s*=\s*"([^"]*)"', text)
+            artwork = re.search(
+                r'(?:StickyNoteVisuals\.Create|ScreenEffectResources\.Create|HeldIdolAudio\.CreateAttached)'
+                r'\(\s*prefab\s*,\s*"([a-z][a-z0-9_]{0,63})"', text)
             if not config.lower().startswith("0x"):
                 constant = re.search(r"const\s+ulong\s+" + re.escape(config) + r"\s*=\s*(0x[0-9A-Fa-f]+)", text)
                 if not constant:
@@ -156,11 +161,41 @@ class Workbench:
                 "contentVersion": int(content_version[1]) if content_version else None,
                 "configId": config,
                 "assetId": asset_id,
+                "advice": advice[1] if advice else "",
+                "artworkKey": artwork[1] if artwork else None,
             }
         parsed_classes = {Path(d["source"]).stem for d in definitions.values()}
         if enabled_classes - parsed_classes:
             raise ValueError("未能解析已注册类型：" + "、".join(sorted(enabled_classes - parsed_classes)))
         return version_match[1], definitions
+
+    def wiki(self):
+        """Read-only learning catalog; keep decisions and private notes out of it."""
+        with self.lock:
+            data, _ = self.data()
+            version, definitions = self.sources()
+            planning = {item.get("key"): item for item in data["items"]}
+            entries = []
+            for key, definition in definitions.items():
+                # Include paused, documented content; omit unimplemented ideas and
+                # the retired spring prototype, which has no current catalog row.
+                item = planning.get(key)
+                if item is None and not definition["enabled"]:
+                    continue
+                artwork_key = definition["artworkKey"]
+                image = self.root / "Assets/StickyNote/Previews" / f"{artwork_key}.png"
+                image_revision = digest(image.read_bytes())[:16] if artwork_key and image.is_file() else None
+                entries.append({
+                    "key": key, "name": definition["displayName"],
+                    "enabled": definition["enabled"], "advice": definition["advice"],
+                    "category": item.get("category", "其他") if item else "其他",
+                    "description": item.get("wikiSummary", item["summary"]) if item else "玩法说明待补充。",
+                    "image": f"/wiki/notes/{artwork_key}.png?v={image_revision}" if image_revision else None,
+                })
+            entries.sort(key=lambda entry: (not entry["enabled"], planning.get(entry["key"], {}).get("id", 999)))
+            result = {"schema": "ces-idol-wiki-v1", "version": version, "items": entries}
+            result["revision"] = digest(encoded(result))
+            return result
 
     def snapshot(self):
         with self.lock:
@@ -290,6 +325,12 @@ def make_handler(workbench):
                     if self.headers.get("If-None-Match") == etag:
                         return self.send_bytes(304, b"", extra={"ETag": etag})
                     return self.json_response(200, snapshot, {"ETag": etag})
+                if path == "/api/wiki":
+                    catalog = workbench.wiki()
+                    etag = '"' + catalog["revision"] + '"'
+                    if self.headers.get("If-None-Match") == etag:
+                        return self.send_bytes(304, b"", extra={"ETag": etag})
+                    return self.json_response(200, catalog, {"ETag": etag})
                 if path == "/api/legacy":
                     return self.json_response(200, read_json(workbench.folder / "需求数据_原版20261013.json"))
                 routes = {
@@ -297,7 +338,17 @@ def make_handler(workbench):
                     "/index.html": (workbench.folder / "index.html", "text/html; charset=utf-8"),
                     "/app.js": (workbench.folder / "app.js", "text/javascript; charset=utf-8"),
                     "/favicon.ico": (None, ""),
+                    "/wiki": (workbench.root / "scripts/workbench/wiki.html", "text/html; charset=utf-8"),
+                    "/wiki/": (workbench.root / "scripts/workbench/wiki.html", "text/html; charset=utf-8"),
+                    "/wiki/app.js": (workbench.root / "scripts/workbench/wiki.js", "text/javascript; charset=utf-8"),
+                    "/wiki/style.css": (workbench.root / "scripts/workbench/wiki.css", "text/css; charset=utf-8"),
                 }
+                if path.startswith("/wiki/notes/"):
+                    # Only files actually referenced by the catalog are public.
+                    allowed = {urlsplit(item["image"]).path for item in workbench.wiki()["items"] if item["image"]}
+                    if path in allowed:
+                        file = workbench.root / "Assets/StickyNote/Previews" / path.rsplit("/", 1)[1]
+                        return self.send_bytes(200, file.read_bytes(), "image/png")
                 if path not in routes:
                     return self.json_response(404, {"error": "页面不存在。"})
                 file, mime = routes[path]

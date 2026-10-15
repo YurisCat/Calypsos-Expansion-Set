@@ -20,8 +20,8 @@ internal sealed class ExtremeSpeedIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "神行飞速，长驱直入",
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_extreme_speed"),
-        ContentVersion = 6
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_extreme_speed"),
+        ContentVersion = 7
     };
 
     private static ExtremeSpeedIdol? _active;

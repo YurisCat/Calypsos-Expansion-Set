@@ -35,9 +35,9 @@ internal sealed class JumpingIdol : HeldIdolEffect
         // },
 
         // 实际改变属性、玩法或外观后提升此版本，重新编译并让所有联机端更新。
-        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "todo_jumping",
+        CreateVisuals = prefab => HeldIdolAudio.CreateAttached(prefab, "handdrawn_jumping",
             ConfigId, "spring_accent", 4, 0.1f, onServerEmission: EmitNoiseOnServer),
-        ContentVersion = 11
+        ContentVersion = 12
     };
 
     private const float RequestTimeout = 0.4f;

@@ -22,9 +22,9 @@ internal sealed class VoiceIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "发声前进，闭嘴立定",
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_voice"),
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_voice"),
         SharedVisual = new IdolSharedVisualDefinition(IdolVisualAuthority.Holder, idol => new VoiceEyeGlow(idol)),
-        ContentVersion = 5
+        ContentVersion = 6
     };
 
     // Audio callbacks only publish into this capture. Replacing it discards old

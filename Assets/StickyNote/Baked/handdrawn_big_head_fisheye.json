@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "handdrawn_big_head_fisheye",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "810421a2cbecb0720fa26beb8162baf9013350249822d067eb929a66de1fe652",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "3ecbaac7b48138220ff58b96729272079fe66d9cbf28ac09c1eff2ca39de0171",
+  "packed_bytes": 132793,
+  "rgba_sha256": "64890127e7f31e118cc9d51d6a1cb01d2c083e80ad4da1c42c0782ce523d1b5c"
+}

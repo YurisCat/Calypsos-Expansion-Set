@@ -17,13 +17,16 @@ namespace CalypsoExpansionSet.UI;
 // by the game; this controller owns only its extra TMP label.
 internal sealed class IdolHoverInfo : IDisposable
 {
-    internal const string GenericIdolName = "卡里普索拓展包雕像";
+    internal static string GenericIdolName =>
+        IdolTextLocalization.GenericName(CalypsoExpansionSetPlugin.Instance?.HoverInfo?._useChinese == true);
     private readonly CalypsoExpansionSetPlugin _plugin;
     private UIManager? _ui;
     private TextMeshProUGUI? _reference, _label;
     private GameObject? _object;
     private Canvas? _canvas;
     private bool _disposed, _faulted, _visible;
+    private bool _useChinese, _languageWarning;
+    private float _nextLanguageCheck;
     private uint _shownId;
     private float _nativeMessageUntil;
     private MessageUi? _testMessage;
@@ -50,7 +53,34 @@ internal sealed class IdolHoverInfo : IDisposable
         _testMessage = null; _testPreviousText = null;
     }
 
-    internal IdolHoverInfo(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
+    internal IdolHoverInfo(CalypsoExpansionSetPlugin plugin)
+    {
+        _plugin = plugin;
+        RefreshLanguage();
+    }
+
+    private void RefreshLanguage()
+    {
+        // Sample outside interaction getters: no per-frame native string
+        // marshaling, reflection, source scans or localization subscriptions.
+        var now = Time.realtimeSinceStartup;
+        if (now < _nextLanguageCheck) return;
+        _nextLanguageCheck = now + 0.5f;
+        try
+        {
+            var code = I2.Loc.LocalizationManager.CurrentLanguageCode;
+            _useChinese = IdolTextLocalization.IsChinese(code,
+                string.IsNullOrEmpty(code) ? I2.Loc.LocalizationManager.CurrentLanguage : null);
+        }
+        catch (Exception error)
+        {
+            // An unready localization source must not disable hover/gameplay.
+            // Keep the last selection (initially English) and retry next sample.
+            if (_languageWarning) return;
+            _languageWarning = true;
+            _plugin.Log.LogWarning($"Idol UI language unavailable; keeping the last language and retrying: {error}");
+        }
+    }
 
     internal static bool HintsHidden(ScoreTool? idol)
     {
@@ -74,9 +104,12 @@ internal sealed class IdolHoverInfo : IDisposable
             var definition = entry.Definition;
             if (string.IsNullOrEmpty(definition.ShortDescription)) return false;
             text = new(definition.Key, definition.DisplayName, definition.ShortDescription, true);
+            text = IdolTextLocalization.Resolve(definition.ConfigId, text, plugin.HoverInfo?._useChinese == true);
             return true;
         }
-        return OriginalIdolAdvice.TryGet(idol.SoItem.Id, out text);
+        if (!OriginalIdolAdvice.TryGet(idol.SoItem.Id, out text)) return false;
+        text = IdolTextLocalization.Resolve(idol.SoItem.Id, text, plugin.HoverInfo?._useChinese == true);
+        return true;
     }
 
     private bool ControlsReady(out PlayerEntity player)
@@ -94,7 +127,9 @@ internal sealed class IdolHoverInfo : IDisposable
     // death, disconnect). This prevents a stale label from surviving that path.
     internal void Tick()
     {
-        if (_disposed || _faulted) return;
+        if (_disposed) return;
+        RefreshLanguage();
+        if (_faulted) return;
         try
         {
             var ui = UIManager.Instance;

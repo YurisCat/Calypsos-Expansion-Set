@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "handdrawn_monster_disguise",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "20bedb76439f9704e80791d5962e46ebd72263a46f64500d59c8d2f1a96060f5",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "03107501658e49ce51c27ef4fe4ae6f616e60b9526c0d2bc1102fe3168b14c1f",
+  "packed_bytes": 114137,
+  "rgba_sha256": "4e1febfaa9ea5024711bd83a91b4299089b0c6a5d045247b0ec28807dbcaf235"
+}

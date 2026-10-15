@@ -20,8 +20,8 @@ internal sealed class FovIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "拿起放大，注意脚下",
-        CreateVisuals = prefab => new Resources(StickyNoteVisuals.Create(prefab, "todo_near_view")),
-        ContentVersion = 4
+        CreateVisuals = prefab => new Resources(StickyNoteVisuals.Create(prefab, "handdrawn_near_view")),
+        ContentVersion = 5
     };
 
     private static FovIdol? _active;

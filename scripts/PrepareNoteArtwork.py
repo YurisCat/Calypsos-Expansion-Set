@@ -24,6 +24,13 @@ ASSETS = ROOT / "Assets/StickyNote"
 FRONT_UV = (0.0203103777, 0.01061930135, 0.9824627042, 0.8712632656)
 
 
+def front_box(size: int = 512) -> tuple[int, int, int, int]:
+    """Pillow rectangle (right/bottom exclusive) for the front of the UV atlas."""
+    u0, v0, u1, v1 = FRONT_UV
+    return (round(u0 * size), round((1 - v1) * size),
+            round(u1 * size), round((1 - v0) * size))
+
+
 def compose(base: Image.Image, artwork: Image.Image) -> Image.Image:
     """Canvas top follows +V; canvas left follows min U (head-local +X)."""
     if base.size != (512, 512):
@@ -38,8 +45,7 @@ def compose(base: Image.Image, artwork: Image.Image) -> Image.Image:
     artwork = artwork.convert("RGBA")
     if artwork.getchannel("A").getextrema()[0] == 255:
         raise ValueError("Artwork is fully opaque; hide the paper/reference layer before export.")
-    u0, v0, u1, v1 = FRONT_UV
-    box = (round(u0 * 512), round((1 - v1) * 512), round(u1 * 512), round((1 - v0) * 512))
+    box = front_box()
     resized = artwork.resize((box[2] - box[0], box[3] - box[1]), Image.Resampling.LANCZOS)
     result = base.copy()
     result.alpha_composite(resized, dest=box[:2])

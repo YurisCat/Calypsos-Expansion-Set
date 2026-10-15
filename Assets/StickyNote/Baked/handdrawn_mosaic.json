@@ -1,0 +1,24 @@
+{
+  "schema": "note-artwork-v2",
+  "key": "handdrawn_mosaic",
+  "source_size": [
+    1024,
+    1024
+  ],
+  "source_sha256": "242739fdd9271e0b71c39bdd8520153e0d7cc8e10b876c020a2803d6d8932c96",
+  "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
+  "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
+  "front_uv": [
+    0.0203103777,
+    0.01061930135,
+    0.9824627042,
+    0.8712632656
+  ],
+  "canvas_orientation": "top=+V; left=minU; no artwork mirroring",
+  "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
+  "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
+  "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
+  "packed_sha256": "be0075a2c94d147d38cb0e022ea32b0dda58162ceb47294c671b0443861fe482",
+  "packed_bytes": 103431,
+  "rgba_sha256": "9d814e3933f27b839875f3f7276520c3b286c4f757c6f4be157df4f4cd37289e"
+}

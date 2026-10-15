@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.50</Version>
+    <Version>0.2.51</Version>
     <Product>Calypso's Expansion Set</Product>
     <Authors>YurisCat;Masaicker</Authors>
     <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>
@@ -30,7 +30,7 @@
     <EmbeddedResource Include="Assets\ScreenEffects\idol_screen.bundle" LogicalName="CalypsoExpansionSet.ScreenEffects.bundle" />
     <EmbeddedResource Include="Assets\StickyNote\note.mesh.json" LogicalName="CalypsoExpansionSet.StickyNote.note.mesh.json" />
     <EmbeddedResource Include="Assets\StickyNote\paper.note" LogicalName="CalypsoExpansionSet.StickyNote.paper.note" />
-    <EmbeddedResource Include="Assets\StickyNote\Baked\*.notedelta" LogicalName="CalypsoExpansionSet.StickyNote.Artwork.%(Filename).notedelta" />
+    <EmbeddedResource Include="Assets\StickyNote\Baked\handdrawn_*.notedelta;Assets\StickyNote\Baked\jumping.notedelta" LogicalName="CalypsoExpansionSet.StickyNote.Artwork.%(Filename).notedelta" />
     <EmbeddedResource Include="$(IdolAudioPath)\duck_steps.pcm" LogicalName="CalypsoExpansionSet.Audio.duck_steps.pcm" />
     <EmbeddedResource Include="$(IdolAudioPath)\spring_accent.pcm" LogicalName="CalypsoExpansionSet.Audio.spring_accent.pcm" />
   </ItemGroup>
@@ -45,6 +45,7 @@
     <Reference Include="$(InteropPath)\vhs.dll" Private="false" Publicize="true" />
     <Reference Include="$(InteropPath)\vhs.Audio.dll" Private="false" />
     <Reference Include="$(InteropPath)\DissonanceVoip.dll" Private="false" />
+    <Reference Include="$(InteropPath)\I2.dll" Private="false" />
     <Reference Include="$(InteropPath)\Assembly-CSharp*.dll" Private="false" />
     <Reference Include="$(InteropPath)\UnityEngine.CoreModule.dll" Private="false" Publicize="true" />
     <Reference Include="$(InteropPath)\Unity*.dll" Exclude="$(InteropPath)\UnityEngine.CoreModule.dll" Private="false" />

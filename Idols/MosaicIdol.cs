@@ -11,8 +11,8 @@ internal sealed class MosaicIdol : HeldScreenEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "方格景色，麦块福特",
-        ContentVersion = 2,
-        CreateVisuals = prefab => ScreenEffectResources.Create(prefab, "todo_mosaic")
+        ContentVersion = 3,
+        CreateVisuals = prefab => ScreenEffectResources.Create(prefab, "handdrawn_mosaic")
     };
     private MosaicIdol() : base(ConfigId, IdolScreenStyle.Mosaic) { }
 }

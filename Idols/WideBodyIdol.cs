@@ -17,8 +17,8 @@ internal sealed class WideBodyIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "压缩拉长，宽体横梁",
-        ContentVersion = 4,
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_wide_body"),
+        ContentVersion = 5,
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_wide_body"),
         CreateRuntime = () => new HeldAppearanceRuntime(ConfigId,
             player => StretchedPlayerAppearance.Create(player, new Vector3(1.8f, 0.65f, 1f), 1f))
     };

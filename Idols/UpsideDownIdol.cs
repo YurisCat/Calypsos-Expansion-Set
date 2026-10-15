@@ -15,8 +15,8 @@ internal sealed class UpsideDownIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "上下翻转，左右不管",
-        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_upside_down"),
-        ContentVersion = 7
+        CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_upside_down"),
+        ContentVersion = 8
     };
     private static UpsideDownIdol? _active;
     private HeldIdolContext _context;
