@@ -13,12 +13,14 @@ namespace CalypsoExpansionSet;
 
 internal sealed class IdolDebugTools : IDisposable
 {
-    private enum DebugAction { Spawn, Teleport, NextRound, AdvancePawn, ReviveAll, ToggleInvulnerability, TeleportAllHome }
+    private enum DebugAction { Spawn, Teleport, NextRound, AdvancePawn, ReviveAll, ToggleInvulnerability, TeleportAllHome, ToggleYeti, ToggleHunter }
     private sealed record DebugRequest(DebugAction Action, string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires,
         IntPtr Board = default);
     private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly ConfigEntry<bool> _enabled;
     private readonly Key _windowKey;
+    private readonly IdolDebugMonsters _monsters;
+    internal IdolDebugCatalog Catalog { get; }
     private InputActionMap? _disabledMap;
     private bool _mapWasEnabled;
     private CursorLockMode _previousCursorLock;
@@ -35,6 +37,7 @@ internal sealed class IdolDebugTools : IDisposable
     private bool _windowPositioned;
     private int _dragControl;
     private Vector2 _idolScroll;
+    private Vector2 _resultScroll;
     private string[] _spawnLabels = Array.Empty<string>();
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
@@ -42,6 +45,8 @@ internal sealed class IdolDebugTools : IDisposable
     internal IdolDebugTools(CalypsoExpansionSetPlugin plugin)
     {
         _plugin = plugin;
+        Catalog = new IdolDebugCatalog(plugin);
+        _monsters = new IdolDebugMonsters(plugin);
         _enabled = plugin.Config.Bind("Debug", "DebugMode", false,
             "启用测试工具和诊断日志，关闭不影响正常玩法。修改后重启。\n"
             + "/ Enable test tools and diagnostic logs; normal gameplay works when off. Restart after changes.");
@@ -72,6 +77,7 @@ internal sealed class IdolDebugTools : IDisposable
     internal void Tick()
     {
         if (!Enabled) { Cancel(); return; }
+        _monsters.Tick();
         if (_invulnerablePlayer is { } protectedPlayer
             && (protectedPlayer == null || !NetworkServer.active || !NetworkClient.ready
                 || EntityManager.Me == null || EntityManager.Me.Pointer != protectedPlayer.Pointer
@@ -97,7 +103,7 @@ internal sealed class IdolDebugTools : IDisposable
             return;
         }
         var sessionAction = pending.Action is DebugAction.NextRound or DebugAction.AdvancePawn or DebugAction.ReviveAll
-            or DebugAction.ToggleInvulnerability or DebugAction.TeleportAllHome;
+            or DebugAction.ToggleInvulnerability or DebugAction.TeleportAllHome or DebugAction.ToggleYeti or DebugAction.ToggleHunter;
         // Session tools must also work while the host is dead or seated at the board.
         if (sessionAction ? PanelOpen || Time.timeScale <= 0f : !_plugin.LocalGameplayReady(player)) return;
         _pending = null;
@@ -110,6 +116,8 @@ internal sealed class IdolDebugTools : IDisposable
                 else if (pending.Action == DebugAction.ReviveAll) ReviveAll();
                 else if (pending.Action == DebugAction.ToggleInvulnerability) ToggleInvulnerability();
                 else if (pending.Action == DebugAction.TeleportAllHome) TeleportAllHome();
+                else if (pending.Action is DebugAction.ToggleYeti or DebugAction.ToggleHunter)
+                    _monsters.Toggle(pending.Action == DebugAction.ToggleHunter);
                 else NextRound(pending);
             }
             catch (Exception exception)
@@ -119,9 +127,17 @@ internal sealed class IdolDebugTools : IDisposable
             }
             return;
         }
-        if (pending.Action == DebugAction.Teleport) _plugin.Teleports.TryTeleportNext(string.IsNullOrEmpty(pending.Key) ? null : pending.Key);
-        else if (_plugin.SpawnNearPlayer(pending.Key))
-            Report($"Spawned {pending.Key} near you. Open {_windowKey} again for another command.");
+        try
+        {
+            if (pending.Action == DebugAction.Teleport) _plugin.Teleports.TryTeleportNext(string.IsNullOrEmpty(pending.Key) ? null : pending.Key);
+            else if (_plugin.SpawnNearPlayer(pending.Key))
+                Report($"Spawned {pending.Key} near you. Open {_windowKey} again for another command.");
+        }
+        catch (Exception exception)
+        {
+            Report("Debug action failed; check the log before retrying.", true);
+            _plugin.Log.LogError(exception);
+        }
     }
 
     private void Open()
@@ -166,10 +182,18 @@ internal sealed class IdolDebugTools : IDisposable
         switch (words[0].ToLowerInvariant())
         {
             case "help" when words.Length == 1:
-                Report("list: types | status: registry / network\nspawn <key>: spawn near you\nteleport [key]: next matching MOD idol\nnext: advance round with a random 1-6 roll (host)\nrevive: revive dead players and fully heal all players (host)\nvisual <key> texture|white|flat: local note comparison");
+                Report("list: MOD + original spawn keys | status: registry / network\nspawn <key>: spawn near you (e.g. miniature; use original: for native names shared with MODs)\nteleport [key]: next matching MOD idol\nnext: advance round with a random 1-6 roll (host)\nrevive: revive dead players and fully heal all players (host)\nYeti / Hunter buttons: spawn or remove your manual test monster (host)\nvisual <key> texture|white|flat: local note comparison");
                 break;
             case "list" when words.Length == 1:
-                Report("Available types: " + string.Join(", ", _plugin.Registry.Entries.Select(entry => entry.Definition.Key)));
+                var originals = Catalog.GetOriginals();
+                Report("MOD spawn keys:\n" + string.Join("\n", _plugin.Registry.Entries.Select(entry => entry.Definition.Key))
+                    + "\nOriginal spawn keys:\n" + (originals.Count == 0 ? "Not ready; retry after loading."
+                        : string.Join("\n", originals.Select(entry =>
+                        {
+                            var key = entry.Key[9..];
+                            if (_plugin.Registry.TryGet(key, out _)) key = entry.Key;
+                            return $"{key} ({entry.Data.name})";
+                        }))));
                 break;
             case "status" when words.Length == 1:
                 Report(_plugin.Status);
@@ -215,7 +239,7 @@ internal sealed class IdolDebugTools : IDisposable
         var connection = NetworkClient.connection;
         if (!NetworkServer.active || player == null || connection == null)
         { Report("Only the host with a spawned local player can spawn test idols.", true); return; }
-        if (!_plugin.Registry.Ready || !_plugin.Registry.TryGet(key, out _))
+        if (!_plugin.Registry.Ready || (!_plugin.Registry.TryGet(key, out _) && !Catalog.TryGet(key, out _)))
         { Report($"Unknown or unready type '{key}'. Use list to see registered types.", true); return; }
         _pending = new DebugRequest(DebugAction.Spawn, key, player.Pointer, connection.Pointer, Time.frameCount, Time.realtimeSinceStartup + 2f);
         Close();
@@ -376,12 +400,14 @@ internal sealed class IdolDebugTools : IDisposable
     internal void Report(string message, bool warning = false)
     {
         _result = message;
+        _resultScroll = default;
         if (warning) _plugin.Log.LogWarning(message); else _plugin.Log.LogInfo(message);
     }
 
     internal void Draw()
     {
-        if (!Enabled || !PanelOpen) return;
+        if (!Enabled) return;
+        if (!PanelOpen) return;
         try { DrawPanel(); }
         catch (Exception exception)
         {
@@ -416,7 +442,7 @@ internal sealed class IdolDebugTools : IDisposable
         var execute = GUI.Button(new Rect(x + width - 90, y + 60, 75, 30), "Run");
         if (submit || execute) Execute();
         GUI.Label(new Rect(x + 15, y + 100, width - 30, 25), "MOD idols: click to spawn; scroll for more");
-        var listHeight = Mathf.Max(1f, _windowRect.height - 340f);
+        var listHeight = Mathf.Max(1f, _windowRect.height - 374f);
         DrawSpawnButtons(new Rect(x + 15, y + 125, width - 30, listHeight));
         var actionsY = y + 135 + listHeight;
         if (GUI.Button(new Rect(x + 15, actionsY, width - 30, 30), "Teleport to next MOD idol")) QueueTeleport();
@@ -426,10 +452,20 @@ internal sealed class IdolDebugTools : IDisposable
         if (GUI.Button(new Rect(x + 31 + actionWidth * 2, actionsY + 38, actionWidth, 26),
                 _invulnerablePlayer != null ? "无敌：开" : "无敌：关")) QueueSessionAction(DebugAction.ToggleInvulnerability);
         if (GUI.Button(new Rect(x + 39 + actionWidth * 3, actionsY + 38, actionWidth, 26), "传送")) QueueSessionAction(DebugAction.TeleportAllHome);
+        var monsterWidth = (width - 38f) * 0.5f;
+        if (GUI.Button(new Rect(x + 15, actionsY + 72, monsterWidth, 26), _monsters.HasYeti ? "雪人：移除" : "雪人：生成"))
+            QueueSessionAction(DebugAction.ToggleYeti);
+        if (GUI.Button(new Rect(x + 23 + monsterWidth, actionsY + 72, monsterWidth, 26), _monsters.HasHunter ? "猎人：移除" : "猎人：生成"))
+            QueueSessionAction(DebugAction.ToggleHunter);
         _resultStyle ??= new GUIStyle { wordWrap = true, fontSize = 14 };
         _resultStyle.normal.textColor = Color.white;
-        GUI.Label(new Rect(x + 15, actionsY + 78, width - 30, 95), _result, _resultStyle);
-        var count = NetworkServer.active ? $"Debug instances: {_plugin.Sync.ServerDebugCount}" : "Spawning is host only";
+        var resultWidth = Mathf.Max(1f, width - 50f);
+        var resultHeight = Mathf.Max(95f, _resultStyle.CalcHeight(new GUIContent(_result), resultWidth));
+        _resultScroll = GUI.BeginScrollView(new Rect(x + 15, actionsY + 112, width - 30, 90), _resultScroll,
+            new Rect(0, 0, resultWidth, resultHeight), false, true);
+        try { GUI.Label(new Rect(0, 0, resultWidth, resultHeight), _result, _resultStyle); }
+        finally { GUI.EndScrollView(); }
+        var count = NetworkServer.active ? $"Debug idols: {_plugin.Sync.ServerDebugCount + Catalog.InstanceCount}" : "Spawning is host only";
         GUI.Label(new Rect(x + 15, y + _windowRect.height - 35, width - 30, 25), $"{count}. Max one test idol per type; natural idols excluded.");
     }
 
@@ -491,6 +527,6 @@ internal sealed class IdolDebugTools : IDisposable
         _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
     }
 
-    internal void Cancel() { _pending = null; Close(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
+    internal void Cancel() { _pending = null; Close(); _monsters.Clear(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
     public void Dispose() => Cancel();
 }

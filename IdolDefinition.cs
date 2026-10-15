@@ -64,6 +64,8 @@ public sealed record IdolDefinition(
     public Func<IdolContentRuntime>? CreateRuntime { get; init; }
     // Opt in to a local hover name and a short HUD description. No network UI messages.
     public string ShortDescription { get; init; } = "";
+    // Conceal the hover name/advice only while this item is actually held.
+    public bool HideHintsWhileHeld { get; init; }
     // The callback can change owned eyes, other parts or material properties.
     // The shared service synchronizes one finite value in [0,1] per instance.
     public IdolSharedVisualDefinition? SharedVisual { get; init; }

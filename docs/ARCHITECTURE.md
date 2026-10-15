@@ -30,6 +30,7 @@
 | [Idols/UpsideDownIdol.cs](../Idols/UpsideDownIdol.cs)、[Idols/DelayedMoveIdol.cs](../Idols/DelayedMoveIdol.cs)、[Idols/ExtremeSpeedIdol.cs](../Idols/ExtremeSpeedIdol.cs) | 渲染期间倒立、方向输入延迟与原生速度计算 |
 | [Idols/DuckStepIdol.cs](../Idols/DuckStepIdol.cs)、[Audio/HeldIdolAudio.cs](../Audio/HeldIdolAudio.cs)、[Audio/IdolHearing.cs](../Audio/IdolHearing.cs) | 原版脚步触发、共享一次性音效协议、服务器听觉和 FMOD 资源 |
 | [Idols/RelayIdol.cs](../Idols/RelayIdol.cs)、[Idols/RelayFatigue.cs](../Idols/RelayFatigue.cs)、[Idols/RelayIdolRuntime.cs](../Idols/RelayIdolRuntime.cs) | 接力持有者减速、疲劳公式、服务器实例状态与全员快照 |
+| [Idols/MonsterDisguiseRuntime.cs](../Idols/MonsterDisguiseRuntime.cs)、[Idols/MonsterDisguiseAttack.cs](../Idols/MonsterDisguiseAttack.cs)、[Idols/MonsterAttackProfile.cs](../Idols/MonsterAttackProfile.cs) | 怪相选择快照、统一输入的攻击表演请求、资源匹配与一次性同步 |
 | [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
 | [Visuals/IdolVisualSync.cs](../Visuals/IdolVisualSync.cs) | 类型无关的雕像外观状态上报、校验、完整快照与实例资源清理 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
@@ -97,7 +98,7 @@ flowchart LR
 | 接力雕像 | relay | 0x4D49000000000009 | 0x4D490009 | 5 | OwnerNativeGameplay |
 | 疑神雕像 | suspicious | 0x4D4900000000000A | 0x4D49000A | 3 | ServerGameplay |
 | 宽体雕像 | wide_body | 0x4D4900000000000B | 0x4D49000B | 3 | LocalPresentation |
-| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 5 | ServerGameplay |
+| 怪相雕像 | monster_disguise | 0x4D4900000000000C | 0x4D49000C | 12 | ServerGameplay |
 | 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 2 | LocalPresentation |
 | 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 2 | LocalPresentation |
 | 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 2 | LocalPresentation |
@@ -112,17 +113,45 @@ flowchart LR
 
 `HeldAppearanceRuntime` 在每个客户端读取原版同步的持有关系，按类型维护观察者外观；宽体/大头无需新玩法协议。`VisualRigCopy` 只创建 Transform、MeshFilter、MeshRenderer、SkinnedMeshRenderer，以原生网格、材质与骨骼姿态构造自有视觉副本。入口为完整 `WorldRigInstance`，不能把实际指向颈部的 `RigGameObject` 当作整个人物；空骨骼槽保留，外部蒙皮引用只复制所需骨骼链并换算相对坐标。隐藏原网格时保存并按所有权恢复 `forceRenderingOff`，不缩放玩家根节点或碰撞，不复制脚本、网络、AI、音效与粒子玩法。宽体的手持显示副本一起变形，避免原尺寸物品悬在变矮的角色上方；物理、库存和网络物品保持原样。角色替换、释放、死亡、断线和销毁均清理副本。第一人称不额外显示自己的世界模型。
 
+转交时先清理失去实际持有关系的旧外观，再创建新持有者外观，避免同一手持物把旧效果的隐藏值当作原状态保存。持有关系在 Tick 后失效时，渲染前也释放外观。宽体和怪相不写原版 `scaleMultiplier`，不负责撤销原版缩小等状态；还原后继续使用原版当时的角色尺寸。
+
 怪相的服务器候选池由原版 `MonsterEntity` 游戏事件生成、当前待生成实体及重生登记构成，历史种类在显式游戏重置、棋盘更换或会话退出时清理；不包括仅存在于资源库但尚未进入本局的事件、手工生成怪物或游荡雕像。`_boardCompleted=true` 可与有效待生成队列并存，不能单独据此清空历史或拒绝队列。空池使用 `weepingAngelPrefab`。每次拾取只选一次，转交/再次拾取重抽，持有期间不随池变化变脸。历史集合不写入原版存档，读档后以当前原版实体/队列及后续登记重新积累。
+
+候选选择时按原版实体类型排除 `CursedPlayer`（假队友）与 `DoorMonsterEntity`（门怪），历史、当前排队与兜底使用同一规则。过滤只作用于怪相选择，共享模板解析与声音查询仍保留两类；不改变原版生成、历史记录或其他怪物的资格，不以名称子串判断类型。此选择规则随怪相 ContentVersion=12 生效。
 
 模板解析同时读取 Mirror 列表与原版事件管理器的怪物引用，兼容网络根下的实体；模板存在不代表进入候选池。事件管理器替换时重建缓存，真实生成种类不因当时模板未加载而丢弃；补充原版服务器怪物登记入口，并在拾取时立即刷新活跃实体和当前队列。DebugMode 开启时，每次有效拾取记录抽中名称/assetId、完整候选与是否兜底，另列模板数量、历史数量、棋盘完成标记、测试房标记、活跃怪物与队列来源。关闭调试不输出这些拾取诊断。
 
-`MonsterDisguiseRuntime` 以消息号 `0x4D4C` 周期发送完整当前选择表（雕像 netId、持有者 netId、原版怪物 assetId）。接收验证当前服务器连接、认证、Ready、清单、版本、类型、长度、上限、单调序列、重复身份和已知原版资源；尚未生成的物品等待后续快照，空表移除旧状态。处理器不覆盖冲突，断线/会话切换清空。外观只借用原版网格及闲置/移动动画片段，在视觉副本上显式采样。非 Legacy 片段的目标带一个停用、无控制器的 Animator，仅借用 avatar，关闭动画事件与 root motion；不运行原版状态机或 AI。采样后重新应用位置和显示角色的朝向，避免动画根曲线覆盖外观挂接。
+`MonsterDisguiseRuntime` 以消息号 `0x4D4C`、协议 2 周期发送完整当前选择表（雕像 netId、持有者 netId、原版怪物 assetId、持有 Revision）。每次新持有产生非零 Revision，即使同人重拿同一雕像并抽中同种怪物，旧请求也失效。接收验证当前服务器连接、认证、Ready、清单、版本、类型、长度、上限、单调序列、重复身份和已知原版资源；尚未生成的物品等待后续快照，空表移除旧状态。服务端与客户端处理器均不覆盖冲突，断线/会话切换清空。外观借用原版网格及闲置/移动/可选攻击片段，在视觉副本上显式采样。非 Legacy 片段的目标带一个停用、无控制器的 Animator，仅借用 avatar，关闭动画事件与 root motion；不运行原版状态机或 AI。采样后重新应用位置和显示角色的朝向，避免动画根曲线覆盖外观挂接。
+
+攻击表演复用原版 `UseItem → InventoryNew.CliOnUseInput`，默认鼠标左键／手柄右扳机 RT／R2，沿用原版改键与设备切换；不增加右键入口。仅实际本机持有怪相时消费此输入，控制权、存活、菜单/F8、兼容和 Ready 门禁通过后提交请求。服务器校验当前连接、真实持有/控制归属、完整选择及 Revision、递增序号和冷却，再向兼容 Ready 客户端发送一次性动作事件。请求与播放使用同消息号的独立 Kind，不进入选择快照，晚加入/重连不补播。
+
+每个模板缓存攻击片段和可选声音。优先匹配明确的原版攻击事件标记，其次匹配攻击名称，并排除待机、移动、蓄势、恢复、死亡等片段；这里只读取事件信息，绝不调用动画事件。声音取当前怪物的攻击音，MoneyGuy 优先攻击发声字段，缺失时回退其通用攻击音；仅接受有效三维一次性事件。动作和声音独立，缺一项仍可播放另一项，两者都没有则忽略。声音通过原版 `TargetPlayOneShot` 从持有者当前位置发出；仅在该有效发声分支，由服务器复用 `IdolHearing.Emit` 登记一次范围参数为 18 的普通玩家来源听觉事件，与疑神使用同一持有校验、来源、Tag 和寿命规则。只有声音也登记，只有动作/声音无效或未发出则不登记；客户端播放、重复/拒绝请求及晚加入快照不重复添加。真实怪物按原版听觉和行为决定是否调查，不强制目标或仇恨，不执行怪物 AI 攻击、伤害、碰撞或体力处理。
+
+攻击期间按事件经过时间采样一次，优先于移动片段，走路不会打断；结束恢复闲置/移动，没有这些片段则恢复模板姿态。动作及短恢复期间的重复输入忽略，客户端与服务器双重限频。放下、转交、死亡、销毁、持有/角色关系失效及断线清除动作；已发出的原版一次性声音自然结束，退出房间/切场景由原版清理。冷却依据动画时长设置下限，当前 FMOD 接口未提供声音时长，长音效在下一次获准表演时仍可能重叠。持有者普通第一人称提前跳过世界外观创建，避免逐帧分配攻击回调；仍可触发其他玩家看到的表演。
 
 怪相由每个客户端为其他玩家建立外观：隐藏原身体、所持雕像及手电外观，显示选中的怪物。持有者本机第一人称不创建外观副本或隐藏状态，保留原版雕像显示和手电照明；本机使用原版世界角色观察视角时仍显示伪装。匹配检查随本机角色/视角变化释放状态，渲染前再检查一次，以覆盖 Tick 后切回第一人称的情况。观察者客户端仅在渲染上下文中临时停用该持有者的实例 Light，结束时恢复该次渲染前的 enabled 状态；原开关、闪烁、强度与感知逻辑在帧间正常运行，不改网络开关或玩法状态。释放、库存/角色或手电对象替换时清理副本，按所有权恢复 renderer 和尚未释放的灯光修改；原本隐藏的 renderer 保持隐藏，其他逻辑已改写的灯光属性不覆盖。
+
+世界嘴部白雾单独通过 `PlayerWorldRigController.ColdMouthVfx` 归属，不依赖一次性层级 Renderer 收集。原版在 Frozen 且存活时播放该 VisualEffect，其余情况停止；观察者端在怪相显示期间临时设置该实例 `enabled=false`，保留原值，对象替换时释放旧状态并重建。释放时只恢复自有停用，再调用原版 `CliRefreshWorldVfx` 按当前地图和存活状态决定播放/停止，避免重启 VFX 时误用拿起前的环境。持有者自己的 `localColdMouthVfx` 相机效果不处理，自我预览也不额外停用自己的白雾；不改温度、语音、血量、HUD 或其他 VFX。
+
+怪相保留怪物模板根的原版世界缩放及内部模型比例，不再统一到人体高度，也不乘以玩家自身缩小倍率。此尺寸只作用于怪物视觉副本，玩家碰撞、移动、动作资格、受击和仇恨仍走原版；无对应动画的下蹲、奔跑和跳跃不新增动作适配。观察者看到的头顶昵称只临时停用对应 TMP 组件，原版名字、昵称设置和淡入淡出继续保留；释放时恢复原 enabled 值，对象替换时重建。死亡观察者不影响活持有者的外观资格；持有者死亡则释放伪装。原版贴近被观察者的镜头仍按原视角工作，不保证从角色眼睛位置看到完整怪物模型。
+
+持有者每次有效拿起后等待一份新的服务器快照，再从背后以第三人称预览 2.25 秒，通过 `CliSetFreeCamWorldRig` 显示本机怪物。只在普通站立/蹲姿 POV 与本机操作就绪时开始，不调用换装流程或切换原版相机状态，不改变角色移动或库存。预览取选中怪物视觉副本的有效 renderer 世界包围盒，围绕玩家竖轴计算覆盖转向的包围球，按固定预览视角、实际屏幕宽高比和余量确定距离；只测量一次，不随逐帧动画包围盒反复缩放。镜头跟随玩家平移，方向读取原版已处理的视角目标，保持在转向后的背后；俯仰限制避免翻转到模型下方，键盘/鼠标与手柄仍沿用原版输入。
+
+第三人称位置、旋转、近远裁剪和投影只在 `BeginCameraRendering` 至 `EndCameraRendering` 临时应用，渲染异常由 finalizer 兜底恢复；原版输入、瞄准及角色朝向不会读回第三人称镜头形成跟随反馈。首次实际绘制时开始 0.25 秒缓动，从每帧正常 POV 平滑移向背后取景，并衔接旋转、裁剪和投影；不改保存的 FOV 或原版换装镜头。约 2.25 秒后，或正常放下/换拿/转交时，从当前进度用 0.25 秒返回；返回允许短暂超出持有状态，始终要求同一存活角色、普通 POV 和相机仍就绪。死亡、菜单、断线、角色/镜头替换、原版换装接管和卸载立即释放。转场镜头位于测量的身体包围范围内时，仅在本机此次绘制中隐藏怪物副本及原身体 Renderer，结束后恢复，避免内部表面露出。
+
+普通相机恢复自动投影，原本显式/物理投影恢复相应模式，其他逻辑已改写的字段不覆盖。快照重复不重播，再次拿起同一只/同一种也可重播，返回期间重新拿起仍等待该次拾取的新快照。未开始预览不接管世界模型显隐，原版换装接管时保留其世界模型显示。镜头未加入场景遮挡避让，狭窄空间可能被墙体挡住；真实旋转稳定性、逐种包围盒/动画和多人恢复仍需游戏回测。怪相 ContentVersion=13。
+
+怪相外观实例按 `Time.frameCount` 每帧最多推进一次移动判定、动作选片、片段时间和骨骼混合。同帧其他渲染上下文复用已采样姿态，仍处理角色/视角失效、身体与昵称隐藏、世界白雾/灯光及模型位置、旋转、尺寸和显隐；不因零时间差误切待机并重置走路片段。标记归属于外观实例，重拿、换模型或角色后新实例可在同帧正常采样。攻击时钟、移动阈值、片段选择与播放速度保持原规则，未按怪物体型调整步频。
+
+0.2.50 已移除复现期间的动画采集器、周期日志、骨骼检查、画面提示和专用参数；预览统一恢复上述短时规则，不再由 DebugMode 延长或取消。历史采样与雪怪实机结果见 DEVELOPMENT；其他调试工具及必要生命周期/异常日志保留。
 
 `HeldScreenEffect` 在原生最终渲染结束后，通过 CommandBuffer 复制当前画面并运行内嵌着色器，因此场景与 HUD 同受像素化、白线或径向畸变。只对实际持有者的第一人称游戏相机启用；菜单、调试面板、聊天、死亡/角色或镜头替换、断线/释放均停用。白线从已渲染颜色提取边缘，不读取墙后物体。宽体另在渲染及本地原版交互检测期间临时降低相机并改变水平投影，保持准星与检测一致，结束后恢复自有写入；不修改保存的设置。画面资源构建见 [ScreenEffects](../Assets/ScreenEffects/README.md)。
 
 宽体在常规 `BeginCameraRendering` 相机参数覆盖之后读取当帧投影，再临时拉伸；不写 FOV、远近裁剪或宽高比。每次保存原投影模式，结束时仅在当前矩阵/模式仍属于宽体的情况下恢复：自动模式调用 `ResetProjectionMatrix`，物理模式恢复 `usePhysicalProperties`，已有自定义模式还原原矩阵。不能只把旧矩阵写回自动相机，这会残留 Explicit 模式，使后续近景 FOV 与测试房视距不能更新投影；也不能对物理相机统一重置，因为重置会切换为普通自动模式。其他逻辑在作用期间更新的相机参数、位置或投影按原有所有权保留。
+
+临时相机覆盖遵守后进先出（LIFO）的逆序恢复。`HeldCameraOverrides` 统一负责当前三种渲染覆盖，固定应用顺序为宽体 → 倒立 → 怪相预览，结束严格按怪相预览 → 倒立 → 宽体撤销；不依赖各类型独立 Harmony 补丁的注册顺序。怪相正常返回可以超出持有状态，返回终点包含新持有雕像当帧的视角；过渡本身保留。单层只恢复仍属于自己的字段，共用入口保证本 MOD 的上层先撤销，避免将中间投影误当成其他 MOD 的修改而丢失恢复记录。
+
+正常渲染结束、渲染异常 finalizer，以及更新/释放效果前的清理均使用同一逆序收尾；某层清理异常仍继续撤销其余层，故障清理重入不会重复启动收尾。共用退出先于测试房视距等基础参数的恢复。宽体的原版交互检测另经同一入口只应用宽体，不让第三人称预览进入原版瞄准；显式测试房外观检查期间不叠加这三种渲染覆盖。新增临时相机效果必须接入共用入口，明确应用/撤销次序，并验证跨效果快速换拿、退出过渡中取消、死亡与相机替换；不能各自添加一对无顺序保证的渲染补丁。原生阶段的近景 FOV 和最终画面滤镜继续按各自阶段执行，保留其原有所有权与恢复规则。
 
 0.2.18 暂停注册 spring，因此不创建其资源、不入自然池，也不在 F8 或测试房中列出。其跳跃补丁入口已移除，不随 PatchAll 安装；恢复启用时需要重新接入原生跳跃补丁并单独验收。旧效果源码及 key、配置 ID `0x4D49000000000002`、assetId `0x4D490002` 保留，不能转给别的内容；没有把已有 spring 存档自动改成 jumping。升级后重开房间并让所有端使用匹配清单。
 
@@ -167,7 +196,7 @@ flowchart LR
 
 自 0.2.16 起，bank 可以提供 `OnServerEmission` 回调；在上述校验通过并记下序号/冷却后、广播前仅执行一次。鸭步定义在自己的回调中调用 `HearingSenseManager.AddVolumeEvent(holder.transform, NoiseRange)`，内置 NoiseRange=18，来源为持有玩家，沿用普通双参数重载的 audience=null、ignoreRange=false 与原版寿命/清理。这里不要求服务器角色 isOwned 或等于 EntityManager.Me，以支持远端持有者；仅客户端播放、重复/拒绝请求均不会添加噪声。
 
-怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新声响事件，已发出的声音按原版寿命自然消失。弹跳注册 OnServerEmission，经去重/冷却后调用共用 IdolHearing，新增一次普通玩家来源事件；客户端回放不新增噪声。疑神使用同一入口，以持有者为声音和听觉来源，不再重定位事件。跳跃失败/手动动作不新增弹簧音效请求，服务器接受的音效与听觉回调一一对应；无需改动音效报文格式。
+怪物继续使用原版听觉列表和自身感知/目标选择，不强行修改怪物状态、听觉配置或目标。18 是声源范围参数，不保证半径内每只怪物立即追踪。DebugMode/玩家音量不控制听觉玩法；放下后不生成新声响事件，已发出的声音按原版寿命自然消失。弹跳注册 OnServerEmission，经去重/冷却后调用共用 IdolHearing，新增一次普通玩家来源事件；客户端回放不新增噪声。疑神与怪相的有效攻击发声使用同一入口，以持有者为声音和听觉来源；怪相的无声动作不登记。跳跃失败/手动动作不新增弹簧音效请求，服务器接受的音效与听觉回调一一对应；无需改动音效报文格式。
 
 报文固定长度，检查 magic/version/manifest、来源、通道、数量范围、未知 netId、重复序号及非有限位置。连接 ID 复用按实际连接指针清旧记录，处理器重建/卸载只管理自己的委托。事件无快照，不向晚加入者重放旧声响；当前实例与持有状态仍由原版生成/SyncVar 恢复。全部客户端需要兼容 bank 与内容版本。双端真实听感和时序仍待验收。
 
@@ -271,6 +300,8 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 名称开关不影响顶部谏言，不修改玩法、稳定身份、网络状态或兼容清单；本次本机 UI 文案适配不提升 ContentVersion。原版交互动作、输入标签与价格格式继续由原交互 UI 负责，开发表格中的简介不加入游戏。F8 清单与测试房标签仍使用 MOD 定义名和稳定 key，不扩大原版测试房陈列范围。`jumping` 正式显示名为“弹跳雕像”。
 
+定义可用 `HideHintsWhileHeld` 隐藏实际存活持有期间的物品名和顶部谏言，目前怪相启用。依据实际 `ItemOwner` 与库存手持项共同判定，放下或失去关系立即回到常规显示；不改名称开关、原版配置或交互资格。通用 UI 只读取定义标记，不包含逐种玩法判断。该外观行为随怪相 ContentVersion=6 生效。
+
 顶部说明读取本机 PlayerInteraction 的原版 Hovered 目标，通过原版 GetRealInteractable 解析碰撞体上的交互代理，再识别实际雕像。沿用原版距离、遮挡和目标选择，不增加独立射线或按类型分支。只在角色具有控制权、存活、Ready 且兼容时显示；移开、菜单、死亡、失去控制或断线即隐藏。独立 TMP 标签复用原版顶部消息的字体、布局和共享材质，不写原版文本或消息队列，也不截断教程。
 
 说明使用独立 ScreenSpaceOverlay Canvas，不继承原版 UI 根节点的隐藏状态；按原版消息的屏幕位置、字号及缩放布局，原布局无效时回退到屏幕顶部。原版 IsDisplayed 只检查自身 CanvasGroup.alpha，因此不能用它或消息队列非空作为持续屏蔽条件。现检查实际对象/文字/父级透明度；普通 globalMessageUi/messageUi 可见时，把谏言移到下一行。Show/ShowForDuration 的淡入首帧提前预留该行，不改原版文本或队列；全屏旁白仍隐藏谏言。UI 替换、断线及正常卸载销毁自有画布/标签，不销毁借用的字体/材质。表现异常只停用短说明并记录一次错误，不停止雕像玩法。诊断受 DebugMode 控制，功能本身不受此开关控制。
@@ -282,7 +313,8 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 调试 UI 是 MOD 自有 F8 窗口，不依赖场景中缺失的原版控制台。命令和配置的使用说明见 [README](../README.md)。
 
 - DebugMode 默认 false，统一控制测试窗口、调试操作与诊断日志；关闭 F8 不改变配置开关。效果启动/停止、逐次起跳/脚步/音效、输入变化和倍率观测均受此开关控制，周期诊断有节流。关闭 DebugMode 清理诊断活动，不影响雕像玩法，注册/兼容状态与异常日志保留。
-- list / spawn <key> 与全部生成按钮从注册清单生成；按钮使用固定高度的滚动区域，宽窗口两列、窄窗口一列，类型增加不扩大窗口。按钮和命令共用生成队列，在关闭窗口、恢复控制后下一帧执行。每种同时最多一只手动实例，出售/销毁后释放配额；自然实例不占配额。
+- MOD 的 list / spawn <key> 与全部雕像生成按钮从注册清单生成；按钮使用固定高度的滚动区域，宽窗口两列、窄窗口一列，类型增加不扩大窗口。按钮和命令共用生成队列，在关闭窗口、恢复控制后下一帧执行。每种同时最多一只手动实例，出售/销毁后释放配额；自然实例不占配额。
+- 原版 `list` / `spawn <key>` 从 SOItemLookup.scoreTools 按请求读取，排除本插件已注册配置、零/重复 ID、缺失 ScoreTool/预制体、MissingPieceTool 与 MonsterEntity；名称从配置名规范化生成，不维护逐项名单。无同名 MOD 时可省略 original:，list 显示短名称；同名短名称保持 MOD 优先，原版须加 original:。原版内部重名使用配置 ID，显式 original:<名称/配置ID> 保持兼容。只扩展命令与滚动结果，不追加原版按钮；共享既有地面/空间检查和皮肤/价值初始化，短名称与显式前缀共用按配置 ID 管理的手动配额，不交给 MOD 内容同步。独立 Linked 的原版无父 SpawnTool 缓存协程，在本次显式原版 F8 生成的同步调用范围内跳过；不改变自然生成或原版其他入口，作用标记在异常时也恢复。
 - 标题栏拖动仅占用自有鼠标控件，松开或关闭时释放；窗口位置在本次插件运行期间保留，拖动及分辨率变化时限制在屏幕内。滚动区域成对结束，绘制异常沿用关闭窗口与恢复输入的流程，不使用控件命名/自动聚焦入口。
 - 命令提交在 TextField 消费事件之前捕获 Return / KeypadEnter 的 KeyDown；消费该事件后与 Run 按钮共用一次 Execute，不在 Tick 中重复监听回车。
 - 直接 SrvSpawnToolOnGround 不包含自然批次的皮肤/价值初始化。调试生成读取 idolsScoreData，未指定皮肤时选 Bronze，用原版 Skin / CurrentValue 同步 setter 初始化；不要调用下节的越界包装。
@@ -290,6 +322,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 - next / revive 及对应按钮仅房主执行，关闭窗口后排队，不要求房主角色能移动，允许死亡房主复活。next 要求 BoardGameTool.SnapPoint 非空，棋盘未放上桌时只提示，不结束事件；再调用当前事件的 SrvGameEventCompleted，等待无事件且棋盘可玩，以随机 1–6 点调用 SrvMovePawn，沿原版棋子/事件/换房同步。棋盘移动等待只读 _currentPawnMoveCompleted.Count；SrvAllPawnMoveCompleted 会触发完成回调并清空状态，禁止当作查询调用。棋盘替换、终局、过渡、已排队的骰子动作或不兼容玩家阻止推进，专用测试房拒绝；不额外扫描或清理桌上骰子。revive 遍历连接就绪的原版用户角色，对已死亡者取得原版出生位置，显式构造 IL2CPP Nullable 传入 SrvResurrect 和各自 MaxHealthSync，复活成功后必要时用同步 setter 补满；对当前血量大于零的存活受伤者直接用同步 setter 补满，不复活或移动，满血者不重复写入。复用原版同步，不新增协议；请求沿用会话/角色变化、超时和关闭调试时取消。
 - DEV 四按钮同排：下一关、复活、无敌开关、全体存活玩家传送；雕像生成滚动区和整行定位按钮保持。新增操作沿用服务器队列与恢复输入流程，不要求棋盘已放置。无敌只写 EntityManager.Me 的原版 IsInvulnerable，保存先前值；关闭开关、DebugMode 关闭、角色/连接替换、退出或死亡时撤销仍为自有写入的值，不覆盖先前免伤，关闭窗口不撤销。传送按原版用户列表筛选血量大于零、非 Dead/Dying 且连接已认证/Ready 的角色，以 SrvTryGetPlayerSpawnPosition 取得各自位置和朝向，再通过所属 PlayerMovement.TargetTeleport 执行；无出生点者跳过，不修改血量或生命周期。
 - NEXT 在基础 busy 条件中增加 Flow.Instance 非空时的 Flow.IsPlaying 检查：播放时拒绝新 NEXT，已进入 AdvancePawn 阶段则沿用原请求等待，仍受原有超时限制。SrvMovePawn 后仍释放请求，保留 2 秒间隔；未增加独立特殊事件判断或完整异步等待/去重，不保证覆盖所有房间生成窗口。SrvAllFlowCompleted 与 SrvAllPawnMoveCompleted 一样会执行回调并清空确认表，不能当只读查询调用；研究及日志结论见 DEVELOPMENT。
+- 雪人/猎人各一个生成／移除按钮，位于原四个 DEV 按钮下方；仅房主正常关卡可生成，沿用关闭窗口后排队，并检查存活角色/控制、兼容就绪与 Flow/房间过渡。确认原版 prefab 的 NavMeshAgent.agentTypeID=0 后，读取其 areaMask，使用整数掩码版 SamplePosition/CalculatePath 原生接口；非默认类型仅提示，不调用当前恢复 IL 有误的过滤器版 CalculatePath。在房主前方 10～15 米内采样，检查高度、实体地面、碰撞空间与完整导航路径，失败不创建实体或随机远距兜底。克隆后在 NetworkServer.Spawn 前设置 Manual 来源，再调用 SrvMonsterSpawnNoDelay 的指定位置重载；不切换事件、不指定目标、不改听觉或 AI，不进入怪相自然候选。每种只保存自己的 GameObject 引用，移除/失败回滚/关闭 DebugMode/会话或棋盘替换只销毁这两个自有对象，不按类型扫描自然怪；关闭 F8 保留怪物，怪物自然销毁后可重新生成。
 
 专用测试房要求 --ces-test-room、DebugMode=true、TestRoomEnabled=true 同时满足，普通启动不会自动建房。它沿原版 KCP 流程开本机单人会话，跳过 Logo，在初始房门外建立陈列房、打开连接门并放置玩家；只允许本地连接，阻止事件/怪物生成和存档写入，不自动补刷展品。
 
@@ -308,7 +341,8 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 | 路径 | 已确认问题及当前处理 |
 | --- | --- |
 | TryGetIdolSkinData(out FIdolScoreMaterialData) | 包装只分配 8 字节，原生值为 24 字节，存在越界；禁止调用，改读 idolsScoreData 装箱条目 |
+| NavMesh.CalculatePath(..., NavMeshQueryFilter, NavMeshPath) | 当前恢复 IL 对引用类型 filter 使用 ldarga 调用实例 getter，导致错误对象访问及崩溃风险；默认导航类型 0 改用直接转发原生的 int areaMask 重载，其他类型先拒绝，不进入恢复的过滤器/Span 路径 |
 | ImageConversion.LoadImage | 本机包装走缺失的 ReadOnlySpan 方法；便签使用已核对的 LoadRawTextureData(IntPtr,int) 上传完整 RGBA mip 链 |
 | GUI.SetNextControlName / 自动聚焦流程 | 本机 SetNextControlName 触发 ReadOnlySpan.GetPinnableReference 缺失异常；窗口避免控件命名/FocusControl 自动聚焦，异常时关闭 |
 
-详细发现和替代路径验证保留在 [DEVELOPMENT](../DEVELOPMENT.md) 的调试闪退、便签与测试窗口记录中。原生缓存位置/二进制哈希保存在本机 `.local/ENVIRONMENT.md`（若存在）；反汇编前核对实际 GameAssembly，不直接使用旧 RVA。原版资源快照见 [idol-defaults.json](../research/idol-defaults.json)、[itemset-defaults.json](../research/itemset-defaults.json)、[test-room-pedestal.json](../research/test-room-pedestal.json)。
+详细发现和替代路径验证保留在 [DEVELOPMENT](../DEVELOPMENT.md) 的调试闪退、便签、测试窗口与 0.2.44 导航接口修复记录中。原生缓存位置/二进制哈希保存在本机 `.local/ENVIRONMENT.md`（若存在）；反汇编前核对实际 GameAssembly，不直接使用旧 RVA。原版资源快照见 [idol-defaults.json](../research/idol-defaults.json)、[itemset-defaults.json](../research/itemset-defaults.json)、[test-room-pedestal.json](../research/test-room-pedestal.json)。

@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.38";
+    public const string PluginVersion = "0.2.50";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -187,18 +187,19 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     {
         if (_failed || !DebugTools.Enabled) return SpawnFailure("Debug spawn is disabled. Check the error log or set Debug.DebugMode=true and restart.");
         if (!NetworkServer.active) return SpawnFailure("Only the host can spawn test idols.");
-        if (!Registry.Ready || !Registry.TryGet(key, out var entry) || entry.Data == null)
+        var isMod = Registry.TryGet(key, out var entry);
+        var data = isMod ? entry.Data : DebugTools.Catalog.TryGet(key, out var original) ? original : null;
+        if (!Registry.Ready || data == null)
             return SpawnFailure($"Unknown or unready idol '{key}'; use list in the F8 test console.");
         if (!Sync.AllReadyPeersCompatible) return SpawnFailure("Test spawn blocked: a ready peer has not passed content compatibility.");
         Sync.Prune();
-        if (Sync.HasDebugIdol(entry.Definition.ConfigId))
+        if (isMod ? Sync.HasDebugIdol(data.Id) : DebugTools.Catalog.HasInstance(data.Id))
             return SpawnFailure($"A test idol of type '{key}' already exists. Debug allows one per type; sell/destroy it before spawning another. Natural idols do not count.");
         var player = EntityManager.Me;
         if (player == null || !ControlsReady(player))
             return SpawnFailure("Local player/controls are not ready. Close menus and try again.");
         var manager = ItemDropManager.instance;
         if (manager == null) return SpawnFailure("ItemDropManager is not ready.");
-        var data = entry.Data;
         var forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
         var right = Vector3.Cross(Vector3.up, forward);
         var scale = Mathf.Abs(data.unequippedScale);
@@ -239,11 +240,12 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         if (!position.HasValue)
             return SpawnFailure($"No spawn position: floorHits={floorHits}/18, blocked={blockedPositions}, "
                 + $"itemLayer={data.prefab.layer}, collisionMask={collisionMask}, center={center}, extents={extents}. Move to an open area and retry.");
-        var idol = SpawnDebugIdol(manager, data, position.Value);
+        var idol = isMod ? SpawnDebugIdol(manager, data, position.Value) : DebugTools.Catalog.Spawn(manager, data, position.Value);
         if (idol == null) return false;
-        Sync.Track(idol, true);
+        if (isMod) Sync.Track(idol, true);
+        else DebugTools.Catalog.Track(data, idol);
         Log.LogInfo($"[Debug spawn] {key}: netId={idol.netId}, skin={idol.Skin}, value={idol.CurrentValue}, position={position.Value}, "
-            + $"allTypeDebugCount={Sync.ServerDebugCount}, debugLimit=1 per type.");
+            + $"allTypeDebugCount={Sync.ServerDebugCount + DebugTools.Catalog.InstanceCount}, debugLimit=1 per type.");
         return true;
     }
 

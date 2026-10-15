@@ -4,6 +4,8 @@ using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using _200_Dev.Entities;
+using _200_Dev.Entities.Monster.Mimic;
+using _200_Dev.Entities.Monsters.CursedPlayer;
 
 namespace CalypsoExpansionSet.Idols;
 
@@ -155,7 +157,7 @@ internal sealed class NativeMonsterCatalog : IDisposable
     {
         Tick(force: true);
         target.Clear();
-        foreach (var id in _entered) if (Resolve(id) != null) target.Add(id);
+        foreach (var id in _entered) if (CanDisguise(Resolve(id))) target.Add(id);
         // Queued does not mean spawned: cancelled pending entries must disappear
         // from the pool instead of becoming permanent history.
         var events = GameEventManager.Instance;
@@ -166,19 +168,24 @@ internal sealed class NativeMonsterCatalog : IDisposable
                 var monster = queued?.Entity;
                 var id = AssetId(monster);
                 if (monster != null && monster.GetComponent<ScoreTool>() == null && id != 0
-                    && Resolve(id) != null && !target.Contains(id)) target.Add(id);
+                    && CanDisguise(Resolve(id)) && !target.Contains(id)) target.Add(id);
             }
         target.Sort();
         if (target.Count != 0) return false;
         var fallback = GameEventManager.Instance?.weepingAngelPrefab;
         var fallbackId = AssetId(fallback);
-        if (fallback != null && fallbackId != 0)
+        if (CanDisguise(fallback) && fallbackId != 0)
         {
-            _prefabs[fallbackId] = fallback;
+            _prefabs[fallbackId] = fallback!;
             target.Add(fallbackId);
         }
         return true;
     }
+
+    // Keep these native templates available to the shared sound catalog, but
+    // exclude player impersonation and door-bound entities from disguises.
+    private static bool CanDisguise(MonsterEntity? template) => template != null
+        && template.TryCast<CursedPlayer>() == null && template.TryCast<DoorMonsterEntity>() == null;
 
     internal IEnumerable<MonsterEntity> AllPrefabs()
     {

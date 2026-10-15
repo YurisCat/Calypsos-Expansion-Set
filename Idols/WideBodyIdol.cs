@@ -2,7 +2,6 @@ using CalypsoExpansionSet.Visuals;
 using Entities.Player.Behaviours;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.Rendering;
 using User;
 using _200_Dev.Entities.Player.Behaviours.Camera;
 
@@ -18,7 +17,7 @@ internal sealed class WideBodyIdol : HeldIdolEffect
     {
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "压缩拉长，宽体横梁",
-        ContentVersion = 3,
+        ContentVersion = 4,
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_wide_body"),
         CreateRuntime = () => new HeldAppearanceRuntime(ConfigId,
             player => StretchedPlayerAppearance.Create(player, new Vector3(1.8f, 0.65f, 1f), 1f))
@@ -34,6 +33,7 @@ internal sealed class WideBodyIdol : HeldIdolEffect
     public override void Start(HeldIdolContext context) { Dispose(); _context = context; _faulted = false; }
     public override void Tick(HeldIdolContext context)
     {
+        HeldCameraOverrides.End();
         Release();
         _context = context;
         if (!_faulted && LocalHeldGuard.Ready(context, ConfigId)) _active = this;
@@ -105,27 +105,13 @@ internal sealed class WideBodyIdol : HeldIdolEffect
         CalypsoExpansionSetPlugin.Instance?.Log.LogError($"Wide-body camera disabled until released: {error}");
     }
 
-    public override void Dispose() { Release(); if (_active == this) _active = null; _context = default; }
-}
-
-[HarmonyPatch(typeof(RenderPipelineManager), "BeginCameraRendering")]
-internal static class WideBodyCameraBeginPatch
-{
-    // Read the projection after normal camera-parameter overrides, including
-    // the test room's far clip. No other camera setting is changed here.
-    [HarmonyPostfix, HarmonyPriority(Priority.Last)]
-    private static void Postfix(Camera camera) => WideBodyIdol.Begin(camera);
-}
-[HarmonyPatch(typeof(RenderPipelineManager), "EndCameraRendering")]
-internal static class WideBodyCameraEndPatch
-{
-    [HarmonyPrefix] private static void Prefix(Camera camera) => WideBodyIdol.End(camera);
-}
-[HarmonyPatch(typeof(RenderPipelineManager), "DoRenderLoop_Internal")]
-internal static class WideBodyCameraFinallyPatch
-{
-    [HarmonyFinalizer]
-    private static Exception? Finalizer(Exception? __exception) { WideBodyIdol.End(); return __exception; }
+    public override void Dispose()
+    {
+        HeldCameraOverrides.End();
+        Release();
+        if (_active == this) _active = null;
+        _context = default;
+    }
 }
 
 // Native hover uses the output camera as well. Give it the same temporary
@@ -142,13 +128,13 @@ internal static class WideBodyInteractionCameraPatch
         var camera = SetFovShakeData.Instance?._cam;
         if (camera == null) return;
         __state = camera;
-        WideBodyIdol.Begin(camera);
+        HeldCameraOverrides.BeginInteraction(camera);
     }
 
     [HarmonyFinalizer]
     private static Exception? Finalizer(Camera? __state, Exception? __exception)
     {
-        if (__state != null) WideBodyIdol.End(__state);
+        if (__state != null) HeldCameraOverrides.End(__state);
         return __exception;
     }
 }

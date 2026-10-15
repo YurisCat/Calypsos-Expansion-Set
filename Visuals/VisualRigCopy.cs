@@ -130,6 +130,21 @@ internal sealed class VisualRigCopy : IDisposable
 
     internal Transform? CopiedTransform(Transform source) => Map(source);
 
+    internal bool TryGetBounds(out Bounds bounds)
+    {
+        bounds = default;
+        var found = false;
+        foreach (var drawing in _drawings)
+        {
+            var renderer = drawing.Copy;
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
+            if (!found) bounds = renderer.bounds;
+            else bounds.Encapsulate(renderer.bounds);
+            found = true;
+        }
+        return found;
+    }
+
     internal void SyncPose()
     {
         if (_root == null || _source == null) return;

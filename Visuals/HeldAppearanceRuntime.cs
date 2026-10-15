@@ -40,6 +40,7 @@ internal sealed class HeldAppearanceRuntime : IdolContentRuntime
         var users = UserInstancesManager.Instance;
         if (!NetworkClient.isConnected || !NetworkClient.ready || plugin?.Sync.ClientCompatible != true || users == null)
         { Clear(); return; }
+        ReleaseStale();
         _seen.Clear();
         foreach (var user in users.All())
         {
@@ -81,6 +82,21 @@ internal sealed class HeldAppearanceRuntime : IdolContentRuntime
             && idol != null && idol.netId != 0 && idol.ItemOwner == player && idol.SoItem?.Id == configId;
     }
 
+    private static void ReleaseStale()
+    {
+        // Release across types before any new owner/type captures shared body
+        // or prop visibility. Registration/user order must not preserve our hide.
+        foreach (var runtime in Instances)
+        {
+            runtime._removed.Clear();
+            foreach (var pair in runtime._states)
+                if (!Held(pair.Value.Player, runtime._configId, out var held) || held != pair.Value.Idol)
+                    runtime._removed.Add(pair.Key);
+            foreach (var id in runtime._removed)
+            { runtime._states[id].Appearance.Dispose(); runtime._states.Remove(id); }
+        }
+    }
+
     internal static void RenderAll()
     {
         if (!NetworkClient.isConnected || !NetworkClient.ready
@@ -95,6 +111,7 @@ internal sealed class HeldAppearanceRuntime : IdolContentRuntime
                 {
                     if (Held(state.Player, runtime._configId, out var idol) && idol == state.Idol)
                         state.Appearance.Render();
+                    else state.Appearance.Dispose();
                 }
                 catch (Exception error) { runtime.Fault(pair.Key, state.Idol, error, remove: false); }
             }

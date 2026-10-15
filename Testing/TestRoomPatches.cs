@@ -14,7 +14,7 @@ using _200_Dev.BoardGameLogic.Elements.Tool.ToolExtension;
 
 namespace CalypsoExpansionSet.Testing;
 
-// Every patch is inert unless both debug settings and the dedicated launch argument are present.
+// Gallery patches require the dedicated test launch; the standalone Linked guard also covers explicit F8 original spawns.
 [HarmonyPatch(typeof(SplashManager), "OnPlay")]
 internal static class TestSkipLogosPatch
 {
@@ -96,8 +96,8 @@ internal static class TestStandaloneLinkedIdolPatch
     {
         // Native WaitDiceInitCoroutine only inserts this extension into its parent
         // SpawnTool cache. Ground-spawned reference idols have no such parent.
-        if (!TestRoomLaunch.IsActive || __instance.spawnTool != null) return true;
-        CalypsoExpansionSetPlugin.Instance!.Log.LogInfo("[Test room] standalone Linked idol has no SpawnTool parent; skipped that parent's cache-registration coroutine.");
+        if ((!TestRoomLaunch.IsActive && !IdolDebugCatalog.SpawningOriginal) || __instance.spawnTool != null) return true;
+        CalypsoExpansionSetPlugin.Instance!.Log.LogInfo("[Debug spawn] standalone Linked idol has no SpawnTool parent; skipped that parent's cache-registration coroutine.");
         return false;
     }
 }

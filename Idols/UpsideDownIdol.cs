@@ -1,7 +1,6 @@
 using CalypsoExpansionSet.Visuals;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.Rendering;
 using User;
 using _200_Dev.Entities.Player.Behaviours.Camera;
 
@@ -17,7 +16,7 @@ internal sealed class UpsideDownIdol : HeldIdolEffect
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "上下翻转，左右不管",
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "todo_upside_down"),
-        ContentVersion = 6
+        ContentVersion = 7
     };
     private static UpsideDownIdol? _active;
     private HeldIdolContext _context;
@@ -30,6 +29,7 @@ internal sealed class UpsideDownIdol : HeldIdolEffect
     public override void Start(HeldIdolContext context) { Dispose(); _context = context; _faulted = _logged = false; }
     public override void Tick(HeldIdolContext context)
     {
+        HeldCameraOverrides.End();
         _context = context;
         Release();
         if (CanApply()) _active = this;
@@ -143,6 +143,7 @@ internal sealed class UpsideDownIdol : HeldIdolEffect
     }
     public override void Dispose()
     {
+        HeldCameraOverrides.End();
         Release(); if (_active == this) _active = null; _context = default;
         _nextLookDiagnostic = _nextMoveDiagnostic = 0;
     }
@@ -162,22 +163,4 @@ internal static class UpsideDownLookPatch
     [HarmonyPostfix]
     private static void Postfix(InputsManager __instance, ref Vector2 __result)
         => UpsideDownIdol.FilterLook(__instance, ref __result);
-}
-
-// Apply only while the world camera is rendering, not while input/physics run.
-[HarmonyPatch(typeof(RenderPipelineManager), "BeginCameraRendering")]
-internal static class UpsideDownRenderBeginPatch
-{
-    [HarmonyPostfix] private static void Postfix(Camera camera) => UpsideDownIdol.Begin(camera);
-}
-[HarmonyPatch(typeof(RenderPipelineManager), "EndCameraRendering")]
-internal static class UpsideDownRenderEndPatch
-{
-    [HarmonyPrefix] private static void Prefix(Camera camera) => UpsideDownIdol.End(camera);
-}
-[HarmonyPatch(typeof(RenderPipelineManager), "DoRenderLoop_Internal")]
-internal static class UpsideDownRenderFinallyPatch
-{
-    [HarmonyFinalizer]
-    private static Exception? Finalizer(Exception? __exception) { UpsideDownIdol.End(); return __exception; }
 }

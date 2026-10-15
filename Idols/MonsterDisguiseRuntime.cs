@@ -6,15 +6,15 @@ using UnityEngine;
 
 namespace CalypsoExpansionSet.Idols;
 
-internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
+internal sealed partial class MonsterDisguiseRuntime : IdolContentRuntime
 {
     internal const ushort MessageId = 0x4D4C;
     internal const uint Magic = 0x43455344;
-    internal const byte Protocol = 1, SnapshotKind = 1;
-    internal const int HeaderLength = 28, EntryLength = 12, MaximumInstances = 256;
+    internal const byte Protocol = 2, SnapshotKind = 1;
+    internal const int HeaderLength = 28, EntryLength = 16, MaximumInstances = 256;
     private static MonsterDisguiseRuntime? _instance;
-    internal readonly record struct Choice(uint Idol, uint Holder, uint Monster);
-    private sealed record ServerRow(ScoreTool Idol, PlayerEntity Holder, uint Monster);
+    internal readonly record struct Choice(uint Idol, uint Holder, uint Monster, uint Revision);
+    private sealed record ServerRow(ScoreTool Idol, PlayerEntity Holder, uint Monster, uint Revision);
     private readonly Dictionary<uint, ServerRow> _server = new();
     private readonly Dictionary<uint, Choice> _client = new();
     private readonly HashSet<uint> _ids = new(), _holders = new();
@@ -23,9 +23,10 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
     private readonly System.Random _random = new();
     private readonly NetworkMessageDelegate _handler;
     private readonly HeldAppearanceRuntime _appearances;
+    private readonly MonsterDisguisePreview _preview = new();
     private IDisposable? _catalogLease;
     private IntPtr _connection;
-    private uint _sentSequence, _receivedSequence;
+    private uint _sentSequence, _receivedSequence, _choiceSequence;
     private float _nextSend;
     private bool _disposed, _serverActive;
 
@@ -33,6 +34,7 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
     {
         if (_instance != null) throw new InvalidOperationException("Monster disguise runtime already exists.");
         _handler = (Action<NetworkConnection, NetworkReader, int>)Receive;
+        _requestHandler = (Action<NetworkConnection, NetworkReader, int>)ReceiveAttackRequest;
         _appearances = new HeldAppearanceRuntime(MonsterDisguiseIdol.ConfigId, CreateAppearance);
         try
         {
@@ -62,7 +64,7 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
         if (service._candidates.Count == 0)
             throw new InvalidOperationException("No native monster candidate or crying mannequin fallback is loaded.");
         var choice = service._candidates[service._random.Next(service._candidates.Count)];
-        service._server[context.Idol.netId] = new ServerRow(context.Idol, context.Holder, choice);
+        service._server[context.Idol.netId] = new ServerRow(context.Idol, context.Holder, choice, Next(ref service._choiceSequence));
         service._nextSend = 0;
         if (plugin.DebugTools.Enabled)
         {
@@ -86,6 +88,7 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
         if (_disposed) return;
         EnsureHandler();
         NativeMonsterCatalog.Current.Tick();
+        TickAttacks();
         var plugin = CalypsoExpansionSetPlugin.Instance;
         if (plugin == null || plugin.RuntimeFailed) { Dispose(); return; }
         if (NetworkServer.active && plugin.Registry.Ready)
@@ -112,6 +115,8 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
             || !connection.isAuthenticated || !plugin.Sync.ClientCompatible)
         { ClearClient(); _appearances.Tick(); return; }
         if (_connection != connection.Pointer) { ClearClient(); _connection = connection.Pointer; }
+        var local = _200_Dev.Entities.EntityManager.Me;
+        _preview.Tick(local != null ? ChoiceFor(local) : 0, _receivedSequence);
         _appearances.Tick();
     }
 
@@ -121,12 +126,7 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
         try
         {
             _sentSequence++; if (_sentSequence == 0) _sentSequence++;
-            writer.WriteUShort(MessageId);
-            writer.WriteUInt(Magic);
-            writer.WriteByte(Protocol);
-            writer.WriteByte(SnapshotKind);
-            writer.WriteULong(plugin.Registry.Manifest);
-            writer.WriteULong(MonsterDisguiseIdol.ConfigId);
+            WriteHeader(writer, SnapshotKind, plugin);
             writer.WriteUInt(_sentSequence);
             writer.WriteUShort((ushort)_server.Count);
             foreach (var pair in _server)
@@ -134,6 +134,7 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
                 writer.WriteUInt(pair.Key);
                 writer.WriteUInt(pair.Value.Holder.netId);
                 writer.WriteUInt(pair.Value.Monster);
+                writer.WriteUInt(pair.Value.Revision);
             }
             foreach (var peer in NetworkServer.connections.Values)
                 if (Eligible(peer, plugin)) peer.Send(writer.ToArraySegment(), 0);
@@ -152,9 +153,12 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
                 || !NetworkClient.isConnected || !NetworkClient.ready || source == null || !source.isAuthenticated
                 || source.Pointer != connection.Pointer || channel != 0 || reader.Remaining < HeaderLength
                 || reader.Remaining > HeaderLength + MaximumInstances * EntryLength
-                || reader.ReadUInt() != Magic || reader.ReadByte() != Protocol || reader.ReadByte() != SnapshotKind
-                || reader.ReadULong() != plugin.Registry.Manifest || reader.ReadULong() != MonsterDisguiseIdol.ConfigId) return;
+                || reader.ReadUInt() != Magic || reader.ReadByte() != Protocol) return;
+            var kind = reader.ReadByte();
+            if (reader.ReadULong() != plugin.Registry.Manifest || reader.ReadULong() != MonsterDisguiseIdol.ConfigId) return;
             if (_connection != source.Pointer) { ClearClient(); _connection = source.Pointer; }
+            if (kind == AttackPlaybackKind) { ReceiveAttackPlayback(reader); return; }
+            if (kind != SnapshotKind) return;
             var sequence = reader.ReadUInt();
             var count = reader.ReadUShort();
             if (sequence == 0 || unchecked((int)(sequence - _receivedSequence)) <= 0 || count > MaximumInstances
@@ -162,8 +166,8 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
             _ids.Clear(); _holders.Clear();
             for (var index = 0; index < count; index++)
             {
-                var choice = new Choice(reader.ReadUInt(), reader.ReadUInt(), reader.ReadUInt());
-                if (choice.Idol == 0 || choice.Holder == 0 || choice.Idol == choice.Holder || choice.Monster == 0
+                var choice = new Choice(reader.ReadUInt(), reader.ReadUInt(), reader.ReadUInt(), reader.ReadUInt());
+                if (choice.Idol == 0 || choice.Holder == 0 || choice.Idol == choice.Holder || choice.Monster == 0 || choice.Revision == 0
                     || !_ids.Add(choice.Idol) || !_holders.Add(choice.Holder) || NativeMonsterCatalog.Current.Resolve(choice.Monster) == null) return;
                 if (NetworkClient.spawned.TryGetValue(choice.Idol, out var known) && known != null
                     && known.GetComponent<ScoreTool>()?.SoItem?.Id != MonsterDisguiseIdol.ConfigId) return;
@@ -192,37 +196,52 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
 
     private IPlayerAppearance? CreateAppearance(PlayerEntity player)
     {
+        if (player == _200_Dev.Entities.EntityManager.Me && !player.UseFreeCamWorldRig) return null;
         var asset = ChoiceFor(player);
         if (asset == 0) return null;
         var template = NativeMonsterCatalog.Current.Resolve(asset);
         if (template == null) return null;
-        var appearance = MonsterPlayerAppearance.Create(player, template);
-        return appearance != null ? new ChosenAppearance(this, asset, appearance) : null;
+        var profile = AttackProfile(asset, template);
+        if (!HeldAppearanceRuntime.Held(player, MonsterDisguiseIdol.ConfigId, out var idol)
+            || !_client.TryGetValue(idol!.netId, out var choice) || choice.Monster != asset) return null;
+        var appearance = MonsterPlayerAppearance.Create(player, template, profile.Clip, AttackClock(choice));
+        return appearance != null ? new ChosenAppearance(this, choice, appearance) : null;
     }
 
     private sealed class ChosenAppearance : IPlayerAppearance
     {
         private readonly MonsterDisguiseRuntime _owner;
-        private readonly uint _asset;
+        private readonly Choice _choice;
         private readonly IPlayerAppearance _inner;
-        internal ChosenAppearance(MonsterDisguiseRuntime owner, uint asset, IPlayerAppearance inner)
-        { _owner = owner; _asset = asset; _inner = inner; }
-        public bool Matches(PlayerEntity player) => _owner.ChoiceFor(player) == _asset && _inner.Matches(player);
+        internal ChosenAppearance(MonsterDisguiseRuntime owner, Choice choice, IPlayerAppearance inner)
+        { _owner = owner; _choice = choice; _inner = inner; }
+        public bool Matches(PlayerEntity player) => _owner._client.TryGetValue(_choice.Idol, out var current) && current == _choice
+            && _owner.ChoiceFor(player) == _choice.Monster && _inner.Matches(player);
         public void Render() => _inner.Render();
         public void Dispose() => _inner.Dispose();
     }
 
     private void EnsureHandler()
     {
-        if (NetworkServer.handlers.ContainsKey(MessageId)) throw new InvalidOperationException("Disguise snapshot message ID conflicts with a server handler.");
+        if (NetworkServer.handlers.TryGetValue(MessageId, out var serverHandler))
+        {
+            if (serverHandler.Pointer != _requestHandler.Pointer) throw new InvalidOperationException("Disguise message ID conflicts with a server handler.");
+        }
+        else NetworkServer.handlers.Add(MessageId, _requestHandler);
         if (NetworkClient.handlers.TryGetValue(MessageId, out var existing))
         {
             if (existing.Pointer != _handler.Pointer) throw new InvalidOperationException("Disguise snapshot message ID conflicts with a client handler.");
         }
         else NetworkClient.handlers.Add(MessageId, _handler);
     }
-    private void ClearServer() { _server.Clear(); _sentSequence = 0; _nextSend = 0; _serverActive = false; }
-    private void ClearClient() { _client.Clear(); _receivedSequence = 0; _connection = IntPtr.Zero; }
+    private void ClearServer()
+    { _server.Clear(); _attackPeers.Clear(); _sentSequence = _eventSequence = _choiceSequence = 0; _nextSend = 0; _serverActive = false; }
+    private void ClearClient()
+    {
+        _preview.Dispose(); _client.Clear(); _attacks.Clear(); _receivedSequence = _receivedAttack = _requestSequence = 0;
+        _attackProfiles.Clear();
+        _connection = IntPtr.Zero; _nextAttackRequest = 0;
+    }
 
     internal static void TransportReset(bool server, bool shutdown = false)
     {
@@ -242,11 +261,20 @@ internal sealed class MonsterDisguiseRuntime : IdolContentRuntime
         _disposed = true;
         ClearServer(); ClearClient();
         _appearances.Dispose();
+        _attackProfiles.Clear();
         _catalogLease?.Dispose(); _catalogLease = null;
         if (NetworkClient.handlers.TryGetValue(MessageId, out var current) && current.Pointer == _handler.Pointer)
             NetworkClient.handlers.Remove(MessageId);
+        if (NetworkServer.handlers.TryGetValue(MessageId, out current) && current.Pointer == _requestHandler.Pointer)
+            NetworkServer.handlers.Remove(MessageId);
         if (_instance == this) _instance = null;
     }
+}
+
+[HarmonyPatch(typeof(NetworkServer), "RegisterMessageHandlers")]
+internal static class DisguiseServerHandlersPatch
+{
+    [HarmonyPostfix] private static void Postfix() => MonsterDisguiseRuntime.TransportReset(true);
 }
 
 [HarmonyPatch(typeof(NetworkClient), "RegisterMessageHandlers")]
