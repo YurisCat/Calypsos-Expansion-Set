@@ -1,16 +1,16 @@
-# 雕像顶部谏言
+# 雕像顶部箴言
 
-顶部谏言以短句提示雕像特征。中文优先采用四字双句，尽量押韵、保持节奏对称，已经确认的文案按原文保留。英文采用原创尾韵双句，参考《勇敢者游戏》（1995）棋盘谜语的节奏与诙谐警告语气；不照搬电影台词，不为押韵添加未经确认的玩法。详细机制及参数放在使用说明和设计文档中，谏言不承担完整玩法说明。
+顶部箴言以短句提示雕像特征。中文优先采用四字双句，尽量押韵、保持节奏对称，已经确认的文案按原文保留。英文采用原创尾韵双句，参考《勇敢者游戏》（1995）棋盘谜语的节奏与诙谐警告语气；不照搬电影台词，不为押韵添加未经确认的玩法。详细机制及参数放在使用说明和设计文档中，箴言不承担完整玩法说明。
 
-中文 MOD 文案来自类型定义的 `ShortDescription`，中文原版文案来自 `UI/OriginalIdolAdvice.cs`；英文名称与谏言集中在 `UI/IdolTextLocalization.cs`，按实际配置 ID、key 和原版/MOD 身份匹配。英文用分号分隔两句，同样不含换行且不超过 80 字符。简介仅供开发参考，不作为游戏提示。
+中文 MOD 文案来自类型定义的 `ShortDescription`，中文原版文案来自 `UI/OriginalIdolAdvice.cs`；英文名称与箴言集中在 `UI/IdolTextLocalization.cs`，按实际配置 ID、key 和原版/MOD 身份匹配。英文用分号分隔两句，同样不含换行且不超过 80 字符。简介仅供开发参考，不作为游戏提示。
 
-名称和谏言跟随本机游戏的 I2 语言设置：中文及其地区变体保留现有中文，英文及其他尚无译文的语言使用英文；这不代表已提供其他语言翻译。运行中切换语言后，最多约半秒更新语言选择，下次指向刷新采用新文案，无需重启或新增 CFG。未初始化时先使用英文；读取异常保留上次语言并重试。真实字体、长句布局和原生交互 UI 刷新仍需游戏验收。
+名称和箴言跟随本机游戏的 I2 语言设置：中文及其地区变体保留现有中文，英文及其他尚无译文的语言使用英文；这不代表已提供其他语言翻译。运行中切换语言后，最多约半秒更新语言选择，下次指向刷新采用新文案，无需重启或新增 CFG。未初始化时先使用英文；读取异常保留上次语言并重试。真实字体、长句布局和原生交互 UI 刷新仍需游戏验收。
 
-`[UI] ShowIndividualIdolNames=true` 时显示以下正式名称；关闭时原版保留原名，MOD 按语言统一显示“卡里普索拓展包雕像”或“Calypso's Expansion Set Idol”。名称开关不影响顶部谏言。终局雕像、缺失拼图的名称未指定，两个开关状态都保留原名。
+`[UI] ShowIndividualIdolNames=true` 时显示以下正式名称；关闭时原版保留原名，MOD 按语言统一显示“卡里普索拓展包雕像”或“Calypso's Expansion Set Idol”。名称开关不影响顶部箴言。终局雕像、缺失拼图的名称未指定，两个开关状态都保留原名。
 
 ## 原版雕像
 
-| 原版类型 | 中文名称 | 中文谏言 | 英文名称 | 英文谏言 |
+| 原版类型 | 中文名称 | 中文箴言 | 英文名称 | 英文箴言 |
 | --- | --- | --- | --- | --- |
 | 普通记分 | 普通雕像 | 普普通通，搬运轻松 | Plain Idol | No hidden hex, no secret bite; just bear this burden home tonight. |
 | 游荡 | 游荡雕像 | 雕像长腿，不追后悔 | Wandering Idol | It sprouts two legs and flees your hold; give chase before the trail grows cold. |
@@ -38,7 +38,7 @@
 
 当前启用十四种；0.2.30 公开稳定版曾暂停怪相，0.2.33 整合版保留修正后的怪相注册。下表按当前启用清单列出已确认文案。
 
-| 雕像 | key | 中文谏言 | 英文名称 | 英文谏言 |
+| 雕像 | key | 中文箴言 | 英文名称 | 英文箴言 |
 | --- | --- | --- | --- | --- |
 | 大头雕像 | big_head_fisheye | 大头大头，凹眼凸头 | Big Head Idol | Your head swells large, the edges bend; a fish-eyed world awaits you, friend. |
 | 迟钝雕像 | delayed_move | 延迟输入，容易走步 | Sluggish Idol | You bid your feet to turn or stay; they heed your wish a beat away. |

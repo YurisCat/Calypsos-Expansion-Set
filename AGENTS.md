@@ -11,7 +11,7 @@
 | 当前模块、注册、自然生成、同步与调试设计 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | 安装、配置、命令与测试房操作 | [README.md](README.md) |
 | 便签网格、纹理和图案导入 | [Assets/StickyNote/README.md](Assets/StickyNote/README.md) |
-| 指向名称、顶部谏言与文案风格 | [docs/IDOL_ADVICE.md](docs/IDOL_ADVICE.md)；显示流程见设计说明 |
+| 指向名称、顶部箴言与文案风格 | [docs/IDOL_ADVICE.md](docs/IDOL_ADVICE.md)；显示流程见设计说明 |
 | 游戏研究、历史实现及各版本验收证据 | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | 对用户可见的版本变化 | [CHANGELOG.md](CHANGELOG.md) |
 | 本地需求选择、备注与实时工作台 | [docs/WORKBENCH.md](docs/WORKBENCH.md)；交付目录存在时读取需求数据和需求进度 |
@@ -36,7 +36,7 @@
 - 保留原版 seed、生成总数、难度、事件、biome/tag、掉落点、房间分布、计价和皮肤初始化。权重衰减与类型上限按原版真实批次处理，不通过额外生成条目增加总数，不每小局重设权重。
 - 外观模板与自然池匹配分开；新增范围必须确认目标是雕像候选池。入池不保证抽中，未入池与入池未生成分别记录；保留地图/恢复事件不一定重新生成。
 - 默认继承所选模板，只改明确需要的属性，不改共享 ScriptableObject、材质或原版预制体。实例视觉优先 MaterialPropertyBlock；自有资源由明确所有者清理，不给纯视觉附件增加网络组件。
-- 顶部谏言优先四字双句，新增或修改尽量押韵、保持节奏对称；已确认文案按原文保留，当前对照见 [谏言文案](docs/IDOL_ADVICE.md)。
+- 顶部箴言优先四字双句，新增或修改尽量押韵、保持节奏对称；已确认文案按原文保留，当前对照见 [箴言文案](docs/IDOL_ADVICE.md)。
 
 ## 执行端与生命周期
 

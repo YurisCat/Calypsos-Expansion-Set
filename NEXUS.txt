@@ -99,7 +99,7 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [center][size=6][color=#B78A50][b]卡里普索拓展包[/b][/color][/size][/center]
 
-[center]为 Invokyr 添加 14 种搬运挑战各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向谏言。[/center]
+[center]为 Invokyr 添加 14 种搬运挑战各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向箴言。[/center]
 
 
 [size=4][color=#B78A50][b]雕像一览[/b][/color][/size]
@@ -183,13 +183,13 @@ Detailed setup, testing and limitations are on GitHub below.
 关闭棋盘进度棋子的碰撞，方便移动和踢骰子；显示、动画、棋盘、骰子及事件棋子保持正常。各端独立生效，联机建议一致。
 
 [b]ShowIndividualIdolNames = false[/b]
-开启显示游戏语言对应的名称；关闭保留原版名称，MOD 使用对应语言的统一名称，谏言照常显示。
+开启显示游戏语言对应的名称；关闭保留原版名称，MOD 使用对应语言的统一名称，箴言照常显示。
 
 [b]DebugMode = false[/b]
 可选测试工具与日志；开启后按 F8 打开生成窗口（仅房主生成），正常玩法无需调试模式。
 [/spoiler]
 
-[i]名称与谏言跟随游戏语言，支持中文与英文，其他语言暂回退英文。[/i]
+[i]名称与箴言跟随游戏语言，支持中文与英文，其他语言暂回退英文。[/i]
 
 [i]当前为开发版本，完整联机与存读档兼容仍待验证；接力疲劳和怪相候选历史不入存档。[/i]
 
