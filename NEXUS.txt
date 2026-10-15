@@ -6,46 +6,46 @@
 [size=4][color=#B78A50][b]The Idols[/b][/color][/size]
 
 [b][color=#B78A50]01 ·[/color] Jumping[/b]
-Repeats normal-strength jumps with random jump sounds.
+Makes you jump continuously, with random jump sounds.
 
 [b][color=#B78A50]02 ·[/color] Close-Up[/b]
-Smoothly zooms in when picked up and restores your view when put down.
+Zooms your view in while carrying it.
 
 [b][color=#B78A50]03 ·[/color] Voice-Controlled[/b]
-[b]Microphone volume drives forward movement[/b], replacing keyboard/gamepad directions; turning and other actions remain available. Shared eyes: red when idle, blue when sound permits movement.
+Use your microphone to move forward: make noise to move, go quiet to stop.
 
 [b][color=#B78A50]04 ·[/color] Upside-Down[/b]
-[b]Flips the view[/b], reverses both look axes and left/right movement; forward/backward movement, HUD and menus stay normal.
+Flips your view upside down and reverses looking and left/right movement.
 
 [b][color=#B78A50]05 ·[/color] Duck-Step[/b]
-Random duck calls accompany your footsteps.
+Makes random duck calls as you walk.
 
 [b][color=#B78A50]06 ·[/color] Extreme-Speed[/b]
-Continuous horizontal movement at [b]5× normal walking speed[/b], even while crouching, jumping or in menus. Steer on the ground; direction locks in the air. No sprint boost; put it down to stop.
+Keeps you moving at five times normal walking speed.
 
 [b][color=#B78A50]07 ·[/color] Delayed-Movement[/b]
-Movement changes and releases arrive [b]0.3 seconds late[/b]; looking and interacting stay immediate.
+Movement and stopping respond with a short delay.
 
 [b][color=#B78A50]08 ·[/color] Relay[/b]
-Carrying builds fatigue and slows ground/air movement; [b]passing to someone else resets it[/b]. Putting it down only pauses fatigue. Rules follow the living-player count, with gentler solo rules; shared eyes fade from green to red.
+The longer you carry it, the slower you move; pass it to someone else to recover your speed.
 
 [b][color=#B78A50]09 ·[/color] Suspicious[/b]
-Random monster sounds come [b]from the holder[/b] and can draw hearing-capable monsters to them.
+Random monster sounds come from you and may attract monsters.
 
 [b][color=#B78A50]10 ·[/color] Wide-Body[/b]
-Wider, shorter body with a lower, stretched view; [b]collision size stays normal[/b].
+Makes your body wider and shorter, with a lower, stretched view.
 
 [b][color=#B78A50]11 ·[/color] Monster-Disguise[/b]
-Each pickup chooses a monster appearance from this run's spawned or pending/respawning types, falling back to the weeping doll. Hides the held idol and flashlight while carried; grants no monster powers or targeting changes.
+Gives you a random monster appearance each time you pick it up.
 
 [b][color=#B78A50]12 ·[/color] Pixel[/b]
-Pixelates the world and HUD.
+Turns your view into pixel art.
 
 [b][color=#B78A50]13 ·[/color] Outline[/b]
-White outlines on black for the world and HUD; [b]no seeing through walls[/b].
+Turns your view into white outlines on a black background.
 
 [b][color=#B78A50]14 ·[/color] Big-Head[/b]
-Others see your enlarged head; you get a strong fisheye view of the world and HUD.
+Gives you a huge head and a strong fisheye view.
 
 
 [size=4][color=#B78A50][b]Shared Notes[/b][/color][/size]
@@ -55,7 +55,6 @@ Others see your enlarged head; you get a strong fisheye view of the world and HU
 
 [*]Jumping, Duck-Step and Suspicious sounds can be heard nearby and can alert monsters.[/*]
 
-[*]Pixel, Outline and Big-Head menus remain clear.[/*]
 [/list]
 
 
@@ -106,46 +105,46 @@ Detailed setup, testing and limitations are on GitHub below.
 [size=4][color=#B78A50][b]雕像一览[/b][/color][/size]
 
 [b][color=#B78A50]01 ·[/color] 弹跳[/b]
-按原版力度自动连续跳跃，随机播放起跳音效。
+自动连续跳跃，伴随随机起跳音效。
 
 [b][color=#B78A50]02 ·[/color] 近景[/b]
-拿起平滑放大视野，放下平滑恢复。
+拿起后镜头拉近，视野放大。
 
 [b][color=#B78A50]03 ·[/color] 声控[/b]
-[b]麦克风音量驱动前进[/b]，替代键盘／手柄方向输入，仍可转向和执行其他动作；待机红眼、声音允许前进时蓝眼，全员可见。
+用麦克风声音控制前进，出声就走，安静就停。
 
 [b][color=#B78A50]04 ·[/color] 倒立[/b]
-[b]画面倒立[/b]，视角双轴及左右移动反向；前后移动、HUD 与菜单正常。
+画面上下颠倒，视角与左右移动反向。
 
 [b][color=#B78A50]05 ·[/color] 鸭步[/b]
-走路时跟随脚步随机鸭叫。
+走路时随机发出鸭叫声。
 
 [b][color=#B78A50]06 ·[/color] 极速[/b]
-持续以[b]正常步行的五倍水平速度[/b]移动，蹲下、跳跃和菜单中也不停；地面可换向，空中锁方向，奔跑不加速，放下停止。
+拿起后以五倍步行速度持续移动。
 
 [b][color=#B78A50]07 ·[/color] 迟钝[/b]
-移动方向与松键[b]延迟 0.3 秒[/b]，视角和交互即时。
+移动与停步都会慢半拍。
 
 [b][color=#B78A50]08 ·[/color] 接力[/b]
-累计持有越久，地面与空中移动越慢；[b]换人清空疲劳[/b]，放下仅暂停。规则随存活人数切换，单人较宽松；眼睛随疲劳由绿渐红，全员可见。
+拿得越久走得越慢，换人接力恢复速度。
 
 [b][color=#B78A50]09 ·[/color] 疑神[/b]
-[b]持有者身上[/b]随机传来怪物声音，可能引来有听觉的怪物。
+身上随机传出怪物叫声，可能引来怪物。
 
 [b][color=#B78A50]10 ·[/color] 宽体[/b]
-身体变宽变矮，视点降低、画面横向拉伸，[b]实际碰撞体积不变[/b]。
+身体变宽变矮，视角降低、画面拉宽。
 
 [b][color=#B78A50]11 ·[/color] 怪相[/b]
-每次拿起随机变为本局已生成、待生成或待重生的怪物外观，空池使用哭泣人偶；持有时隐藏雕像与手电光，不获得怪物能力或改变仇恨。
+每次拿起，都会随机变成一种怪物的模样。
 
 [b][color=#B78A50]12 ·[/color] 像素[/b]
-场景与 HUD 一起像素化。
+画面变成像素风格。
 
 [b][color=#B78A50]13 ·[/color] 描边[/b]
-场景与 HUD 变为黑底白线，[b]不透视墙后物体[/b]。
+画面变成黑底白线，勾勒物体轮廓。
 
 [b][color=#B78A50]14 ·[/color] 大头[/b]
-他人看见大头角色，持有者的场景与 HUD 呈现强烈鱼眼畸变。
+头部变大，视野带有夸张的鱼眼效果。
 
 
 [size=4][color=#B78A50][b]通用说明[/b][/color][/size]
@@ -155,7 +154,6 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [*]弹跳、鸭步与疑神的声音附近玩家可听见，也可能引起怪物注意。[/*]
 
-[*]像素、描边与大头的菜单保持清晰。[/*]
 [/list]
 
 

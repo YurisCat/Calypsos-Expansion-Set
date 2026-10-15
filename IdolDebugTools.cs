@@ -1,16 +1,21 @@
 using BepInEx.Configuration;
+using Entities.Player;
+using EnvironmentElements;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using User;
+using _200_Dev.BoardGameLogic;
 using _200_Dev.Entities;
+using _200_Dev.FlowLogic;
 
 namespace CalypsoExpansionSet;
 
 internal sealed class IdolDebugTools : IDisposable
 {
-    private enum DebugAction { Spawn, Teleport }
-    private sealed record DebugRequest(DebugAction Action, string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires);
+    private enum DebugAction { Spawn, Teleport, NextRound, AdvancePawn, ReviveAll, ToggleInvulnerability, TeleportAllHome }
+    private sealed record DebugRequest(DebugAction Action, string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires,
+        IntPtr Board = default);
     private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly ConfigEntry<bool> _enabled;
     private readonly Key _windowKey;
@@ -20,7 +25,11 @@ internal sealed class IdolDebugTools : IDisposable
     private bool _previousCursorVisible;
     private DebugRequest? _pending;
     private string _command = "spawn jumping";
-    private string _result = "Commands: list | status | spawn <key> | teleport\nExample: spawn jumping";
+    private string _result = "Commands: list | status | spawn <key> | teleport | next | revive\nExample: spawn jumping";
+    private float _nextRoundAfter;
+    private PlayerEntity? _invulnerablePlayer;
+    private IntPtr _invulnerableConnection;
+    private bool _previousInvulnerability;
     private GUIStyle? _resultStyle;
     private Rect _windowRect;
     private bool _windowPositioned;
@@ -63,6 +72,12 @@ internal sealed class IdolDebugTools : IDisposable
     internal void Tick()
     {
         if (!Enabled) { Cancel(); return; }
+        if (_invulnerablePlayer is { } protectedPlayer
+            && (protectedPlayer == null || !NetworkServer.active || !NetworkClient.ready
+                || EntityManager.Me == null || EntityManager.Me.Pointer != protectedPlayer.Pointer
+                || NetworkClient.connection == null || NetworkClient.connection.Pointer != _invulnerableConnection
+                || protectedPlayer.CurrentHealthSync <= 0 || !protectedPlayer.IsInvulnerable))
+            RestoreInvulnerability();
         var keyboard = Keyboard.current;
         if (keyboard != null && _windowKey != Key.None && keyboard[_windowKey].wasPressedThisFrame)
         {
@@ -78,11 +93,32 @@ internal sealed class IdolDebugTools : IDisposable
             || connection == null || connection.Pointer != pending.Connection || Time.realtimeSinceStartup > pending.Expires)
         {
             _pending = null;
-            Report("Debug action cancelled: player/session changed or controls did not resume. Close other menus and retry.", true);
+            Report("Debug action cancelled: player/session changed or action timed out. Wait for transitions, close other menus and retry.", true);
             return;
         }
-        if (!_plugin.LocalGameplayReady(player)) return;
+        var sessionAction = pending.Action is DebugAction.NextRound or DebugAction.AdvancePawn or DebugAction.ReviveAll
+            or DebugAction.ToggleInvulnerability or DebugAction.TeleportAllHome;
+        // Session tools must also work while the host is dead or seated at the board.
+        if (sessionAction ? PanelOpen || Time.timeScale <= 0f : !_plugin.LocalGameplayReady(player)) return;
         _pending = null;
+        if (sessionAction)
+        {
+            try
+            {
+                if (!NetworkClient.ready || _plugin.RuntimeFailed)
+                    Report("Debug action unavailable: session is not ready or the plugin failed.", true);
+                else if (pending.Action == DebugAction.ReviveAll) ReviveAll();
+                else if (pending.Action == DebugAction.ToggleInvulnerability) ToggleInvulnerability();
+                else if (pending.Action == DebugAction.TeleportAllHome) TeleportAllHome();
+                else NextRound(pending);
+            }
+            catch (Exception exception)
+            {
+                Report("Debug action failed; check the log before retrying.", true);
+                _plugin.Log.LogError(exception);
+            }
+            return;
+        }
         if (pending.Action == DebugAction.Teleport) _plugin.Teleports.TryTeleportNext(string.IsNullOrEmpty(pending.Key) ? null : pending.Key);
         else if (_plugin.SpawnNearPlayer(pending.Key))
             Report($"Spawned {pending.Key} near you. Open {_windowKey} again for another command.");
@@ -130,7 +166,7 @@ internal sealed class IdolDebugTools : IDisposable
         switch (words[0].ToLowerInvariant())
         {
             case "help" when words.Length == 1:
-                Report("list: types | status: registry / network\nspawn <key>: spawn near you\nteleport [key]: next matching MOD idol\nvisual <key> texture|white|flat: local note comparison");
+                Report("list: types | status: registry / network\nspawn <key>: spawn near you\nteleport [key]: next matching MOD idol\nnext: advance round with a random 1-6 roll (host)\nrevive: revive dead players and fully heal all players (host)\nvisual <key> texture|white|flat: local note comparison");
                 break;
             case "list" when words.Length == 1:
                 Report("Available types: " + string.Join(", ", _plugin.Registry.Entries.Select(entry => entry.Definition.Key)));
@@ -143,6 +179,12 @@ internal sealed class IdolDebugTools : IDisposable
                 break;
             case "teleport" when words.Length is 1 or 2:
                 QueueTeleport(words.Length == 2 ? words[1].ToLowerInvariant() : "");
+                break;
+            case "next" when words.Length == 1:
+                QueueSessionAction(DebugAction.NextRound);
+                break;
+            case "revive" when words.Length == 1:
+                QueueSessionAction(DebugAction.ReviveAll);
                 break;
             case "visual" when words.Length == 3:
                 if (!Enabled || !_plugin.Registry.Ready || !_plugin.Registry.TryGet(words[1], out var visualEntry)
@@ -192,6 +234,145 @@ internal sealed class IdolDebugTools : IDisposable
         Close();
     }
 
+    private void QueueSessionAction(DebugAction action)
+    {
+        if (!Enabled || _plugin.RuntimeFailed) { Report("Debug session tools are disabled.", true); return; }
+        var player = EntityManager.Me;
+        var connection = NetworkClient.connection;
+        if (!NetworkServer.active || !NetworkClient.ready || player == null || connection == null)
+        { Report("Only the host in a ready game session can use these debug session tools.", true); return; }
+        if (_pending != null) { Report("A debug action is already pending; wait for it to finish.", true); return; }
+        var board = BoardGameManager.Instance;
+        _pending = new DebugRequest(action, "", player.Pointer, connection.Pointer, Time.frameCount,
+            Time.realtimeSinceStartup + 10f, board != null ? board.Pointer : IntPtr.Zero);
+        Close();
+    }
+
+    private void NextRound(DebugRequest request)
+    {
+        var board = BoardGameManager.Instance;
+        var events = GameEventManager.Instance;
+        var zone = ZoneManager.Instance;
+        var rules = board != null ? board.BoardGameRulesEngine : null;
+        if (Testing.TestRoomLaunch.IsActive)
+        { Report("next is unavailable in the gallery: native game events are disabled there.", true); return; }
+        if (board == null || board.BoardGameTool == null || board.BoardGameTool.SnapPoint == null)
+        { Report("Place the board on the table before using next.", true); return; }
+        if (board == null || board.Pointer != request.Board || !board.SrvIsActive || rules == null
+            || board.PawnManager == null || events == null || events.CurrentGameEventData == null || zone == null
+            || rules.AllAgentsHaveFinished() || !_plugin.Sync.AllReadyPeersCompatible)
+        { Report("next requires an active board and compatible ready players; finish loading / start a board first.", true); return; }
+        // SrvAllPawnMoveCompleted also fires gameplay callbacks; only read pending acknowledgements.
+        var busy = (Flow.Instance != null && Flow.IsPlaying)
+            || events._isCurrentEventLocked || zone._shopSpawnPending || zone._clientsNotReady?.Count > 0
+            || board.PawnManager._currentPawnMoveCompleted?.Count > 0 || board.BoardToolSequencer?._srvCheatToolsQueue?.Count > 0;
+        if (request.Action == DebugAction.NextRound)
+        {
+            if (busy || Time.realtimeSinceStartup < _nextRoundAfter)
+            { Report("Board / room transition or dice action in progress; wait and retry next.", true); return; }
+            if (events.CurrentGameEventDataId != events.NoGameEventId)
+                events.CurrentGameEventData.SrvGameEventCompleted();
+            // Native event completion may finish asynchronously. Move once it is idle.
+            _pending = request with { Action = DebugAction.AdvancePawn, Frame = Time.frameCount };
+            return;
+        }
+        if (busy || events.CurrentGameEventDataId != events.NoGameEventId || board.BoardGameState != EBoardGameState.Playable)
+        { _pending = request; return; }
+        var agent = rules.GetAgent(rules.currentTurnAgentId);
+        if (agent == null || !rules.CanAgentPlay(agent))
+        { Report("No playable current turn; wait for the board or revive dead players first.", true); return; }
+        var roll = UnityEngine.Random.Range(1, 7);
+        rules.SrvMovePawn(roll);
+        _nextRoundAfter = Time.realtimeSinceStartup + 2f;
+        Report($"Advanced the current pawn with debug roll {roll}; native events / room generation continue.");
+    }
+
+    private void ReviveAll()
+    {
+        var revived = 0;
+        var healed = 0;
+        var skipped = 0;
+        var users = UserInstancesManager.Instance;
+        if (users == null) { Report("Player list is not ready; retry after loading.", true); return; }
+        foreach (var user in users.All())
+        {
+            var player = user != null ? user.playerEntity : null;
+            if (player == null || player.EntityStatesRunner == null) continue;
+            var state = player.EntityStatesRunner.GetLifeCycleEsm()?.CurrentStateType;
+            if (state == null) continue;
+            var dead = state == EntityManager.LifeCycleEntityStateType.Dead;
+            if (!dead && player.CurrentHealthSync <= 0) continue;
+            var connection = player.PlayerMovement != null ? player.PlayerMovement.connectionToClient : null;
+            if (connection == null || !connection.isAuthenticated || !connection.isReady || player.MaxHealthSync <= 0)
+            { skipped++; continue; }
+            if (dead)
+            {
+                if (!ZoneManager.SrvTryGetPlayerSpawnPosition(player, out var position, out _))
+                { skipped++; continue; }
+                player.SrvResurrect(new Il2CppSystem.Nullable<Vector3>(position), new Il2CppSystem.Nullable<int>(player.MaxHealthSync));
+                if (player.CurrentHealthSync <= 0) { skipped++; continue; }
+                revived++;
+            }
+            if (player.CurrentHealthSync < player.MaxHealthSync)
+            {
+                player.SrvSetCurrentHealth(player.MaxHealthSync);
+                if (!dead) healed++;
+            }
+        }
+        Report($"Revived {revived} dead player(s); fully healed {healed} living player(s). Skipped {skipped} unready player(s).", skipped > 0);
+    }
+
+    private void ToggleInvulnerability()
+    {
+        if (_invulnerablePlayer is not null)
+        {
+            RestoreInvulnerability();
+            Report("Host damage protection OFF.");
+            return;
+        }
+        var player = EntityManager.Me;
+        if (player == null || player.CurrentHealthSync <= 0)
+        { Report("Revive the host before enabling damage protection.", true); return; }
+        _previousInvulnerability = player.IsInvulnerable;
+        _invulnerablePlayer = player;
+        _invulnerableConnection = NetworkClient.connection!.Pointer;
+        player.IsInvulnerable = true;
+        Report("Host damage protection ON (native damage immunity; other players unchanged).");
+    }
+
+    private void RestoreInvulnerability()
+    {
+        var player = _invulnerablePlayer;
+        _invulnerablePlayer = null;
+        _invulnerableConnection = IntPtr.Zero;
+        // Preserve pre-existing immunity and changes made after our last write.
+        if (player != null && player.IsInvulnerable) player.IsInvulnerable = _previousInvulnerability;
+    }
+
+    private void TeleportAllHome()
+    {
+        var users = UserInstancesManager.Instance;
+        if (users == null) { Report("Player list is not ready; retry after loading.", true); return; }
+        var teleported = 0;
+        var skipped = 0;
+        foreach (var user in users.All())
+        {
+            var player = user != null ? user.playerEntity : null;
+            if (player == null || player.CurrentHealthSync <= 0 || player.EntityStatesRunner == null) continue;
+            var state = player.EntityStatesRunner.GetLifeCycleEsm()?.CurrentStateType;
+            if (state == null || state == EntityManager.LifeCycleEntityStateType.Dead
+                || state == EntityManager.LifeCycleEntityStateType.Dying) continue;
+            var movement = player.PlayerMovement;
+            var connection = movement != null ? movement.connectionToClient : null;
+            if (connection == null || !connection.isAuthenticated || !connection.isReady
+                || !ZoneManager.SrvTryGetPlayerSpawnPosition(player, out var position, out var rotation))
+            { skipped++; continue; }
+            movement!.TargetTeleport(connection, position, rotation);
+            teleported++;
+        }
+        Report($"Teleported {teleported} living player(s) to their native spawn points. Skipped {skipped} unready player(s).", skipped > 0);
+    }
+
     internal void Report(string message, bool warning = false)
     {
         _result = message;
@@ -239,9 +420,15 @@ internal sealed class IdolDebugTools : IDisposable
         DrawSpawnButtons(new Rect(x + 15, y + 125, width - 30, listHeight));
         var actionsY = y + 135 + listHeight;
         if (GUI.Button(new Rect(x + 15, actionsY, width - 30, 30), "Teleport to next MOD idol")) QueueTeleport();
+        var actionWidth = (width - 54f) * 0.25f;
+        if (GUI.Button(new Rect(x + 15, actionsY + 38, actionWidth, 26), "下一关")) QueueSessionAction(DebugAction.NextRound);
+        if (GUI.Button(new Rect(x + 23 + actionWidth, actionsY + 38, actionWidth, 26), "复活")) QueueSessionAction(DebugAction.ReviveAll);
+        if (GUI.Button(new Rect(x + 31 + actionWidth * 2, actionsY + 38, actionWidth, 26),
+                _invulnerablePlayer != null ? "无敌：开" : "无敌：关")) QueueSessionAction(DebugAction.ToggleInvulnerability);
+        if (GUI.Button(new Rect(x + 39 + actionWidth * 3, actionsY + 38, actionWidth, 26), "传送")) QueueSessionAction(DebugAction.TeleportAllHome);
         _resultStyle ??= new GUIStyle { wordWrap = true, fontSize = 14 };
         _resultStyle.normal.textColor = Color.white;
-        GUI.Label(new Rect(x + 15, actionsY + 40, width - 30, 125), _result, _resultStyle);
+        GUI.Label(new Rect(x + 15, actionsY + 78, width - 30, 95), _result, _resultStyle);
         var count = NetworkServer.active ? $"Debug instances: {_plugin.Sync.ServerDebugCount}" : "Spawning is host only";
         GUI.Label(new Rect(x + 15, y + _windowRect.height - 35, width - 30, 25), $"{count}. Max one test idol per type; natural idols excluded.");
     }
@@ -304,6 +491,6 @@ internal sealed class IdolDebugTools : IDisposable
         _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
     }
 
-    internal void Cancel() { _pending = null; Close(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
+    internal void Cancel() { _pending = null; Close(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
     public void Dispose() => Cancel();
 }

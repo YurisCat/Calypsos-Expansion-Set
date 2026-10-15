@@ -287,6 +287,9 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 - 命令提交在 TextField 消费事件之前捕获 Return / KeypadEnter 的 KeyDown；消费该事件后与 Run 按钮共用一次 Execute，不在 Tick 中重复监听回车。
 - 直接 SrvSpawnToolOnGround 不包含自然批次的皮肤/价值初始化。调试生成读取 idolsScoreData，未指定皮肤时选 Bronze，用原版 Skin / CurrentValue 同步 setter 初始化；不要调用下节的越界包装。
 - teleport 按 netId 循环查找存活自然/调试 MOD 雕像，验证地面与角色空间后调用原版 TargetTeleport；关闭窗口恢复控制后下一帧执行，角色/连接变化或超时取消。
+- next / revive 及对应按钮仅房主执行，关闭窗口后排队，不要求房主角色能移动，允许死亡房主复活。next 要求 BoardGameTool.SnapPoint 非空，棋盘未放上桌时只提示，不结束事件；再调用当前事件的 SrvGameEventCompleted，等待无事件且棋盘可玩，以随机 1–6 点调用 SrvMovePawn，沿原版棋子/事件/换房同步。棋盘移动等待只读 _currentPawnMoveCompleted.Count；SrvAllPawnMoveCompleted 会触发完成回调并清空状态，禁止当作查询调用。棋盘替换、终局、过渡、已排队的骰子动作或不兼容玩家阻止推进，专用测试房拒绝；不额外扫描或清理桌上骰子。revive 遍历连接就绪的原版用户角色，对已死亡者取得原版出生位置，显式构造 IL2CPP Nullable 传入 SrvResurrect 和各自 MaxHealthSync，复活成功后必要时用同步 setter 补满；对当前血量大于零的存活受伤者直接用同步 setter 补满，不复活或移动，满血者不重复写入。复用原版同步，不新增协议；请求沿用会话/角色变化、超时和关闭调试时取消。
+- DEV 四按钮同排：下一关、复活、无敌开关、全体存活玩家传送；雕像生成滚动区和整行定位按钮保持。新增操作沿用服务器队列与恢复输入流程，不要求棋盘已放置。无敌只写 EntityManager.Me 的原版 IsInvulnerable，保存先前值；关闭开关、DebugMode 关闭、角色/连接替换、退出或死亡时撤销仍为自有写入的值，不覆盖先前免伤，关闭窗口不撤销。传送按原版用户列表筛选血量大于零、非 Dead/Dying 且连接已认证/Ready 的角色，以 SrvTryGetPlayerSpawnPosition 取得各自位置和朝向，再通过所属 PlayerMovement.TargetTeleport 执行；无出生点者跳过，不修改血量或生命周期。
+- NEXT 在基础 busy 条件中增加 Flow.Instance 非空时的 Flow.IsPlaying 检查：播放时拒绝新 NEXT，已进入 AdvancePawn 阶段则沿用原请求等待，仍受原有超时限制。SrvMovePawn 后仍释放请求，保留 2 秒间隔；未增加独立特殊事件判断或完整异步等待/去重，不保证覆盖所有房间生成窗口。SrvAllFlowCompleted 与 SrvAllPawnMoveCompleted 一样会执行回调并清空确认表，不能当只读查询调用；研究及日志结论见 DEVELOPMENT。
 
 专用测试房要求 --ces-test-room、DebugMode=true、TestRoomEnabled=true 同时满足，普通启动不会自动建房。它沿原版 KCP 流程开本机单人会话，跳过 Logo，在初始房门外建立陈列房、打开连接门并放置玩家；只允许本地连接，阻止事件/怪物生成和存档写入，不自动补刷展品。
 

@@ -2,6 +2,44 @@
 
 本文保留按版本/日期记录的研究、原生证据与编译、模拟、游戏验收历史。历史章节中的“当前”属于记录当时的语境；查询现行实现请看 [设计说明](docs/ARCHITECTURE.md)，最新状态看 [TODO](TODO.md)，使用方式看 [README](README.md)。
 
+## 2026-10-15：0.2.38 NEXT 增加 Flow 播放检查
+
+按测试用途仅在既有 `busy` 条件增加 `Flow.Instance != null && Flow.IsPlaying`，避免未初始化时调用原生静态播放查询。新 NEXT 在播放期间沿用原有提示并返回，不结束事件或移动棋子；已进入 AdvancePawn 等待阶段时保留原请求，Flow 结束后再推进，仍沿用原有超时、2 秒间隔与会话取消。未增加独立事件判断、完整生成等待或额外请求阶段。插件/程序集为 0.2.38，雕像身份与 ContentVersion 保持。
+
+Release/net6.0/x64 编译 0 警告/0 错误；97 项实际 `IdolDebugTools.cs` 托管检查通过，新增播放期间不结束事件/移动、事件完成后开始播放则等待、播放结束后只推进一次，以及无 Flow 实例时不调用静态查询。DLL 0.2.38.0、3,434,496 字节，SHA256 `9F55B3A329A3370D84BABA7C2E77789EC8DA78B5C8C8AD9AB3AFA97BEE639107`。未部署、启动或游戏实测，不能据此宣称原日志重入已解决或所有独立序列已覆盖。
+
+## 2026-10-15：0.2.37 F8 房主免伤与全体存活玩家归位
+
+**实现**：四个 DEV 按钮同排缩小为“下一关 / 复活 / 无敌：关/开 / 传送”，雕像滚动生成与原有整行循环定位保持。新增按钮复用既有服务器请求队列，关闭窗口恢复输入后执行；客户端不能改变游戏状态。无敌开关仅设置房主本机角色的原版 `IsInvulnerable`，保存并恢复先前值；关闭开关、关闭 DebugMode、角色/连接替换、退出会话或死亡时释放，关闭 F8 保留。传送遍历原版用户角色，对血量大于零、非 Dead/Dying 且连接已认证/Ready 者，用 `SrvTryGetPlayerSpawnPosition` 的位置和朝向调用各自 `PlayerMovement.TargetTeleport`；跳过死亡、无出生点或未就绪者，不复活或补血。插件/程序集为 0.2.37，雕像身份、ContentVersion 与网络协议保持。
+
+**原版依据**：当前 GameAssembly SHA256 仍为 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`，interop vhs SHA256 为 `FFA5FEE20B71DAD74BB60BE2434BDA40E6CAC9389CEB389032E129BC574A5B51`。`Entity.IsInvulnerable` 读写角色独立标记，原生 `SrvRecieveDamage`（RVA `0x2F68000`）在该标记开启时将本次伤害置零，再执行原版受击/同步流程；不能据此承诺屏蔽所有直接死亡机制或掉物品表现。原版 `UserCode_CmdRequestTeleportToSpawnPoint`（RVA `0x2F88180`）同样先取原版出生点再传送；本次使用已有 MOD 定位工具所用的 `TargetTeleport`，使所属客户端移动刚体、清理速度并继续原版同步，实际初始房落点和真实多人仍待验。
+
+**NEXT 日志及分析，未修改行为**：本轮读到的 BepInEx 日志加载 0.2.36，未放棋盘时已输出提示；Player.log 在 10:21:23.839 开始 `GED_WeepingAngels`，10:21:24.539 又选择 `GED_TrapCorridor`，10:21:25.033 和 10:21:26.445 两次报 `Cannot begin a new GameEvent while another one is running (GED_WeepingAngels)`，旧事件至 10:21:27.790 才结束。现有请求在调用 `SrvMovePawn` 后即释放，仅 2 秒间隔与局部门禁不足以覆盖后续异步生成/流程完成。10:21:24.588 起另有 `ScoreTool.ApplyEffectOnEyes → Renderer.Internal_GetPropertyBlock` 的 DOTween 空目标报错；发生在房间切换期间，但日志不足以证明同一根因，也不能承诺等待会修复该报错。
+
+可用状态包括 `ZoneManager._clientsNotReady`（生成阶段客户端就绪集合）、`Flow.IsPlaying`、`FlowManager._currentFlowCompleted` 及棋盘状态；尚未找到一个覆盖外部房间生成和所有特殊玩法的统一布尔值。原生 `FlowManager.SrvAllFlowCompleted`（RVA `0x309E310`）会执行回调并清空表，禁止当只读查询。喷火另持有 `GameRoomFlameThrower._srvFlamethrowerSequence`；`GED_GameRoomFlameThrower.CliOnEnd`（RVA `0x2E08430`）有服务器中止序列/恢复开门视觉，`_CliOnBegin_b__16_0`（RVA `0x2E08800`）启动序列并注册结束回调。日志 10:22:05.902 显示 Flow 完成，但本轮退出前未记录喷火事件结束，说明 Flow 完成不能单独当作玩法结束。建议后续保留至多一个 NEXT 请求，等待生成与流程稳定，对喷火等自行结束的事件等待原版结束回调，连续点击不累加；硬跳过需要逐类确认清理，改动更大。本轮按用户要求仅分析，不加入等待或中止逻辑。
+
+**验证**：Release/net6.0/x64 编译 0 警告/0 错误；93 项实际 `IdolDebugTools.cs` 托管替身检查通过，覆盖原有 NEXT/复活门禁，以及仅房主免伤、开关/DebugMode/死亡/会话替换恢复、保留原免伤、关闭 F8 保留，全体存活者按各自位置/朝向/所属连接归位、死亡和未就绪者跳过、不补血/复活、死亡房主发起、四按钮同排和雕像布局保持。DLL 0.2.37.0、3,433,984 字节，SHA256 `BAC83D513E3CC3CC13E2992D7CAC6D0CE963668CB84A10C709449EA007DEFF1C`。未部署、启动或控制游戏，托管替身不能证明原生调用及真实多人正确。
+
+## 2026-10-15：0.2.36 NEXT 未放棋盘保护与只读检查修正
+
+**用户日志与原因**：0.2.35 本机 BepInEx 日志记录 NEXT 抛出原版空引用，调用链为 `SrvAllPawnMoveCompleted → SrvOnAllPawnMoveCompleted → GetPlayerByUserInstanceNetId`。Player.log 的 10:09:25 另有回合不匹配，10:10:06 同轮重复选择事件、随后“Cannot begin a new GameEvent while another one is running”。核对当前 GameAssembly（SHA256 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`）确认 `SrvAllPawnMoveCompleted`（RVA `0x322EF10`）检查通过后会触发完成事件并清空等待表，不是纯查询；空表也会通过，旧版重复调用可重复进入后续玩法。日志没有记录每个桌面骰子的身份，不据此断言所有重复骰子均由同一原因造成。
+
+**最小修正**：按确认只增加棋盘已放上桌的条件：`BoardGameTool` 或 `SnapPoint` 为空时，NEXT 只提示先放置棋盘，在结束当前事件之前返回；两阶段均检查。移动等待改为只读 `_currentPawnMoveCompleted.Count`，等待原版回调自行消费，不再调用完成方法。不新增现存骰子扫描、清理或强制消耗，原有权限/过渡/队列检查保留。插件/程序集为 0.2.36，雕像身份与 ContentVersion 保持。
+
+**验证**：Release/net6.0/x64 编译 0 警告/0 错误，DLL 0.2.36.0、3,432,448 字节，SHA256 `832EE7E29D40C452786373FC0347151A90B2A4961BECA36BCE2BDD86149E3AC9`。沿用忽略目录中的 F8 实际源码托管检查，48 项通过，新增无管理器/无物件/未放桌反复操作无修改、等待中取走棋盘取消、完成确认表尚未消费时不触发回调；替身将误调用完成方法设为立即失败。旧托管替身只模拟布尔返回，未覆盖本次原生副作用，不能作为该路径原生正确的证据。修正后未部署、启动或控制游戏，无棋盘点击及正常换局仍待游戏回测。
+
+## 2026-10-15：0.2.35 F8 下一小局与死亡玩家满血复活
+
+**功能**：在现有 F8 窗口加入 `Next round (host)` / `Revive dead players + full HP (host)` 按钮及 `next` / `revive` 命令，沿用 DebugMode、排队和会话取消。客户端可打开窗口查询或使用本地诊断，生成、传送及这两项服务器操作仅房主执行；新操作不依赖角色移动控制，允许死亡房主发起复活。程序集/插件提升至 0.2.35，雕像身份、ContentVersion 与网络协议保持。
+
+**原版流程复用**：`next` 先通过 `SrvGameEventCompleted` 完成当前事件，等事件空闲及棋盘可玩，再以随机 1–6 点调用 `BoardGameRulesEngine.SrvMovePawn`，由原版继续棋子、事件和外部房间生成；不是原版仅预设下个事件的 `ForceNextEvent`。检查棋盘、兼容、加载/事件锁、棋子移动和骰子队列，阻止过渡重入，拒绝专用陈列测试房；保留/恢复地图事件不保证全部换房。`revive` 遍历原版用户角色，只对连接就绪且已死亡者取得原版出生位置，向 `SrvResurrect` 显式传入两个 IL2CPP Nullable 和各自 MaxHealthSync，沿用尸体处理与所属客户端恢复；复活成功后必要时用同步血量 setter 补满，存活受伤者保持。原生路径只读核对使用当前 GameAssembly SHA256 `FF7BE800E1BF47E078D2A2F37129E7B113EC4E5691144FA7D80A6E884658ED4B`，interop 包装仅用于接口/参数确认。
+
+**编译与托管检查**：`scripts/Build.ps1` 仅编译 Release/net6.0/x64，0 警告/0 错误。成品 DLL 0.2.35.0、3,431,936 字节，SHA256 `1E3D002D976F316A1B35AD7AA826E23DC19B1922CF4063642621A1D921A6BDF8`。忽略目录 `.local/verification/DebugSession0235/` 直接编译实际 `IdolDebugTools.cs`，34 项托管检查通过：房主/DebugMode/Ready/兼容门禁，死亡或就坐房主，事件异步等待与超时，棋盘/连接替换、反复点击、过渡及终局拒绝，不同血量上限、存活者保持、无出生点/断线跳过、原版拒绝复活时不单独改血、异常不重复执行，以及原有生成/传送队列保持。
+
+**同版追加全员补血**：随后将同一 `revive` 命令扩展为死亡者复活、存活受伤者补满血，按钮改为 `Revive + full HP for all (host)`。存活者当前血量必须大于零且连接就绪，仅调用同步 setter 恢复到各自上限，不查询出生点、不复活或传送；满血者不重复写入。Release 编译仍为 0 警告/0 错误，43 项实际源码托管检查通过，补充存活房主、不同血量上限、无出生点也可原地补血、重复点击无额外写入及客户端/断线/认证/Ready/DebugMode/濒死门禁。最终 DLL 0.2.35.0、3,431,936 字节，SHA256 `3694C2A29DA5BA917AB1DDBB10BC89CC237FA936576F23A4C2232364F4110726`；未部署或游戏实测。
+
+**待验边界**：本次未部署、启动或控制游戏。原生参数封送、实际棋子/换房、远端复活的尸体/镜头/移动、晚加入及全员死亡后的 Game Over 界面仍需游戏验证；托管替身不作为游戏或真实多人验收。README、当前设计、CHANGELOG 与 TODO 已同步功能和待验范围；AGENTS 新增推送前拉取并整合远端的持续约束。
+
 ## 2026-10-15：0.2.34 疑神统一为持有玩家声源
 
 **原版消费路径核对**：沿用下节已校验的 GameAssembly SHA256。`HearingSensorMixin.set_HearingLoudestPlayer`（RVA `0x2FD9D40`）和 `set_HearingClosestPlayer`（`0x2FD9A80`）将来源玩家写入黑板 `Player`，取得其 Transform 写入 `Target`，再读取实时位置写入 `TargetPosition`，不会使用事件中另设的假位置。`CheckLineOfSight`（`0x2FD7450`）对玩家来源使用玩家身体位置检查。通用声源分支则保存事件位置。原生 Unity `Component.get_transform`、`Transform.get_position` 的地址通过当前 CoreModule 的原始 token 与模块方法表另行核对，未把 interop 包装当作实现。旧版只改 `VolumeEvent.Position`，无法保证各分支都调查假声位置；此前“事件已入表”的单人结果不证明调查方向正确。
