@@ -2,6 +2,34 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.54 — 2026-10-16（大厅盒子开发版 / Lobby box development build）
+
+- 新增固定桌游盒子，使用已保存的挂墙位置；原版样式交互点支持键盘改键与手柄，中英介绍显示在盒子上方并向封面外移。针对白块图标重建边框与文字组件，靠墙交互统一检查正面交互点。
+  Adds a fixed board-game box at the saved wall placement, with a vanilla-style interaction marker, rebound keyboard/controller input, and a Chinese/English introduction above and in front of the cover. Rebuilds the key graphics to address white blocks and uses one front-facing point for wall-adjacent interaction.
+- F8 新增模型摆放页：按住数值左右拖动调整位置、旋转、缩放和亮度，近处精细、远处加速；保留数字输入、移到面前、保存／读取和历史记录。
+  Adds an F8 placement editor with variable-speed dragging for position, rotation, scale and brightness, plus numeric input, bring-here, save/load and placement history.
+- 提供五组随盒子移动的补光与 0～5 倍亮度调节，跟随原大厅灯具的停电、波动和恢复；方案与亮度一并保存，兼容旧摆放记录。
+  Adds five attached lighting presets and a 0–5× brightness multiplier that follows native room-light outages, flicker and recovery. Saves both settings while accepting older placement files.
+- 专用单人测试房可临时补齐实际商店陈设，修正额外生成门铃的问题；原有家具保留，沿用测试模式的存档写入保护。
+  The isolated solo test room can temporarily add purchasable furniture without the extra doorbell. Existing furniture and the test mode's save-write protection are preserved.
+- Release 编译 0 警告／0 错误，664 项托管检查通过；最新图标、介绍遮挡、灯光效果与真实多人仍待游戏回测。构建、历史截图和验证范围见 DEVELOPMENT。
+  Release builds with no warnings or errors; 664 managed checks pass. The revised icons, panel occlusion, lighting and real multiplayer still require in-game testing. See DEVELOPMENT for evidence and validation limits.
+
+## 0.2.53 — 盒子交互点、拖动调节与补光（未发布）
+
+- 盒子改用正面独立交互点和原版 UI 样式，移除初始小面板；名称／动作及展开介绍显示在交互点右侧。阅读期间沿用同一可见点，修正中心嵌墙后立即收起的问题。
+- F8 数值支持按住后左右拖动：近距精细、远距加速、回到起点停止；保留数字输入，失焦或关闭面板取消调整。
+- 新增五组随模型移动的聚光／点光补光，一次选择一组，跟随大厅原灯的熄灭、波动和恢复；编号随摆放记录保存，旧记录兼容。
+- 满配按实际商店清单生成，修正枚举中 `DOORBELL` 导致的额外铃铛。
+- 以更新后的本机游戏接口编译；原生 UI、拖动手感、墙边交互和灯光联动待实机确认。
+
+## 0.2.52 — 大厅盒子摆放开发版（未发布）
+
+- 新增固定桌游盒子，交互后在盒子上方显示中英介绍；沿用原版交互输入并适配改键／手柄提示。
+- F8 新增模型摆放页：三轴位置、旋转、缩放、分档微调、移到面前、保存与读取。保存数据用于确认最终大厅位置，默认位置仍为临时值。
+- 专用单人测试房默认临时启用全部大厅陈设，支持关闭恢复；沿用禁止存档写入保护。
+- 仅完成资源、编译与托管检查，模型显示、交互、真实多人和最终摆放待游戏验证。
+
 ## 未发布 — 本地图鉴
 
 - 修正预览选择范围：按绘画参考的蓝框内侧裁剪源画布，使用纯黄色纸底；框外笔迹不再出现在图鉴中。游戏贴图和源绘画保持。

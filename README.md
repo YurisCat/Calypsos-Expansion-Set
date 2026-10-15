@@ -25,6 +25,8 @@ Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像及�
 
 编译、托管检查与游戏验证范围分别见 DEVELOPMENT，完整玩法与真实多人验收仍待完成；接力疲劳不写入原版存档。外观与接力玩法契约已更新，联机各端须使用匹配版本。
 
+开发版大厅桌游盒子提供原版样式交互点，介绍显示在盒子上方并向封面外侧偏移；F8“模型摆放”可按住数值左右拖动，选择五组补光、调节亮度并保存。默认位置已采用保存的挂墙记录，专用测试房可临时补齐商店陈设。最新图标、说明位置和亮度仍待游戏验证；操作见 [大厅盒子](docs/LOBBY_BOX.md)。
+
 ## 安装
 
 需要 Windows x64 版 Invokyr 和 BepInEx 6 IL2CPP。退出游戏后，将 `CalypsoExpansionSet.dll` 放入 `BepInEx/plugins/CalypsoExpansionSet/` 或 `BepInEx/plugins/`，再正常启动游戏。联机时所有玩家都需安装兼容版本。

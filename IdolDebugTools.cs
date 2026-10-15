@@ -39,12 +39,15 @@ internal sealed class IdolDebugTools : IDisposable
     private Vector2 _idolScroll;
     private Vector2 _resultScroll;
     private string[] _spawnLabels = Array.Empty<string>();
+    private readonly Lobby.LobbyBoxEditor _boxEditor;
+    private bool _boxPanel;
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
 
     internal IdolDebugTools(CalypsoExpansionSetPlugin plugin)
     {
         _plugin = plugin;
+        _boxEditor = new Lobby.LobbyBoxEditor(plugin);
         Catalog = new IdolDebugCatalog(plugin);
         _monsters = new IdolDebugMonsters(plugin);
         _enabled = plugin.Config.Bind("Debug", "DebugMode", false,
@@ -77,6 +80,7 @@ internal sealed class IdolDebugTools : IDisposable
     internal void Tick()
     {
         if (!Enabled) { Cancel(); return; }
+        _boxEditor.Tick();
         _monsters.Tick();
         if (_invulnerablePlayer is { } protectedPlayer
             && (protectedPlayer == null || !NetworkServer.active || !NetworkClient.ready
@@ -155,6 +159,7 @@ internal sealed class IdolDebugTools : IDisposable
 
     private void Close()
     {
+        _boxEditor.CancelDrag();
         if (!PanelOpen) return;
         if (_dragControl != 0 && GUIUtility.hotControl == _dragControl) GUIUtility.hotControl = 0;
         _dragControl = 0;
@@ -431,7 +436,15 @@ internal sealed class IdolDebugTools : IDisposable
         var y = _windowRect.y;
         var width = _windowRect.width;
         GUI.Box(_windowRect, $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close; drag title)");
-        GUI.Label(new Rect(x + 15, y + 30, width - 30, 25), "Enter command here: spawn jumping   |   list   |   status");
+        if (GUI.Button(new Rect(x + width - 160, y + 30, 145, 25),
+                _boxPanel ? Lobby.LobbyBoxText.Pick("雕像工具", "Idol tools") : Lobby.LobbyBoxText.Pick("模型摆放", "Model placement")))
+        { _boxEditor.CancelDrag(); _boxPanel = !_boxPanel; }
+        if (_boxPanel)
+        {
+            _boxEditor.Draw(new Rect(x + 15, y + 65, width - 30, _windowRect.height - 80));
+            return;
+        }
+        GUI.Label(new Rect(x + 15, y + 30, width - 185, 25), "spawn jumping   |   list   |   status");
         // TextField consumes Return, so capture submission before drawing it.
         var guiEvent = Event.current;
         var submit = guiEvent.type == EventType.KeyDown
