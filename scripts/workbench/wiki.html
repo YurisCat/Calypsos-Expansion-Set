@@ -8,50 +8,61 @@
   <link rel="stylesheet" href="/wiki/style.css">
   <script src="/wiki/app.js" defer></script>
 </head>
-<body>
-  <a class="skip" href="#collection">跳到雕像列表</a>
+<body data-density="compact">
+  <a class="skip" href="#collection" data-i18n="skip">跳到雕像列表</a>
   <header class="topbar">
     <a class="brand" href="/wiki/"><span class="brand-mark" aria-hidden="true">✳</span><span>CALYPSO'S<small>EXPANSION SET</small></span></a>
-    <nav aria-label="页面导航"><a href="/">需求工作台 <span aria-hidden="true">↗</span></a><span class="version" id="version">读取中…</span></nav>
+    <nav aria-label="页面导航" data-i18n-aria="navigation">
+      <a href="/"><span data-i18n="workbench">需求工作台</span> ↗</a>
+      <label class="language-select"><span class="sr" data-i18n="language">语言</span><select id="language"><option value="zh-CN">中文</option><option value="en">English</option></select></label>
+      <span class="version" id="version">读取中…</span>
+    </nav>
   </header>
   <main>
     <section class="hero" aria-labelledby="title">
       <div class="hero-copy">
-        <p class="eyebrow">THE IDOL FIELD GUIDE <span>／ 便签里的小秘密</span></p>
-        <h1 id="title">认得这张便签，<br>就懂它的<span>小把戏。</span></h1>
-        <p class="intro">一张手绘，一个脾气。收录雕像的便签、谏言与玩法，<br class="desktop-break">下次遇见，心里有数。</p>
+        <p class="eyebrow">THE IDOL FIELD GUIDE <span data-i18n="eyebrow">／ 便签里的小秘密</span></p>
+        <h1 id="title"><span class="title-plain" data-i18n="titleFirst">认得这张便签，</span><br><span class="title-plain" data-i18n="titleNext">就懂它的</span><span data-i18n="titleAccent">小把戏。</span></h1>
+        <p class="intro" data-i18n="intro">一张手绘，一个脾气。收录雕像的便签、谏言与玩法，下次遇见，心里有数。</p>
         <p class="collection-count" id="collection-count">正在翻开图鉴…</p>
       </div>
       <div class="featured" aria-hidden="true">
-        <div class="featured-note"><img id="featured-image" alt="" width="493" height="441"><span id="featured-caption"></span></div>
-        <span class="handwritten">拿起之前，先认一认。</span>
+        <div class="featured-note"><img id="featured-image" alt="" width="814" height="732"><span id="featured-caption"></span></div>
+        <span class="handwritten" data-i18n="handwritten">拿起之前，先认一认。</span>
       </div>
     </section>
     <div class="layout">
       <aside class="index-panel">
         <p class="eyebrow">CONTENTS</p>
-        <h2>翻阅目录</h2>
-        <nav id="index" aria-label="雕像目录"></nav>
-        <p class="index-note">谏言记特点，<br>说明看玩法。</p>
+        <h2 data-i18n="contents">翻阅目录</h2>
+        <nav id="index" aria-label="雕像目录" data-i18n-aria="indexLabel"></nav>
+        <p class="index-note" data-i18n="indexNote">谏言记特点，说明看玩法。</p>
       </aside>
       <section id="collection" aria-labelledby="collection-title">
-        <div class="collection-heading"><h2 id="collection-title">雕像档案 <span id="result-count"></span></h2><a class="back-top" href="#title">回到顶部 ↑</a></div>
-        <div class="toolbar">
-          <label class="search"><span aria-hidden="true">⌕</span><span class="sr">搜索雕像、谏言或玩法</span><input id="search" type="search" placeholder="搜索名称、谏言或玩法…" autocomplete="off"></label>
-          <label class="status-select"><span class="sr">收录状态</span><select id="status"><option value="all">全部收录</option><option value="enabled">当前启用</option><option value="paused">已暂停</option></select></label>
+        <div class="collection-heading">
+          <h2 id="collection-title"><span class="heading-text" data-i18n="collection">雕像档案</span> <span id="result-count"></span></h2>
+          <div class="view-switch" role="group" aria-label="便签预览大小" data-i18n-aria="viewLabel">
+            <button id="compact-view" type="button" aria-pressed="true" data-i18n="compact">紧凑</button>
+            <button id="large-view" type="button" aria-pressed="false" data-i18n="large">大图</button>
+          </div>
+          <a class="back-top" href="#title" data-i18n="backTop">回到顶部 ↑</a>
         </div>
-        <div id="categories" class="categories" role="group" aria-label="按玩法分类"></div>
+        <div class="toolbar">
+          <label class="search"><span aria-hidden="true">⌕</span><span class="sr" data-i18n="searchLabel">搜索雕像、谏言或玩法</span><input id="search" type="search" placeholder="搜索名称、谏言或玩法…" data-i18n-placeholder="searchPlaceholder" autocomplete="off"></label>
+          <label class="status-select"><span class="sr" data-i18n="statusLabel">收录状态</span><select id="status"><option value="all" data-i18n="allStatus">全部收录</option><option value="enabled" data-i18n="enabledStatus">当前启用</option><option value="paused" data-i18n="pausedStatus">已暂停</option></select></label>
+        </div>
+        <div id="categories" class="categories" role="group" aria-label="按玩法分类" data-i18n-aria="categoriesLabel"></div>
         <p class="connection" id="connection" role="status">正在读取图鉴…</p>
         <div id="grid" class="grid"></div>
-        <div id="empty" class="empty" hidden><h3>这一页还没有匹配的雕像。</h3><p>试试其他名称，或换一个玩法分类。</p><button id="reset" type="button">清除筛选</button></div>
+        <div id="empty" class="empty" hidden><h3 data-i18n="emptyTitle">这一页还没有匹配的雕像。</h3><p data-i18n="emptyDescription">试试其他名称，或换一个玩法分类。</p><button id="reset" type="button" data-i18n="reset">清除筛选</button></div>
       </section>
     </div>
   </main>
-  <footer><span>Calypso's Expansion Set</span><span>手绘便签 · 雕像图鉴</span></footer>
+  <footer><span>Calypso's Expansion Set</span><span data-i18n="footer">手绘便签 · 雕像图鉴</span></footer>
   <dialog id="detail" aria-labelledby="detail-title">
-    <button class="close" id="close-detail" aria-label="关闭详情" type="button">×</button>
-    <img id="detail-image" alt="" width="493" height="441">
-    <div class="detail-copy"><p class="eyebrow" id="detail-status"></p><h2 id="detail-title"></h2><p class="advice" id="detail-advice"></p><p id="detail-description"></p><p class="paused-notice" id="detail-paused" hidden>当前版本已暂停，不会在游戏中生成。</p><button class="copy-link" id="copy-link" type="button">复制此雕像链接</button><span class="copy-status" id="copy-status" role="status"></span></div>
+    <button class="close" id="close-detail" aria-label="关闭详情" data-i18n-aria="close" type="button">×</button>
+    <img id="detail-image" alt="" width="814" height="732">
+    <div class="detail-copy"><p class="eyebrow" id="detail-status"></p><h2 id="detail-title"></h2><p class="advice" id="detail-advice"></p><p id="detail-description"></p><p class="paused-notice" id="detail-paused" hidden data-i18n="pausedDetail">当前版本已暂停，不会在游戏中生成。</p><button class="copy-link" id="copy-link" type="button" data-i18n="copyLink">复制此雕像链接</button><span class="copy-status" id="copy-status" role="status"></span></div>
   </dialog>
 </body>
 </html>

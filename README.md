@@ -117,4 +117,5 @@ dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false '-p:I
 - [设计说明](docs/ARCHITECTURE.md)：模块、效果、同步与外部插件注册 API；内置效果源码见 [Idols](Idols)。
 - [TODO](TODO.md) 与 [DEVELOPMENT](DEVELOPMENT.md)：当前待办和各版本验证证据。多人及完整生命周期仍待验收。
 - [便签说明](Assets/StickyNote/README.md)、[音频说明](Assets/Audio/README.md)：资源制作与导入。
+- [Nexus Mods 发布操作](docs/NEXUS_PUBLISH.md)：发布目标、API Key 获取与填写；仅明确要求上传时执行。
 - [AGENTS](AGENTS.md)：开发约定。

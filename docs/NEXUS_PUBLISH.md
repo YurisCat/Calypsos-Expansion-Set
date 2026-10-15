@@ -1,0 +1,159 @@
+# Nexus Mods 发布操作
+
+本文件约定 `Calypso's Expansion Set` 的 N 网发布目标、凭据填写及后续执行流程。官方接口核对日期：**2026-10-15**。发布方式采用本机直接调用 Nexus API，使用本地凭据和本机已验证的安装包。0.2.51 已完成实际上传、添加更新记录及 API 核验；公开网页复核受 Cloudflare 验证页阻挡，仍需人工查看。
+
+## 何时执行上传
+
+只有当次明确提出“上传 N 网”“上传到 Nexus Mods”或同等明确的发布指令时，才执行上传。引用这些词、讨论发布、要求写文档、填写 API Key、编译、打包、提交或推送 Git，都不构成上传授权。
+
+明确授权后，先完成构建、包检查和发布说明，报告目标、版本及包内容，然后执行这次发布；无需对同一次已授权上传重复请求确认。缺少凭据、无法确定目标主文件、版本不一致或权限不足时，只询问缺少的具体信息。
+
+不设置随 Git push、tag、GitHub Release 或定时任务自动上传的规则。一次上传授权不延续为以后每次修改后的自动发布。
+
+## 固定发布目标
+
+| 项目 | 值 |
+| --- | --- |
+| 模组页面 | [Calypso's Expansion Set](https://www.nexusmods.com/invokyr/mods/1) |
+| 游戏 domain | `invokyr` |
+| 网页中的模组编号 | `1`，即游戏内编号 `game_scoped_id` |
+| 默认操作 | 向该页面**现有主文件添加新版本** |
+| 发布包 | ZIP 根目录默认只放 `CalypsoExpansionSet.dll` |
+| 发布文案来源 | 当前 `CHANGELOG.md`；完整页面描述草稿另见 `NEXUS.txt` |
+
+网址中的 `1` 不应直接填进 v3 的内部 `mod_id` 或 `file_id`。这两个 ID 通过下面的只读查询获得，也可从网站 Files 页的 Advanced 或 Manage Files 编辑入口复制。[官方 ID 说明](https://github.com/Nexus-Mods/upload-action#how-to-find-the-file-id--mod-id)
+
+## 获取 API Key
+
+1. 登录拥有该模组编辑权限的 Nexus Mods 账号。
+2. 打开 [API Key 设置](https://www.nexusmods.com/settings/api-keys)。
+3. 找到页面底部的个人 API Key（Personal API Key）区域，按页面提供的按钮生成或显示密钥。
+4. 复制**完整密钥**，填入下方配置的 `apiKey`。只填写密钥本身，不加 `Bearer `、`apikey:` 或额外空格。
+
+这是 Nexus Mods 的个人密钥，不是 GitHub Token，也不是密码。官方 v3 API 使用请求头 `apikey`；官方作者工具也指向同一个个人密钥入口。[官方作者工具说明](https://github.com/Nexus-Mods/NexusModsAuthorToolsUE/blob/master/Resources/Markdown/Using.md) · [官方 API](https://api-docs.nexusmods.com/)
+
+密钥只保存在本机配置中，不写进聊天、公共 Markdown、Git、发布包或日志。填写后只需说明“API 已填写，可以检查”；这句话仅授权检查，不会触发上传。
+
+## 填写本地配置
+
+打开项目根目录下的 **`.local/nexusmods.publish.json`**。本机已创建以下空模板；`.local/` 已被 Git 忽略。
+
+```json
+{
+  "schema": "ces-nexus-publish-v1",
+  "modPageUrl": "https://www.nexusmods.com/invokyr/mods/1",
+  "gameDomain": "invokyr",
+  "gameScopedModId": "1",
+  "apiKey": "",
+  "modId": "",
+  "fileId": "",
+  "archiveExistingVersion": false,
+  "updateModVersion": true,
+  "updateDescription": false
+}
+```
+
+| 字段 | 填写方式 |
+| --- | --- |
+| `apiKey` | 必填，将完整个人 API Key 粘贴到双引号内 |
+| `modPageUrl`、`gameDomain`、`gameScopedModId` | 已按本模组填写，保持即可 |
+| `modId` | 可先留空；填写 v3 查询结果的内部模组 ID，以字符串保存 |
+| `fileId` | 可先留空；填写本次要更新的**主文件** ID，不是某个旧版本的 ID |
+| `archiveExistingVersion` | 默认 `false`，不自动归档旧版本 |
+| `updateModVersion` | 默认 `true`，上传新文件版本时同步模组显示版本 |
+| `updateDescription` | 默认 `false`，不自动用 `NEXUS.txt` 覆盖整页描述 |
+
+这些是本项目的配置约定，不是游戏 CFG，也不会仅因填写就自动生效。当前没有安装自动发布工作流；后续明确授权发布时读取此配置。
+
+## 检查密钥并查出内部 ID（只读）
+
+可以让后续会话执行“检查 N 网配置”，也可在项目根目录的 PowerShell 中运行以下代码。代码只发出 `GET` 请求，不上传文件、不修改网站；输出仅包含模组名、ID 和文件列表，不显示密钥或完整认证响应。
+
+```powershell
+$nexusConfig = Get-Content -LiteralPath '.local/nexusmods.publish.json' -Encoding UTF8 -Raw |
+    ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($nexusConfig.apiKey)) {
+    throw '请先在本地配置中填写 apiKey。'
+}
+if ($nexusConfig.gameDomain -ne 'invokyr' -or
+    [string]$nexusConfig.gameScopedModId -ne '1') {
+    throw '发布目标不符合本项目约定，请先核对配置。'
+}
+
+$nexusHeaders = @{ apikey = $nexusConfig.apiKey; Accept = 'application/json' }
+$nexusMod = Invoke-RestMethod -Method Get `
+    -Uri 'https://api.nexusmods.com/v3/games/invokyr/mods/1' `
+    -Headers $nexusHeaders -TimeoutSec 30
+$nexusModId = [string]$nexusMod.data.id
+if ([string]::IsNullOrWhiteSpace($nexusModId) -or
+    [string]$nexusMod.data.game_scoped_id -ne '1' -or
+    $nexusMod.data.name -ne "Calypso's Expansion Set") {
+    throw '查询结果与目标模组不符，停止后续操作。'
+}
+$nexusFilesUri = 'https://api.nexusmods.com/v3/mods/' +
+    [Uri]::EscapeDataString($nexusModId) + '/files'
+$nexusFiles = Invoke-RestMethod -Method Get -Uri $nexusFilesUri `
+    -Headers $nexusHeaders -TimeoutSec 30
+
+[pscustomobject]@{ ModName = $nexusMod.data.name; ModId = $nexusModId }
+$nexusFiles.data.mod_files | Select-Object id, name, is_active, versions_count
+$nexusHeaders.Clear()
+$nexusConfig.apiKey = $null
+```
+
+将输出的 `ModId` 填入 `modId`；将目标主文件那一行的 `id` 填入 `fileId`。存在多个候选文件时按文件名及用途确认，不默认选列表第一项。读取得到文件信息不等于账户已经具备写入权限，上传结果仍须以实际响应为准。
+
+`401/403` 时核对完整密钥、登录账号及模组团队权限；`404` 时核对游戏 domain 和 ID 种类。不要通过重复创建文件或更换目标模组来绕过错误。[字段与响应以官方 OpenAPI 为准](https://raw.githubusercontent.com/Nexus-Mods/Vortex/master/packages/nexus-api-v3/schema/openapi.yaml)
+
+## 明确要求“上传 N 网”后的执行流程
+
+1. **确定本次内容**：优先采用明确指定的版本/文件；未指定时使用本项目当前源码经检查的 Release 构建，核对源码版本、DLL 版本和哈希。不能仅按文件修改时间挑选旧 DLL。发布授权不自动包含游戏部署、游戏启动或 Git 提交/推送。
+2. **准备交付**：使用 `scripts/Build.ps1` 仅编译，按实际变更完成必要检查；把单 DLL ZIP 与中英文更新说明放入新的 `人类工作间/接收文件/` 子目录。核对 ZIP 清单、包内 DLL 与构建哈希，保留署名及真实验证边界。
+3. **准备发布摘要**：说明目标页面、待发布版本、ZIP 文件名/大小/哈希、简短变更，以及是否同步整页描述。默认只更新主文件版本、模组版本和对应更新记录；不新建重复模组页面、不删除旧文件、不改封面/许可/依赖设置。
+4. **核对远端**：重新读取目标及文件版本，确认内部 ID 仍对应正确主文件；相同版本/包已经存在时先检查先前结果，避免重复发布。接口尚有 Experimental 标记，执行时重新核对官方文档。
+5. **上传**：优先使用官方 v3 API，或锁定已核对版本的官方 `Nexus-Mods/upload-action`。不使用旧的 `/update-groups/{group_id}/versions` 路径；当前已有文件的新版本入口为 `POST /mod-files/{id}/versions`。
+6. **验证并记录**：读取新文件版本并检查网页可见状态，记录版本、文件/版本 ID、链接、包哈希及时间。只有全部必要步骤成功后才报告发布完成；文件上传成功但更新记录/页面版本失败时分别报告，不能重新盲目上传整包。
+
+官方上传动作是独立的文件发布操作。其参数 `file_id`、`mod_id` 分别对应本地 `fileId`、`modId`；`api_key` 对应 `apiKey`。如以后使用 GitHub Actions，密钥放入 `NEXUSMODS_API_KEY` Secret，只使用手动触发，并且仍遵循当次明确发布指令；不要直接照搬示例中的自动 release 触发器。[官方 Action](https://github.com/Nexus-Mods/upload-action) · [官方示例](https://github.com/Nexus-Mods/API-Example)
+
+### 直接调用 v3 时的顺序
+
+API 基地址为 `https://api.nexusmods.com/v3`。以下是执行说明，不是会自动运行的上传脚本。
+
+| 步骤 | 请求 |
+| --- | --- |
+| 创建上传会话 | `POST /uploads`，提供包名、字节数和 MD5 |
+| 传输 ZIP | 向响应的预签名 URL 发出 `PUT`，上传实际包字节 |
+| 结束传输 | `POST /uploads/{upload_id}/finalise` |
+| 等待就绪 | `GET /uploads/{upload_id}`，直到 `state=available` |
+| 添加现有文件的新版本 | `POST /mod-files/{fileId}/versions` |
+| 添加更新记录 | `POST /mods/{modId}/changelogs` |
+
+小于或等于 100 MiB 的包可以使用单段上传；更大的包使用 multipart。单段 `PUT` 按官方签名要求携带 `Content-Disposition` 和 `Content-MD5`，不向存储域名转发 Nexus 的 `apikey`。MD5 请求字段用十六进制，`Content-MD5` 用相同摘要的 Base64；官方标明 **2026-12-01 起**单段创建会话将要求 MD5，本流程从现在就提供。
+
+本次实传确认签名还包含 `Content-Type`，必须使用 **`application/octet-stream`**；即使文件是 ZIP，也不能替换为 `application/zip`，否则存储服务返回 `403 SignatureDoesNotMatch`。预签名 URL 只在创建响应中提供，不能依赖后续查询再次取得；仅在内存中使用，不写日志。
+
+新版本请求按当次 schema 填写 `upload_id`、`name`、`version`、`file_category` 等字段，版本取本次构建，不固定为文档编写时的版本。传输完成或会话可用都不等于文件版本已发布。更新记录接口是追加操作，超时后先读取/核对结果，再决定是否重试，避免重复文本。
+
+创建版本成功后先保存返回标识，再用目标主文件的版本列表核对归属；响应中的 `UploadModFile.id` 不应当作持久主文件组 ID 比较。旧版在 `archive_existing_file=false` 时仍会转到 `old_version` 分类，并非删除或归档。v1 文件说明会把换行转成 `<br />`，更新记录返回非空行数组，核验时按这些格式归一后比较完整内容。模组显示版本可能短暂读取到缓存值，先只读复核，不重复创建版本。
+
+接口细节及后续变化：[官方 v3 文档](https://api-docs.nexusmods.com/) · [官方维护的 OpenAPI](https://raw.githubusercontent.com/Nexus-Mods/Vortex/master/packages/nexus-api-v3/schema/openapi.yaml)。
+
+## 最近一次配置检查
+
+- 2026-10-15，本地 JSON、固定目标和布尔选项有效；密钥已填写，配置仍被 Git 忽略。
+- 密钥验证、v3 模组查询、v3 文件列表、上传者交叉核对均为 GET，四项均返回 HTTP 200；认证账号与目标模组上传者 ID 一致。
+- 已查得内部模组 ID 和唯一启用文件 ID；本地 `modId`、`fileId` 保持留空，凭据配置文件未修改。后续发布前仍实时查询并核对目标文件。
+- 此次线上查询版本为 0.2.30，仅代表检查时状态。
+- 未创建上传会话、上传文件或修改网站；只读成功不代表实际写入已经验收。
+- 后续实际发布需要当次明确指令；本文和配置文件本身不会触发发布。
+
+## 最近一次实际发布
+
+- **2026-10-15 16:58:39（UTC+8）**，按当次明确授权向现有主文件发布 **0.2.51**；当前主下载为新版本，0.2.30 保留在旧版本分类。
+- 内部模组 ID `45638322487297`，持久主文件 ID `8155314`，新版本 ID `45638322487298`，游戏内文件 ID `2`。主文件组内部名称仍为最初的 0.2.30，实际新版本显示名称为 `Calypso's Expansion Set 0.2.51`，后续选择以稳定 ID 与版本列表为准。
+- 发布包 `CalypsoExpansionSet-0.2.51.zip`，**3,569,989 字节**，根目录仅 `CalypsoExpansionSet.dll`；SHA256 `E6793302917507AAA546CD7013CA2B28EE3728D2970CFBBD739D49DA14B1EE21`，线上大小及扫描元数据 SHA256 与本地一致。
+- API 已确认主文件版本、模组显示版本、中英文文件说明及完整中英文更新记录；更新记录仅追加一次。整页介绍按配置保持，密钥配置未修改。
+- 浏览器重新访问 Files 页停在 Cloudflare 验证页，因此未确认更新后的网页渲染；这与已成功完成的 API 上传及核验分别记录。文件页入口见本页“固定发布目标”。
+- 本次重新 Release 编译为 0 警告/0 错误，DLL 与此前通过整合检查的 0.2.51 构建哈希相同。未追加游戏/真实多人验收。包、发布说明和脱敏回执保存在本机交付目录，详细证据见 DEVELOPMENT。
+- 本次上传授权已执行，后续版本仍需要新的明确发布指令。

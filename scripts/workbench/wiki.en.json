@@ -1,0 +1,19 @@
+{
+  "schema": "ces-wiki-descriptions-en-v1",
+  "descriptions": {
+    "delayed_move": "Movement and releasing a direction take effect 0.3 seconds late. Looking, jumping and interacting still respond immediately.",
+    "monster_disguise": "Become one of this run's monsters, with a brief view from behind. Left click or RT / R2 performs its attack and sound, without dealing damage. The sound may attract monsters. Drop it to return to normal.",
+    "duck_step": "Walking adds random quacks to your footsteps. Nearby teammates can hear them, and monsters may hear them too.",
+    "extreme_speed": "Pick it up to move continuously at five times normal horizontal speed, even after releasing movement input. Your direction locks in midair, and sprinting has no effect. Drop it to recover.",
+    "jumping": "Automatically jump again after landing, using the normal jump strength and stamina rules. Each successful automatic jump plays a random sound that monsters can hear.",
+    "upside_down": "The world turns upside down. Looking and left/right movement are reversed; forward/back movement stays the same. Menus and the HUD remain upright.",
+    "mosaic": "The world and HUD turn into chunky pixels. Opening a menu restores a clear view.",
+    "outline": "The world and HUD become white outlines on black. Menus remain clear. Outlines do not reveal anything hidden behind walls.",
+    "wide_body": "Your body becomes wider and shorter. The camera lowers and stretches slightly sideways. Your collision shape and ability to fit through doors stay unchanged.",
+    "suspicious": "Random monster sounds come from the holder. Nearby players can hear them, and these fake cries may attract real monsters.",
+    "big_head_fisheye": "Teammates see your enlarged head, while your world and HUD gain a strong fisheye distortion. Menus remain normal.",
+    "near_view": "Picking it up smoothly zooms your view in, bringing distant objects closer and narrowing your view. Dropping it smoothly restores your vision.",
+    "voice": "Make a sound to move forward; go quiet to stop driving your movement. Voice replaces directional input, while looking and other actions remain available. Red eyes mean standby; blue means moving.",
+    "relay": "The longer one person holds it, the slower they move and the redder its eyes become. Dropping and picking it up does not reset fatigue; passing it to a teammate does. Fatigue builds more slowly when alone."
+  }
+}

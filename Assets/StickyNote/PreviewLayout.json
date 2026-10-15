@@ -1,0 +1,7 @@
+{
+  "schema": "ces-note-preview-v2",
+  "reference_canvas": [1024, 1024],
+  "crop": [105, 187, 919, 919],
+  "background": "#f7e7a3",
+  "description": "Inside the blue frame of the 1024 drawing reference; right and bottom excluded. Wiki presentation only, independent of the game UV atlas."
+}

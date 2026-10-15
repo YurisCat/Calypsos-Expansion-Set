@@ -118,6 +118,9 @@ class Workbench:
             self.root / "docs/ARCHITECTURE.md",
             self.root / "CHANGELOG.md",
             self.root / "DEVELOPMENT.md",
+            self.root / "UI/IdolTextLocalization.cs",
+            self.root / "scripts/workbench/wiki.en.json",
+            self.root / "Assets/StickyNote/PreviewLayout.json",
             *sorted((self.root / "Idols").glob("*.cs")),
             *sorted((self.root / "Assets/StickyNote/Previews").glob("*.png")),
         ]
@@ -169,11 +172,33 @@ class Workbench:
             raise ValueError("未能解析已注册类型：" + "、".join(sorted(enabled_classes - parsed_classes)))
         return version_match[1], definitions
 
+    def english_idol_text(self):
+        """Use the same config ID + key identity as the game's translation table."""
+        source = (self.root / "UI/IdolTextLocalization.cs").read_text(encoding="utf-8-sig")
+        literal = r'"((?:\\.|[^"\\])*)"'
+        pattern = (r'\[\s*(0x[0-9a-fA-F]+|\d+)[uUlL]*\s*\]\s*=\s*new\s*\(\s*'
+                   + literal + r'\s*,\s*' + literal + r'\s*,\s*' + literal
+                   + r'\s*,\s*(true|false)\s*\)')
+        result = {}
+        for config, key, name, advice, is_mod in re.findall(pattern, uncomment(source)):
+            if is_mod != "true":
+                continue
+            key, name, advice = (json.loads('"' + text + '"') for text in (key, name, advice))
+            identity = (int(config, 16 if config.lower().startswith("0x") else 10), key)
+            if identity in result:
+                raise ValueError("重复的英文雕像译文身份。")
+            result[identity] = {"name": name, "advice": advice}
+        return result
+
     def wiki(self):
         """Read-only learning catalog; keep decisions and private notes out of it."""
         with self.lock:
             data, _ = self.data()
             version, definitions = self.sources()
+            english_text = self.english_idol_text()
+            english_descriptions = read_json(self.root / "scripts/workbench/wiki.en.json")["descriptions"]
+            preview_layout = read_json(self.root / "Assets/StickyNote/PreviewLayout.json")
+            left, top, right, bottom = preview_layout["crop"]
             planning = {item.get("key"): item for item in data["items"]}
             entries = []
             for key, definition in definitions.items():
@@ -185,15 +210,25 @@ class Workbench:
                 artwork_key = definition["artworkKey"]
                 image = self.root / "Assets/StickyNote/Previews" / f"{artwork_key}.png"
                 image_revision = digest(image.read_bytes())[:16] if artwork_key and image.is_file() else None
+                english = english_text.get((int(definition["configId"], 16), key), {
+                    "name": key, "advice": "English hint not available yet.",
+                })
                 entries.append({
                     "key": key, "name": definition["displayName"],
                     "enabled": definition["enabled"], "advice": definition["advice"],
                     "category": item.get("category", "其他") if item else "其他",
                     "description": item.get("wikiSummary", item["summary"]) if item else "玩法说明待补充。",
                     "image": f"/wiki/notes/{artwork_key}.png?v={image_revision}" if image_revision else None,
+                    "english": {
+                        **english,
+                        "description": english_descriptions.get(key, "Gameplay description coming soon."),
+                    },
                 })
             entries.sort(key=lambda entry: (not entry["enabled"], planning.get(entry["key"], {}).get("id", 999)))
-            result = {"schema": "ces-idol-wiki-v1", "version": version, "items": entries}
+            result = {
+                "schema": "ces-idol-wiki-v1", "version": version, "items": entries,
+                "imageSize": [right - left, bottom - top], "languages": ["zh-CN", "en"],
+            }
             result["revision"] = digest(encoded(result))
             return result
 
