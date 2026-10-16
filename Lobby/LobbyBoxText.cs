@@ -6,9 +6,6 @@ internal static class LobbyBoxText
         I2.Loc.LocalizationManager.CurrentLanguageCode, I2.Loc.LocalizationManager.CurrentLanguage);
     internal static string Pick(string zh, string en) => Chinese ? zh : en;
     internal static string Title => Pick("卡里普索的拓展包", "Calypso's Expansion Set");
-    internal static string Hint(string key, bool open) => Chinese
-        ? $"按{key}{(open ? "收起介绍" : "查看介绍")}"
-        : $"Press {key} to {(open ? "close" : "read")} the introduction";
     internal const string ChineseIntroduction =
         "欢迎游玩《卡里普索的拓展包》！本拓展包为您带来！\n\n"
         + "游戏性提升：\n·添加很多有趣又富有挑战性的雕像\n\n"

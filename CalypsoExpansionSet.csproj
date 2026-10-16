@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.54</Version>
+    <Version>0.2.57</Version>
     <Product>Calypso's Expansion Set</Product>
     <Authors>YurisCat;Masaicker</Authors>
     <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>
@@ -48,6 +48,7 @@
     <Reference Include="$(InteropPath)\vhs.Audio.dll" Private="false" />
     <Reference Include="$(InteropPath)\DissonanceVoip.dll" Private="false" />
     <Reference Include="$(InteropPath)\I2.dll" Private="false" />
+    <Reference Include="$(InteropPath)\Cinemachine.dll" Private="false" />
     <Reference Include="$(InteropPath)\Assembly-CSharp*.dll" Private="false" />
     <Reference Include="$(InteropPath)\UnityEngine.CoreModule.dll" Private="false" Publicize="true" />
     <Reference Include="$(InteropPath)\Unity*.dll" Exclude="$(InteropPath)\UnityEngine.CoreModule.dll" Private="false" />

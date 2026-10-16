@@ -37,7 +37,7 @@
 | [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs)、[UI/OriginalIdolAdvice.cs](../UI/OriginalIdolAdvice.cs)、[UI/IdolTextLocalization.cs](../UI/IdolTextLocalization.cs) | 已注册内容与原版对照的本地指向名称、顶部短说明、原版消息共存和清理 |
 | [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
-| [Lobby/LobbyBoxRuntime.cs](../Lobby/LobbyBoxRuntime.cs)、[Lobby/LobbyBoxEditor.cs](../Lobby/LobbyBoxEditor.cs)、[Lobby/LobbyBoxInteractionUi.cs](../Lobby/LobbyBoxInteractionUi.cs)、[Lobby/LobbyBoxLighting.cs](../Lobby/LobbyBoxLighting.cs)、[Lobby/LobbyFurniturePreview.cs](../Lobby/LobbyFurniturePreview.cs) | 大厅盒子、原版样式交互点与右侧介绍、拖动摆放、原灯输出跟随及测试商店陈设；契约见 [大厅盒子](LOBBY_BOX.md) |
+| [Lobby/LobbyBoxRuntime.cs](../Lobby/LobbyBoxRuntime.cs)、[Lobby/LobbyBoxEditor.cs](../Lobby/LobbyBoxEditor.cs)、[Lobby/LobbyBoxInteractionUi.cs](../Lobby/LobbyBoxInteractionUi.cs)、[Lobby/LobbyBoxInspection.cs](../Lobby/LobbyBoxInspection.cs)、[Lobby/LobbyBoxReadingUi.cs](../Lobby/LobbyBoxReadingUi.cs)、[Lobby/LobbyBoxFraming.cs](../Lobby/LobbyBoxFraming.cs)、[Lobby/LobbyBoxLighting.cs](../Lobby/LobbyBoxLighting.cs)、[Lobby/LobbyFurniturePreview.cs](../Lobby/LobbyFurniturePreview.cs) | 大厅盒子、原版样式交互点、原版检查相机下的右侧盒子／左侧介绍、拖动摆放、原灯输出跟随及测试商店陈设；契约见 [大厅盒子](LOBBY_BOX.md) |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
 
 ## 棋盘进度棋子碰撞

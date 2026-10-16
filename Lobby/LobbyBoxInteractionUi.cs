@@ -19,6 +19,7 @@ internal sealed class LobbyBoxInteractionUi : IDisposable
     private Image? _point;
     private float _nextText, _nextCreate;
     private string _lastInput = "", _lastAction = "";
+    private bool _wasOpen;
 
     internal bool Show(InteractionUI source, Camera camera, Vector3 point, bool focused, bool open)
     {
@@ -28,16 +29,27 @@ internal sealed class LobbyBoxInteractionUi : IDisposable
             Dispose(); _nextCreate = Time.realtimeSinceStartup + 0.5f;
             if (!Create(source)) return false;
         }
-        var screen = camera.WorldToScreenPoint(point);
-        if (screen.z <= 0 || screen.x < 0 || screen.x > Screen.width || screen.y < 0 || screen.y > Screen.height)
-        { Hide(); return false; }
         if (_canvas == null || !_canvas.isActiveAndEnabled) { Hide(); return false; }
         var rootRect = _root!.GetComponent<RectTransform>();
-        var canvasRect = _canvas.GetComponent<RectTransform>();
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, new Vector2(screen.x, screen.y),
-                _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera, out var local))
-        { Hide(); return false; }
-        rootRect.localPosition = new Vector3(local.x, local.y, 0);
+        if (open)
+        {
+            rootRect.anchorMin = rootRect.anchorMax = new Vector2(1, 0);
+            rootRect.anchoredPosition = new Vector2(-240, 90);
+        }
+        else
+        {
+            var screen = camera.WorldToScreenPoint(point);
+            if (screen.z <= 0 || screen.x < 0 || screen.x > Screen.width || screen.y < 0 || screen.y > Screen.height)
+            { Hide(); return false; }
+            var canvasRect = _canvas.GetComponent<RectTransform>();
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, new Vector2(screen.x, screen.y),
+                    _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera, out var local))
+            { Hide(); return false; }
+            rootRect.anchorMin = rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rootRect.localPosition = new Vector3(local.x, local.y, 0);
+        }
+        if (_wasOpen != open) { _wasOpen = open; _nextText = 0; }
+        _action!.rectTransform.sizeDelta = open ? new Vector2(180, 80) : new Vector2(420, 90);
         _root.SetActive(true);
         _point!.gameObject.SetActive(!focused);
         _prompt!.SetActive(focused);
@@ -45,8 +57,8 @@ internal sealed class LobbyBoxInteractionUi : IDisposable
         {
             _nextText = Time.realtimeSinceStartup + 0.1f;
             var input = source.GetInputIndicatorText();
-            var action = LobbyBoxText.Title + "\n" + LobbyBoxText.Pick(open ? "收起介绍" : "查看介绍",
-                open ? "Close introduction" : "Read introduction");
+            var action = open ? LobbyBoxText.Pick("关闭", "Close")
+                : LobbyBoxText.Title + "\n" + LobbyBoxText.Pick("查看介绍", "Read introduction");
             CopyTextStyle(source.textPrimary.inputText, _input!);
             CopyTextStyle(source.textPrimary.ActionText, _action!);
             var spriteAsset = InputIcons.SpriteAsset;
@@ -138,11 +150,12 @@ internal sealed class LobbyBoxInteractionUi : IDisposable
     }
 
     internal void RefreshText() => _nextText = 0;
+    internal void HideReadingPrompt() { if (_wasOpen) Hide(); }
     internal void Hide() { if (_root != null) _root.SetActive(false); }
     public void Dispose()
     {
         if (_root != null) { _root.SetActive(false); UObject.Destroy(_root); }
         _root = null; _source = null; _canvas = null; _prompt = null; _point = null; _input = _action = null;
-        _lastInput = _lastAction = ""; _nextText = _nextCreate = 0;
+        _lastInput = _lastAction = ""; _nextText = _nextCreate = 0; _wasOpen = false;
     }
 }
