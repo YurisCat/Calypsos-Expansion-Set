@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using User;
 using _200_Dev.Entities;
+using _200_Dev.Entities.Player.Behaviours.Inventory;
 using _200_Dev.Entities.Player.Behaviours.Camera;
 
 namespace CalypsoExpansionSet.Lobby;
@@ -155,7 +156,16 @@ internal sealed class LobbyBoxRuntime : IDisposable
                 _inspection.RequestClose(); _interactionUi.Hide(); _releaseOwner = interaction;
                 return true;
             }
-            if (!Controls(out var player, out var camera) || !AimedAtBox(camera, interaction)) return false;
+            if (!Controls(out var player, out var camera)) return false;
+            bool focused;
+            try
+            {
+                // Match the temporary camera used by the native hover pass, then release it before reading.
+                Visuals.HeldCameraOverrides.BeginInteraction(camera);
+                focused = AimedAtBox(camera, interaction);
+            }
+            finally { Visuals.HeldCameraOverrides.End(camera); }
+            if (!focused) return false;
             _inspection.Open(player, camera, _model!);
             _releaseOwner = interaction;
             _interactionUi.Hide();
@@ -183,6 +193,8 @@ internal sealed class LobbyBoxRuntime : IDisposable
         try { _inspection.BeforeMovementChange(player); }
         catch (Exception error) { Fault(error); }
     }
+
+    internal bool BlocksInventoryScroll(InventoryNew inventory) => _inspection.Active && EntityManager.Me?.InventoryNew == inventory;
 
     internal bool ConsumeRelease(PlayerInteraction interaction)
     {
@@ -305,4 +317,17 @@ internal static class LobbyBoxInteractPatch
 internal static class LobbyBoxReleasePatch
 {
     private static bool Prefix(PlayerInteraction __instance) => CalypsoExpansionSetPlugin.Instance?.LobbyBox?.ConsumeRelease(__instance) != true;
+}
+
+// The wheel belongs to the local reading session while open; leave other inventories and sessions untouched.
+[HarmonyPatch(typeof(InventoryNew), nameof(InventoryNew.CliOnFocusPreviousInput))]
+internal static class LobbyBoxPreviousItemPatch
+{
+    private static bool Prefix(InventoryNew __instance) => CalypsoExpansionSetPlugin.Instance?.LobbyBox?.BlocksInventoryScroll(__instance) != true;
+}
+
+[HarmonyPatch(typeof(InventoryNew), nameof(InventoryNew.CliOnFocusNextInput))]
+internal static class LobbyBoxNextItemPatch
+{
+    private static bool Prefix(InventoryNew __instance) => CalypsoExpansionSetPlugin.Instance?.LobbyBox?.BlocksInventoryScroll(__instance) != true;
 }

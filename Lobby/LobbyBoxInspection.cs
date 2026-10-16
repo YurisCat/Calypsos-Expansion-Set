@@ -3,7 +3,6 @@ using Entities;
 using Entities.Player;
 using Entities.Player.Crosshair;
 using HarmonyLib;
-using Items;
 using Mirror;
 using UnityEngine;
 using User;
@@ -33,8 +32,8 @@ internal sealed class LobbyBoxInspection : IDisposable
     private bool _crouchLocked, _jumpLocked, _frozen, _nativeWrite;
     private PlayerCrosshairUI? _crosshair;
     private bool _crosshairVisible;
-    private Tool? _tool;
-    private bool _usageAllowed;
+    private FlashlightTool? _flashlight;
+    private bool _flashlightUsageAllowed;
     private Vector3 _playerPosition;
     private int _width, _height;
     private Il2CppSystem.Action<Entity, int, IDamageDealer.EDamgeSource>? _damaged;
@@ -92,7 +91,8 @@ internal sealed class LobbyBoxInspection : IDisposable
             _crouchLocked = _locomotion._crouchLocked; _jumpLocked = _locomotion._jumpLocked;
             _crosshair = player.GetComponent<PlayerCrosshair>()?._crosshair;
             _crosshairVisible = _crosshair != null && _crosshair._requestedVisible;
-            _tool = player.InventoryNew?.InHand; _usageAllowed = _tool != null && _tool.UsageAllowed;
+            _flashlight = player.FlashLight;
+            _flashlightUsageAllowed = _flashlight != null && _flashlight.UsageAllowed;
             Subscribe(player);
             _nativeWrite = true;
             try
@@ -107,12 +107,12 @@ internal sealed class LobbyBoxInspection : IDisposable
             }
             finally { _nativeWrite = false; }
             if (_crosshair != null) _crosshair.Enabled(false);
-            if (_tool != null && _usageAllowed)
+            if (_flashlight != null)
             {
-                var tool = _tool;
-                tool.CmdToggle(false);
+                var flashlight = _flashlight;
+                flashlight.CmdToggle(false);
                 if (!Active) return false;
-                tool.UsageAllowed = false;
+                if (_flashlightUsageAllowed) flashlight.UsageAllowed = false;
             }
             return true;
         }
@@ -173,10 +173,10 @@ internal sealed class LobbyBoxInspection : IDisposable
             || _movement == null || _movement.enabled || _look == null || _look.enabled || _locomotion == null || _locomotion.enabled
             || player.PlayerMovement != _movement || player.playerCameraController != _look || player.LocomotionController != _locomotion
             || (player.transform.position - _playerPosition).sqrMagnitude > 0.25f
-            || player.InventoryNew?.InHand != _tool || Testing.TestRoomAppearanceView.IsInspecting)
+            || Testing.TestRoomAppearanceView.IsInspecting)
         { Close(); return; }
         if (_width != Screen.width || _height != Screen.height) Frame(model);
-        _ui.Tick();
+        _ui.Tick(_settled);
     }
 
     private void Subscribe(PlayerEntity player)
@@ -277,16 +277,25 @@ internal sealed class LobbyBoxInspection : IDisposable
                             if (_locomotion._jumpLocked) _locomotion._jumpLocked = _jumpLocked; });
                 }
             }
-            if (_tool != null && _usageAllowed && !_tool.UsageAllowed) Cleanup(() => _tool.UsageAllowed = true);
+            Cleanup(ReleaseFlashlight);
             if (_crosshair != null && !_crosshair._requestedVisible) Cleanup(() => _crosshair.Enabled(_crosshairVisible));
         }
         finally
         {
             if (_slot != null) { var slot = _slot; Cleanup(() => UObject.Destroy(slot)); }
             _slot = null; _manager = null; _virtual = null; _oldFollow = null; _output = null;
-            _movement = _look = null; _locomotion = null; _tool = null; _crosshair = null;
-            _frozen = _nativeWrite = _usageAllowed = _crosshairVisible = false;
+            _movement = _look = null; _locomotion = null; _flashlight = null; _crosshair = null;
+            _frozen = _nativeWrite = _flashlightUsageAllowed = _crosshairVisible = false;
         }
+    }
+
+    private void ReleaseFlashlight()
+    {
+        var flashlight = _flashlight;
+        var allowed = _flashlightUsageAllowed;
+        _flashlight = null; _flashlightUsageAllowed = false;
+        // Native reading restores permission, without switching the light back on.
+        if (flashlight != null && allowed && !flashlight.UsageAllowed) flashlight.UsageAllowed = true;
     }
 
     private void Cleanup(Action action)

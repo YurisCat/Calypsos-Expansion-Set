@@ -16,3 +16,7 @@
 脚本在忽略目录内建立独立转换项目，仅使用编辑器导入 FBX 和读取像素；导出压缩二进制网格、法线、UV、索引和 RGBA，不创建跨版本 AssetBundle。运行时有界解码，以已使用的 `LoadRawTextureData(IntPtr, int)` 加载像素，克隆游戏材质，清理自有模型、网格、材质和纹理。
 
 家具测试、交互和位置记录契约见 [大厅盒子](../../docs/LOBBY_BOX.md)。编辑器导出和像素检查不能代替游戏光照、字体、交互或联机验收。
+
+## 制作人员图标
+
+`bilibili-line.svg` 来自 [Remix Icon 的 bilibili-line](https://github.com/Remix-Design/RemixIcon/blob/master/icons/Logos/bilibili-line.svg)，版权属于 Remix Design，遵循 [Remix Icon License v1.0](https://github.com/Remix-Design/RemixIcon/blob/master/License)；源 SVG 保留来源与许可声明。`bilibili-line.rgba` 为其 96×96 RGBA 栅格版本，内嵌到插件，运行时使用原始像素上传并创建共享 Sprite，不依赖 LoadImage 或外部图标文件。

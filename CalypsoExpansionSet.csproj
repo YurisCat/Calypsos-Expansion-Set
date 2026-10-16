@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CalypsoExpansionSet</AssemblyName>
     <RootNamespace>CalypsoExpansionSet</RootNamespace>
-    <Version>0.2.57</Version>
+    <Version>0.2.58</Version>
     <Product>Calypso's Expansion Set</Product>
     <Authors>YurisCat;Masaicker</Authors>
     <Copyright>Copyright © 2026 YurisCat, Masaicker</Copyright>
@@ -29,6 +29,7 @@
     <Compile Remove="scripts\ScreenEffectsBuild.cs" />
     <Compile Remove="scripts\LobbyBoxBuild.cs" />
     <EmbeddedResource Include="Assets\LobbyBox\box.cesmodel" LogicalName="CalypsoExpansionSet.LobbyBox.box.cesmodel" />
+    <EmbeddedResource Include="Assets\LobbyBox\bilibili-line.rgba" LogicalName="CalypsoExpansionSet.LobbyBox.bilibili.rgba" />
     <EmbeddedResource Include="Assets\ScreenEffects\idol_screen.bundle" LogicalName="CalypsoExpansionSet.ScreenEffects.bundle" />
     <EmbeddedResource Include="Assets\StickyNote\note.mesh.json" LogicalName="CalypsoExpansionSet.StickyNote.note.mesh.json" />
     <EmbeddedResource Include="Assets\StickyNote\paper.note" LogicalName="CalypsoExpansionSet.StickyNote.paper.note" />

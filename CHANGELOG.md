@@ -2,6 +2,17 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.58 — 2026-10-16（盒子滚动与制作人员 / Box scrolling and credits）
+
+- 长正文限制在阅读区内，滚轮每格直接移动两行，也支持绑定的移动键和手柄摇杆；制作人员固定在下方，以较小字号和不同颜色显示，补齐中英文昵称及昵称后的 B 站图标。正式介绍保留欢迎语，移除临时测试文本。
+  Clips long introductions to the reading area, with two lines per wheel notch and support for bound movement controls and controller sticks. Credits stay below the text with smaller type, distinct colors, localized names and Bilibili icons after the applicable names. Retains the welcome message and removes temporary test text.
+- 阅读不再限制所持雕像的使用，丢下或切换物品后可继续阅读。仅关闭并暂时禁用自己的手电，退出恢复使用资格，不自动重新开灯。
+  Reading no longer restricts the held idol; dropping or switching items keeps the introduction open. Only the reader's flashlight is switched off and temporarily disabled. Closing restores permission without switching it back on.
+- 修复宽体状态下交互提示与按键检测使用不同镜头位置，导致瞄准盒子却无法打开的问题。
+  Aligns the interaction check with the lowered wide-body camera, fixing cases where the box prompt appeared but interaction failed.
+- Release 编译 0 警告／0 错误，1,977 项托管断言通过；最终滚轮手感已有用户试玩确认。本轮未部署或启动游戏，完整镜头过渡、显示和多人边界仍待实机回测。
+  Release builds without warnings or errors; 1,977 managed assertions pass. The final wheel behavior has user playtest confirmation. Not deployed or launched this round; full camera transitions, rendering and multiplayer boundaries still require in-game validation.
+
 ## 0.2.57 — 2026-10-16（盒子阅读布局与过渡 / Box reading layout and transitions）
 
 - 介绍字号缩小 20%，正文区域上移并向右、向下扩大，按屏幕比例保留边距；原版 HUD 和重要消息保持在介绍之上。
