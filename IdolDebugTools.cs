@@ -40,13 +40,16 @@ internal sealed class IdolDebugTools : IDisposable
     private Vector2 _resultScroll;
     private string[] _spawnLabels = Array.Empty<string>();
     private readonly Lobby.LobbyBoxEditor _boxEditor;
-    private bool _boxPanel;
+    private enum DebugPage { Idols, Box, LocalMultiplayer }
+    private DebugPage _page;
+    internal Testing.LocalMultiplayer LocalMultiplayer { get; }
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
 
     internal IdolDebugTools(CalypsoExpansionSetPlugin plugin)
     {
         _plugin = plugin;
+        LocalMultiplayer = new Testing.LocalMultiplayer(plugin, Close);
         _boxEditor = new Lobby.LobbyBoxEditor(plugin);
         Catalog = new IdolDebugCatalog(plugin);
         _monsters = new IdolDebugMonsters(plugin);
@@ -79,6 +82,7 @@ internal sealed class IdolDebugTools : IDisposable
 
     internal void Tick()
     {
+        LocalMultiplayer.Tick();
         if (!Enabled) { Cancel(); return; }
         _boxEditor.Tick();
         _monsters.Tick();
@@ -436,15 +440,23 @@ internal sealed class IdolDebugTools : IDisposable
         var y = _windowRect.y;
         var width = _windowRect.width;
         GUI.Box(_windowRect, $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close; drag title)");
-        if (GUI.Button(new Rect(x + width - 160, y + 30, 145, 25),
-                _boxPanel ? Lobby.LobbyBoxText.Pick("雕像工具", "Idol tools") : Lobby.LobbyBoxText.Pick("模型摆放", "Model placement")))
-        { _boxEditor.CancelDrag(); _boxPanel = !_boxPanel; }
-        if (_boxPanel)
+        var tabWidth = (width - 46f) / 3f;
+        if (GUI.Button(new Rect(x + 15, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("雕像工具", "Idol tools")))
+        { _boxEditor.CancelDrag(); _page = DebugPage.Idols; }
+        if (GUI.Button(new Rect(x + 23 + tabWidth, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("模型摆放", "Model placement")))
+        { _boxEditor.CancelDrag(); _page = DebugPage.Box; }
+        if (GUI.Button(new Rect(x + 31 + tabWidth * 2, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("本机联机", "Local multiplayer")))
+        { _boxEditor.CancelDrag(); _page = DebugPage.LocalMultiplayer; }
+        if (_page == DebugPage.Box)
         {
             _boxEditor.Draw(new Rect(x + 15, y + 65, width - 30, _windowRect.height - 80));
             return;
         }
-        GUI.Label(new Rect(x + 15, y + 30, width - 185, 25), "spawn jumping   |   list   |   status");
+        if (_page == DebugPage.LocalMultiplayer)
+        {
+            LocalMultiplayer.Draw(new Rect(x + 15, y + 70, width - 30, _windowRect.height - 85));
+            return;
+        }
         // TextField consumes Return, so capture submission before drawing it.
         var guiEvent = Event.current;
         var submit = guiEvent.type == EventType.KeyDown
@@ -540,6 +552,6 @@ internal sealed class IdolDebugTools : IDisposable
         _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
     }
 
-    internal void Cancel() { _pending = null; Close(); _monsters.Clear(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
-    public void Dispose() => Cancel();
+    internal void Cancel() { _pending = null; LocalMultiplayer.CancelRequest(); Close(); _monsters.Clear(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
+    public void Dispose() { Cancel(); LocalMultiplayer.Dispose(); }
 }

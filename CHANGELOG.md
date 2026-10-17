@@ -2,6 +2,13 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.63 — 2026-10-17（本机多人测试 / Local multiplayer testing）
+
+- F8 新增“本机联机”，可分别设置昵称、建房及加入本机，使用正常大厅和地图；测试会话禁止存档写入。
+  Adds an F8 Local multiplayer page with separate nicknames, hosting and joining on localhost, using normal lobbies and maps. Test sessions do not save.
+- 新增多实例启动脚本，隔离插件、配置与日志，通过独立启动配置解除原版单实例限制；支持仅准备文件。
+  Adds a launcher for multiple game instances with separate plugins, configs and logs. Uses an isolated boot configuration to lift the native single-instance restriction, with a prepare-only option.
+
 ## 0.2.62 — 2026-10-17（房内名字提示 / Room presence names）
 
 - 用头像下方名字颜色替换房间指示灯：青色表示玩家在初始房内，其余情况恢复原色。保留原版文字特效、透明度、骷髅与语音绿光，沿用现有房间同步及死亡实体位置判定；大厅盒子中英提示同步更新。

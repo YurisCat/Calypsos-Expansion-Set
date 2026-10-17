@@ -58,6 +58,18 @@ Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像及�
 
 改变游戏状态的调试操作仅房主可用；客户端可查询和使用本地诊断。更多工具与详细规则见 [调试与测试房](docs/ARCHITECTURE.md#调试与测试房)。
 
+## 本机多人测试
+
+保持 Steam 运行，准备好游戏的 BepInEx 与 interop 后，在源码目录执行：
+
+```powershell
+.\scripts\Start-LocalMultiplayer.ps1 -InvokyrPath 'D:\Games\Invokyr'
+```
+
+脚本编译并打开两个测试窗口；`-Count 3` 可开三个。各窗口按 F8 →“本机联机”，在一个窗口点击“本机建房”，其余点击“加入本机”。昵称可分别设置，所有窗口加入后再开始游戏，切换窗口控制各自角色；退出使用游戏原有菜单。
+
+测试使用正常大厅和地图，连接固定为 `127.0.0.1:7777`，会话不写入游戏存档。各实例的插件、配置和日志放在 `.local/local-multiplayer/`，脚本不修改原安装文件。`-PrepareOnly` 仅准备文件，`-SkipBuild` 使用已有 Release 构建。此方式适合验证多人状态同步，不替代不同电脑或 Steam 联机测试。
+
 ## 单人测试房
 
 退出当前游戏，在 CFG 中设定：
@@ -84,13 +96,13 @@ TestRoomEnabled = true
 .\scripts\Build.ps1
 ```
 
-游戏路径不同时，指定自己的安装目录；仅编译务必传 `DeployToGame=false`：
+游戏路径不同时，指定自己的安装目录：
 
 ```powershell
-dotnet build .\CalypsoExpansionSet.csproj -c Release -p:DeployToGame=false '-p:InvokyrPath=D:\Games\Invokyr'
+.\scripts\Build.ps1 -InvokyrPath 'D:\Games\Invokyr'
 ```
 
-`Build.ps1` 仅编译，输出为 `bin/Release/net6.0/CalypsoExpansionSet.dll`。
+`Build.ps1` 仅编译，输出为 `bin/Release/net6.0/CalypsoExpansionSet.dll`；直接使用 `dotnet build` 时，仅编译须传 `-p:DeployToGame=false`。
 
 部署前退出游戏，运行以下脚本后正常启动：
 

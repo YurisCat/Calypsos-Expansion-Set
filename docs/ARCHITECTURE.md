@@ -347,6 +347,12 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 - NEXT 在基础 busy 条件中增加 Flow.Instance 非空时的 Flow.IsPlaying 检查：播放时拒绝新 NEXT，已进入 AdvancePawn 阶段则沿用原请求等待，仍受原有超时限制。SrvMovePawn 后仍释放请求，保留 2 秒间隔；未增加独立特殊事件判断或完整异步等待/去重，不保证覆盖所有房间生成窗口。SrvAllFlowCompleted 与 SrvAllPawnMoveCompleted 一样会执行回调并清空确认表，不能当只读查询调用；研究及日志结论见 DEVELOPMENT。
 - 雪人/猎人各一个生成／移除按钮，位于原四个 DEV 按钮下方；仅房主正常关卡可生成，沿用关闭窗口后排队，并检查存活角色/控制、兼容就绪与 Flow/房间过渡。确认原版 prefab 的 NavMeshAgent.agentTypeID=0 后，读取其 areaMask，使用整数掩码版 SamplePosition/CalculatePath 原生接口；非默认类型仅提示，不调用当前恢复 IL 有误的过滤器版 CalculatePath。在房主前方 10～15 米内采样，检查高度、实体地面、碰撞空间与完整导航路径，失败不创建实体或随机远距兜底。克隆后在 NetworkServer.Spawn 前设置 Manual 来源，再调用 SrvMonsterSpawnNoDelay 的指定位置重载；不切换事件、不指定目标、不改听觉或 AI，不进入怪相自然候选。每种只保存自己的 GameObject 引用，移除/失败回滚/关闭 DebugMode/会话或棋盘替换只销毁这两个自有对象，不按类型扫描自然怪；关闭 F8 保留怪物，怪物自然销毁后可重新生成。
 
+F8 的“本机联机”由 [LocalMultiplayer.cs](../Testing/LocalMultiplayer.cs) 管理。仅 DebugMode 开启、非专用陈列房、主菜单就绪且无活动或待连接会话时接受请求；关闭面板、恢复输入后下一帧再调用原版 `HostKcp("INVOKY")` / `JoinKcp("INVOKY")`，使用原版 KCP 与正常大厅／地图，不屏蔽事件、怪物或小局边界伤害。所有窗口须在开始游戏前加入，沿用原版准入规则与 MOD 兼容握手，不新增网络协议或更改玩法清单。
+
+启动前设置自有会话标记，清除待加载存档，暂时将原版地址／端口设为 `127.0.0.1:7777`；原生同步读取后立即在 finally 中恢复设置。测试期间仅接受回环来源的远端连接，AutoSave／SrvSaveCollection／SaveToSlot 写入被拦截；正常会话不受这两个保护影响。昵称仅在自有会话中覆盖 `ResolveNickName`，不写昵称 PlayerPrefs；临时开启后台运行，退出时按所有权恢复昵称与后台设置。关闭 F8 或 DebugMode 只取消待发请求，活动会话的保护持续到实际断开；90 秒未就绪会尝试停止一次连接，停止尚未完成时继续保护。管理器更换、正常退出与卸载幂等清理；插件玩法停用后仍维护这项退出清理。
+
+[Start-LocalMultiplayer.ps1](../scripts/Start-LocalMultiplayer.ps1) 编译后在 `.local/local-multiplayer/` 下创建每次独立的 1～3 个实例目录，分别复制 BepInEx 核心、已有 interop／unity-libs 与本插件，配置仅在副本中开启 F8 调试、关闭单人陈列房。通过 Doorstop 参数选择各自的预加载程序集及启动配置；启动配置只从副本移除原版 `single-instance` 项，不改原文件，不复制游戏资源或替换 Steam API。每个窗口有独立配置、预加载／BepInEx／Player 日志；Steam 身份与 Unity 用户设置仍共用，本方案不验证账号身份差异、Steam 传输或跨电脑网络。参数及操作见 [README](../README.md#本机多人测试)。
+
 专用测试房要求 --ces-test-room、DebugMode=true、TestRoomEnabled=true 同时满足，普通启动不会自动建房。它沿原版 KCP 流程开本机单人会话，跳过 Logo，在初始房门外建立陈列房、打开连接门并放置玩家；只允许本地连接，阻止事件/怪物生成和存档写入，不自动补刷展品。
 
 后部陈列从原版配置清单按组件过滤后的条目；MissingPiece/Final 预制体均带 MissingPieceTool，连同怪物 WanderingDice 排除，不生成对应实体、基座或标签。当前资源静态复核预计 18 项（首排 10 个、次排 8 个居中），实际数量由运行期清单与 READY 日志确认。中部按稳定 key 自动陈列每种 MOD 一只并计入各自调试限额。基座只读复用 SM_SocleStatue 网格/M_SocleStatue 材质，自建静态承托碰撞，不复制来源房间脚本。

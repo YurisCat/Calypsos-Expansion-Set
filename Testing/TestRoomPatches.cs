@@ -14,7 +14,7 @@ using _200_Dev.BoardGameLogic.Elements.Tool.ToolExtension;
 
 namespace CalypsoExpansionSet.Testing;
 
-// Gallery patches require the dedicated test launch; the standalone Linked guard also covers explicit F8 original spawns.
+// Gallery-only patches use the dedicated launch; save/connection guards also cover explicit local tests.
 [HarmonyPatch(typeof(SplashManager), "OnPlay")]
 internal static class TestSkipLogosPatch
 {
@@ -36,7 +36,7 @@ internal static class TestNoSaveWritesPatch
         yield return AccessTools.Method(typeof(Save), nameof(Save.SrvSaveCollection));
         yield return AccessTools.Method(typeof(Save), "SaveToSlot");
     }
-    private static bool Prefix() => !TestRoomLaunch.IsActive;
+    private static bool Prefix() => !TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive;
 }
 
 [HarmonyPatch(typeof(VhsNetworkManager), nameof(VhsNetworkManager.OnServerConnect))]
@@ -44,9 +44,24 @@ internal static class TestLocalConnectionOnlyPatch
 {
     private static bool Prefix(NetworkConnectionToClient conn)
     {
-        if (!TestRoomLaunch.IsActive || conn.TryCast<LocalConnectionToClient>() != null) return true;
-        CalypsoExpansionSetPlugin.Instance!.Log.LogWarning("[Test room] remote connection refused: this procedural gallery is single-player.");
+        if (conn.TryCast<LocalConnectionToClient>() != null) return true;
+        if (!TestRoomLaunch.IsActive && (!LocalMultiplayer.IsActive || LocalMultiplayer.IsLoopback(conn.address))) return true;
+        CalypsoExpansionSetPlugin.Instance!.Log.LogWarning(TestRoomLaunch.IsActive
+            ? "[Test room] remote connection refused: this procedural gallery is single-player."
+            : "[Local multiplayer] connection refused: only loopback clients may join this test session.");
         conn.Disconnect();
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(VhsNetworkManager), nameof(VhsNetworkManager.ResolveNickName))]
+internal static class LocalMultiplayerNicknamePatch
+{
+    private static bool Prefix(ref string __result)
+    {
+        var nickname = LocalMultiplayer.SessionNickname;
+        if (nickname == null) return true;
+        __result = nickname;
         return false;
     }
 }

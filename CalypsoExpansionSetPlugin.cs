@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.62";
+    public const string PluginVersion = "0.2.63";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -128,7 +128,12 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     {
         PawnCollisions?.Tick();
         TestRoom.Tick();
-        if (_failed) return;
+        if (_failed)
+        {
+            // Keep test-session protection until disconnect, then restore its temporary settings.
+            DebugTools.LocalMultiplayer.Tick();
+            return;
+        }
         try
         {
             if (!NetworkServer.active) _sessionWeightsInitialized = false;

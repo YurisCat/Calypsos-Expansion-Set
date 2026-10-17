@@ -1,6 +1,7 @@
 param(
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+    [string]$InvokyrPath
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -14,7 +15,9 @@ $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
 $env:DOTNET_GENERATE_ASPNET_CERTIFICATE = 'false'
 Push-Location -LiteralPath $taskRoot
 try {
-    & $taskDotnet build '.\CalypsoExpansionSet.csproj' -c $Configuration -p:DeployToGame=false --nologo
+    $taskBuildArgs = @('build', '.\CalypsoExpansionSet.csproj', '-c', $Configuration, '-p:DeployToGame=false', '--nologo')
+    if (-not [string]::IsNullOrWhiteSpace($InvokyrPath)) { $taskBuildArgs += "-p:InvokyrPath=$InvokyrPath" }
+    & $taskDotnet @taskBuildArgs
     if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
 } finally {
     Pop-Location
