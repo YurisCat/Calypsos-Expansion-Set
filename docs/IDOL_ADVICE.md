@@ -8,6 +8,8 @@
 
 `[UI] ShowIndividualIdolNames=true` 时显示以下正式名称；关闭时原版保留原名，MOD 按语言统一显示“卡里普索拓展包雕像”或“Calypso's Expansion Set Idol”。名称开关不影响顶部箴言。终局雕像、缺失拼图的名称未指定，两个开关状态都保留原名。
 
+`[UI] ShowIdolAdvice` 默认 true；设为 false 只关闭本机顶部箴言，名称仍由 `ShowIndividualIdolNames` 独立控制。原版教程、重要消息和雕像效果不受影响。两项均在 CFG 中配置，修改后重启游戏。
+
 ## 原版雕像
 
 | 原版类型 | 中文名称 | 中文箴言 | 英文名称 | 英文箴言 |

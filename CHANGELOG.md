@@ -2,6 +2,29 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.61 — 2026-10-17（名称整理与提示 / Naming and tips）
+
+- 通用同步类与更新组件改名为 `ExpansionSetSync`、`ExpansionSetDriver`，同步修改文件名与引用；现有 CFG、消息编号及旧版兼容入口保持。
+  Renames the shared synchronization class and update component to `ExpansionSetSync` and `ExpansionSetDriver`, including files and references. Keeps current CFG settings, message IDs and legacy compatibility handling.
+- 大厅盒子补充头像灯、商店体力和独立箴言开关提示；生活质量说明精简为四条，合并箴言与名称配置，保留欢迎语及玩法介绍。README 补充必要用法，NEXUS.txt 仅补充新 CFG 及名称／箴言开关独立的说明。
+  Adds box tips for portrait lights, shop stamina and the separate advice option. Condenses quality-of-life guidance to four points, combining advice/name settings while retaining the welcome and gameplay introduction. Adds essential usage to README; NEXUS.txt changes are limited to CFG guidance.
+
+## 0.2.60 — 2026-10-17（指示灯位置 / Portrait light placement）
+
+- 将每人的指示灯移至各自头像框顶部中央，避开下方昵称牌；房内／房外两种颜色及原版头像、骷髅和语音绿光保持。
+  Moves each presence light above the center of its portrait frame to clear the nickname plate. Keeps the two occupancy colors and native portraits, skulls and voice glow.
+
+## 0.2.59 — 2026-10-17（房间提示与商店体力 / Room presence and shop stamina）
+
+- 初始房头像增加指示灯：青色表示房内、灰色表示房外，空头像隐藏；房主判定后同步给兼容玩家。
+  Adds starting-room portrait lights: cyan for inside, gray for outside, hidden for empty slots. The host determines occupancy and synchronizes it to compatible players.
+- 进入商店回满一次体力，商店范围内跑跳不耗体力，离店恢复正常消耗和恢复规则。
+  Refills stamina once on entering the shop, waives running/jumping costs inside, and restores normal stamina rules on leaving.
+- 新增默认开启的 `[UI] ShowIdolAdvice`，可独立关闭原版／MOD 雕像顶部箴言，不影响名称、原版教程或重要消息。
+  Adds `[UI] ShowIdolAdvice`, enabled by default, to hide vanilla/MOD idol advice independently of names, native tutorials and important messages.
+- 兼容握手协议提升至 4，排除不支持新房间消息的旧版；联机各端需更新兼容版本并重开房间。托管检查不代替实际联机验收，验证证据见 DEVELOPMENT。
+  Raises the handshake protocol to 4 to exclude older clients without room-message support. All players need compatible updates and a new session. Managed checks do not replace real multiplayer validation; see DEVELOPMENT for evidence.
+
 ## 0.2.58 — 2026-10-16（盒子滚动与制作人员 / Box scrolling and credits）
 
 - 长正文限制在阅读区内，滚轮每格直接移动两行，也支持绑定的移动键和手柄摇杆；制作人员固定在下方，以较小字号和不同颜色显示，补齐中英文昵称及昵称后的 B 站图标。正式介绍保留欢迎语，移除临时测试文本。

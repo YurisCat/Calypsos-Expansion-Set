@@ -13,7 +13,7 @@ internal sealed class IdolEffectRuntime : IDisposable
     private readonly HashSet<uint> _seen = new();
     private readonly Dictionary<uint, IntPtr> _faulted = new();
     private readonly List<uint> _removed = new();
-    private readonly List<JumpingIdolSync.TrackedIdol> _serverSnapshot = new();
+    private readonly List<ExpansionSetSync.TrackedIdol> _serverSnapshot = new();
     internal IdolEffectRuntime(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
     internal void Tick()

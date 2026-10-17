@@ -142,7 +142,7 @@ internal sealed class IdolHoverInfo : IDisposable
                 _nativeMessageUntil = 0;
                 _ui = ui;
             }
-            if (!ControlsReady(out _) || NarrationVisible(ui)) Hide();
+            if (!_plugin.ShowIdolAdvice || !ControlsReady(out _) || NarrationVisible(ui)) Hide();
         }
         catch (Exception error) { Fault(error); }
     }
@@ -156,7 +156,7 @@ internal sealed class IdolHoverInfo : IDisposable
             // Remote players also execute LateUpdate; they must not clear or
             // replace the local player's hint.
             if (local == null || local.PlayerInteraction != interaction) return;
-            if (!ControlsReady(out _)) { Hide(); return; }
+            if (!_plugin.ShowIdolAdvice || !ControlsReady(out _)) { Hide(); return; }
             var target = interaction.Hovered;
             // Native collider targets can be InterectableLinker wrappers.
             // Resolve through the game's interface before identifying the item.

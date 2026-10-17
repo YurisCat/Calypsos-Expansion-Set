@@ -10,17 +10,19 @@ internal static class LobbyBoxText
         "欢迎游玩《卡里普索的拓展包》！\n\n"
         + "本拓展包为您带来：\n\n"
         + "游戏性提升：\n・添加很多有趣又富有挑战性的雕像\n\n"
-        + "生活质量提升：\n・移除玩家棋子的碰撞，方便玩家在棋盘上踢骰子\n"
-        + "・为所有的（包括原版）雕像提供箴言\n"
-        + "・直接显示所有雕像的名字（需在配置文件中开启）\n\n"
+        + "生活质量提升：\n・移除棋盘上棋子的碰撞，方便踢骰子\n"
+        + "・为所有雕像提供箴言和名称提示，可分别配置（箴言默认打开，名称默认关闭）\n"
+        + "・添加头像小灯：青色表示玩家在房内，灰色表示在房外\n"
+        + "・进入商店时无限体力\n\n"
         + "祝您游戏愉快！:3";
     internal const string EnglishIntroduction =
         "Welcome to Calypso's Expansion Set!\n\n"
         + "Here's what this expansion brings you:\n\n"
         + "Gameplay improvements:\n· Lots of fun and challenging new idols\n\n"
-        + "Quality of life improvements:\n· Removes player-pawn collisions, making it easier to kick dice on the board\n"
-        + "· Adds words of advice for every idol, including vanilla idols\n"
-        + "· Shows individual names for all idols (enable this in the configuration file)\n\n"
+        + "Quality of life improvements:\n· Removes board-pawn collisions to make kicking dice easier\n"
+        + "· Adds advice and individual names for all idols, configurable separately (advice on, names off by default)\n"
+        + "· Adds portrait lights: cyan for players inside the room, gray for those outside\n"
+        + "· Unlimited stamina while in the shop\n\n"
         + "Have fun! :3";
     internal static string Introduction => Pick(ChineseIntroduction, EnglishIntroduction);
 }

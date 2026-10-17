@@ -3,13 +3,13 @@ using Mirror;
 
 namespace CalypsoExpansionSet;
 
-// Historical filename; this now handles all registered types. Native prefab/config IDs
+// Handles compatibility and instance tracking for all registered types. Native prefab/config IDs
 // identify each idol, so a second custom instance-marker snapshot is unnecessary.
-internal sealed class JumpingIdolSync : IDisposable
+internal sealed class ExpansionSetSync : IDisposable
 {
     private const ushort MessageId = 0x4D49;
     private const uint Magic = 0x4D49444C;
-    private const byte ProtocolVersion = 3;
+    private const byte ProtocolVersion = 4;
     private const byte Hello = 0;
     private const byte Acknowledge = 1;
     private const byte Reject = 2;
@@ -52,7 +52,7 @@ internal sealed class JumpingIdolSync : IDisposable
         }
     }
 
-    internal JumpingIdolSync(ManualLogSource log, Func<bool> registryReady, Func<ulong> manifest)
+    internal ExpansionSetSync(ManualLogSource log, Func<bool> registryReady, Func<ulong> manifest)
     {
         _log = log;
         _registryReady = registryReady;

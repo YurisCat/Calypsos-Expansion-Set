@@ -36,6 +36,7 @@ Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像及�
 | [Gameplay] NaturalSpawning | true | 让 MOD 雕像参与自然生成，保留原版生成总数 |
 | [QualityOfLife] DisableBoardPawnCollision | true | 关闭棋盘进度棋子的实体碰撞；联机建议各端一致 |
 | [UI] ShowIndividualIdolNames | false | 开启后显示具体名称；默认 MOD 使用统一名称 |
+| [UI] ShowIdolAdvice | true | 显示指向箴言，与名称开关独立；关闭不影响原版教程与重要消息 |
 | [Debug] DebugMode | false | 开启 F8 测试工具和诊断日志 |
 | [Debug] WindowKey | F8 | 打开/关闭测试窗口；None 禁用按键 |
 | [Debug] TestRoomEnabled | false | 允许专用测试房启动，仍需参数与 DebugMode |

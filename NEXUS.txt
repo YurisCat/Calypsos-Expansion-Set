@@ -84,7 +84,10 @@ New idols enter natural spawn pools.
 Walk through board progress pawns to move and kick dice more easily. Visuals, animations, board, dice and event pieces stay normal. Local setting; matching settings recommended.
 
 [b]ShowIndividualIdolNames = false[/b]
-Enable individual localized names; otherwise keep vanilla names and use one localized MOD name. Hover hints remain enabled.
+Enable individual localized names; otherwise keep vanilla names and use one localized MOD name. Independent of the advice setting.
+
+[b]ShowIdolAdvice = true[/b]
+Show hover advice for supported vanilla and MOD idols. Disable it to hide advice without changing names, vanilla tutorials or important messages.
 
 [b]DebugMode = false[/b]
 Optional test tools/logs. Enable it for the F8 window; only the host can spawn idols. Normal play needs no debug mode.
@@ -183,7 +186,10 @@ Detailed setup, testing and limitations are on GitHub below.
 关闭棋盘进度棋子的碰撞，方便移动和踢骰子；显示、动画、棋盘、骰子及事件棋子保持正常。各端独立生效，联机建议一致。
 
 [b]ShowIndividualIdolNames = false[/b]
-开启显示游戏语言对应的名称；关闭保留原版名称，MOD 使用对应语言的统一名称，箴言照常显示。
+开启显示游戏语言对应的名称；关闭保留原版名称，MOD 使用对应语言的统一名称，与箴言开关独立。
+
+[b]ShowIdolAdvice = true[/b]
+指向已支持的原版与 MOD 雕像时显示箴言；关闭只隐藏箴言，不影响名称、原版教程与重要消息。
 
 [b]DebugMode = false[/b]
 可选测试工具与日志；开启后按 F8 打开生成窗口（仅房主生成），正常玩法无需调试模式。

@@ -22,7 +22,8 @@
 | [IdolRegistry.cs](../IdolRegistry.cs) | 克隆/查找/网络登记、兼容清单、视觉资源所有权 |
 | [IdolSpawnIntegration.cs](../IdolSpawnIntegration.cs) | 当前 ItemSet 的批次副本、自然候选接入与结果统计 |
 | [IdolEffectRuntime.cs](../IdolEffectRuntime.cs) | 识别当前持有物，按类型/执行端启动、更新和停止效果 |
-| [JumpingIdolSync.cs](../JumpingIdolSync.cs) | 全类型兼容准入与服务器实例/调试来源记录；保留历史文件名 |
+| [ExpansionSetSync.cs](../ExpansionSetSync.cs) | 全类型兼容准入与服务器实例/调试来源记录 |
+| [ExpansionSetDriver.cs](../ExpansionSetDriver.cs) | 插件动态创建的 Unity 更新组件，驱动 Tick 和调试窗口绘制 |
 | [Idols/JumpingIdol.cs](../Idols/JumpingIdol.cs) | 原力度连续跳跃、自动请求归属与成功起跳音效 |
 | [Idols/SpringIdol.cs](../Idols/SpringIdol.cs) | 暂停注册的旧弹簧编排，保留源码和身份 |
 | [Idols/FovIdol.cs](../Idols/FovIdol.cs) | 近景持有者的本地 FOV 缩放过渡与恢复 |
@@ -36,6 +37,8 @@
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
 | [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs)、[UI/OriginalIdolAdvice.cs](../UI/OriginalIdolAdvice.cs)、[UI/IdolTextLocalization.cs](../UI/IdolTextLocalization.cs) | 已注册内容与原版对照的本地指向名称、顶部短说明、原版消息共存和清理 |
 | [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
+| [QualityOfLife/RoomAreas.cs](../QualityOfLife/RoomAreas.cs)、[QualityOfLife/RoomStatusSync.cs](../QualityOfLife/RoomStatusSync.cs) | 原版房间体积检测、服务器判定的初始房／商店状态与完整快照 |
+| [Lobby/PlayerPresenceLights.cs](../Lobby/PlayerPresenceLights.cs)、[QualityOfLife/ShopStamina.cs](../QualityOfLife/ShopStamina.cs) | 头像框顶部的房内指示灯、商店内体力补满与免耗 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Lobby/LobbyBoxRuntime.cs](../Lobby/LobbyBoxRuntime.cs)、[Lobby/LobbyBoxEditor.cs](../Lobby/LobbyBoxEditor.cs)、[Lobby/LobbyBoxInteractionUi.cs](../Lobby/LobbyBoxInteractionUi.cs)、[Lobby/LobbyBoxInspection.cs](../Lobby/LobbyBoxInspection.cs)、[Lobby/LobbyBoxReadingUi.cs](../Lobby/LobbyBoxReadingUi.cs)、[Lobby/LobbyBoxFraming.cs](../Lobby/LobbyBoxFraming.cs)、[Lobby/LobbyBoxLighting.cs](../Lobby/LobbyBoxLighting.cs)、[Lobby/LobbyFurniturePreview.cs](../Lobby/LobbyFurniturePreview.cs) | 大厅盒子、原版样式交互点、原版检查相机下的右侧盒子／左侧介绍、拖动摆放、原灯输出跟随及测试商店陈设；契约见 [大厅盒子](LOBBY_BOX.md) |
 | [Lobby/LobbyBoxCredits.cs](../Lobby/LobbyBoxCredits.cs) | 独立于正文滚动的固定署名、中英昵称和 B 站图标；布局与资源契约见 [大厅盒子](LOBBY_BOX.md) |
@@ -48,6 +51,18 @@
 原版客户端棋盘启动、服务器 PawnManager 启动及进度棋子重新显示后立即应用，并每秒通过当前棋盘的已知列表维护，覆盖后续棋盘/实例替换与重连；不逐帧扫描场景或反射。各端按本机配置执行，不增加网络消息或同步 Unity 的 collider.enabled，因此联机建议全部参与端保持一致；不据此承诺只装房主有效。该开关没有改变任何雕像定义、身份或内容版本。
 
 只记录本功能从 enabled=true 改为 false 的 Collider。关闭开关、棋盘列表替换、离开会话及正常卸载时恢复这些仍存活且仍为 false 的组件，原先已禁用的碰撞不被重新启用；销毁对象安全移除。异常回滚已记录修改并单独停用本功能，保留其他模组功能；诊断日志受 DebugMode 控制。具体原版资源/原生研究与编译、托管、游戏验收边界见 [DEVELOPMENT](../DEVELOPMENT.md)。
+
+## 初始房指示灯与商店体力
+
+这两项常规功能不依赖 DebugMode。`RoomAreas` 使用运行中的原版 `Room.RoomTriggers`，将角色位置变换到各个有效 BoxCollider 的局部空间后判断三轴范围，覆盖房间旋转、缩放和多个检测体；不使用缓存的世界轴对齐包围盒。初始房来自 `Room.GetStartRoom()`；商店必须是 `ShopRoom.Instance.ShopVisible` 对应、带 ShopRoom 类型的 `ShopSpace`，选关区不作为商店。高度沿用原版检测体，不无限向上扩展；本机资源的解谜保险箱位于体积内，具体观测见 DEVELOPMENT。
+
+`RoomStatusSync` 只从已认证、Ready 且通过兼容准入的连接取得真实角色，以服务器上的 `player.transform.position` 判定房间状态。初始房状态不排除死亡角色；原版死亡后启用实体跟随尸体的位置逻辑，正常搬运跨越房间边界预期会改变灯色，不跟随观战目标。该原生路径已研究，真实多人搬运表现仍待实机验证。
+
+房间协议消息号 `0x4D4E`、版本 1，每 0.2 秒在可靠通道发送完整玩家表，包含兼容清单、递增序号、当前房间索引、角色 netId、房间标记和服务器分配的非零商店访问编号。接收方校验服务器连接、认证、Ready、版本、清单、长度／数量、重复和未知标记、序号及对象类型；未生成的角色等待后续快照，角色对象替换不能继承旧记录。快照超过一秒失效，断线、传输关闭与会话切换清空；处理器冲突直接拒绝，不覆盖其他 MOD。
+
+每个客户端按原版 `CurrentPortraitOwner` 给已占用头像创建自有球形指示灯，位于各头像框顶部中央，青色表示房内、灰色表示房外。空头像或未知／过期状态不显示，避免把未知误报成房外。原版头像、骷髅、昵称与语音绿光保持；附件不加网络组件，共享自有网格／材质，逐实例使用 MaterialPropertyBlock，换场景及卸载释放自有对象。
+
+商店体力只作用于本机有控制权的存活角色，同时要求有效服务器授权和即时本地商店体积检查。每次服务器确认的入店补满一次原版最大体力；仅把原版连续／离散体力入口的负消耗变为零，保留正常恢复与原方法副作用。短暂丢失授权不重复补满，同次离店后即使旧快照尚在也立即恢复正常消耗。角色、连接、商店或访问编号变化分别隔离；死亡、断线、场景失效、异常与卸载停止免耗。不改共享配置、最大体力或恢复协程，因此离店不通过固定值覆盖原版／其他 MOD 的规则。
 
 ## 类型注册
 
@@ -272,7 +287,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 执行器通过原版配置 ID 识别类型，以 ItemOwner 与 InventoryNew.InHand 判断实际持有物；本地动作还要求本机角色有移动控制权、连接 Ready、清单匹配且游戏控制可用。EntityManager.Me 来自 UserInstance.Me.playerEntity，不用 PlayerEntity.isLocalPlayer 再拒绝可移动房主。
 
-兼容协议由 JumpingIdolSync 统一处理，消息 ID=0x4D49、协议版本=3。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。
+兼容协议由 `ExpansionSetSync` 统一处理，消息 ID=0x4D49、协议版本=4。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。版本 4 自 0.2.59 引入，用于排除尚不支持房间状态协议的旧客户端；仅比较雕像清单不足以识别这项差异。0.2.61 的类名调整不再提升协议，不改变消息号、稳定身份或当前 CFG 路径／键；旧 GUID 互斥、旧 DLL 迁移及旧 CFG 键兼容入口继续保留。
 
 雕像生成、配置、物品持有状态及实例晚加入恢复使用原版网络 prefab/SyncVar；没有重复的自有实例 marker 快照。跳跃只有持有者所属端发起原版动作，观察者依靠原版运动/动画同步看到结果，声音走一次性广播。极速的按键锁定属于当前持有者输入，不向观察者发送虚拟按键或历史方向快照；原版运动仍负责同步。原版路径接入、托管模拟与真实双端验收是不同证据，当前边界查看 [TODO](../TODO.md)。
 
@@ -295,6 +310,8 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 原始 bianqian.fbx 已导出为头部局部坐标网格；note.mesh.json 决定形状，paper.note 保存共享压缩底色，Baked/<图案 key>.notedelta 保存无损图案差异。完整资源来源、UV、导入及诊断方法见 [便签说明](../Assets/StickyNote/README.md)。
 
 ## 指向名称与短说明
+
+`[UI] ShowIdolAdvice` 默认 true，仅控制本机顶部箴言的显示；false 时隐藏自有标签，不影响名称、原版教程或重要消息。它与 `ShowIndividualIdolNames` 独立。名称和箴言复用 `TryText` 进行身份识别及本地化，因此开关只放在箴言绘制入口，不让共享查询因关闭箴言而提前退出；两项设置均不修改玩法、稳定身份或内容清单。
 
 当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部箴言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。当前文案与尽量押韵的风格约定见 [箴言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
 

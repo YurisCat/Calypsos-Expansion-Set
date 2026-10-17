@@ -20,12 +20,12 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.57";
+    public const string PluginVersion = "0.2.61";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
     internal IdolRegistry Registry { get; private set; } = null!;
-    internal JumpingIdolSync Sync { get; private set; } = null!;
+    internal ExpansionSetSync Sync { get; private set; } = null!;
     internal IdolSpawnIntegration Spawns { get; private set; } = null!;
     internal IdolDebugTools DebugTools { get; private set; } = null!;
     internal IdolDebugTeleport Teleports { get; private set; } = null!;
@@ -34,12 +34,16 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal QualityOfLife.BoardPawnCollision? PawnCollisions { get; private set; }
     internal Testing.TestRoomLaunch TestRoom { get; private set; } = null!;
     internal Lobby.LobbyBoxRuntime? LobbyBox { get; private set; }
+    internal QualityOfLife.RoomStatusSync? RoomStatus { get; private set; }
+    internal QualityOfLife.ShopStamina? ShopStamina { get; private set; }
+    internal Lobby.PlayerPresenceLights? PresenceLights { get; private set; }
 
-    private JumpingIdolDriver? _driver;
+    private ExpansionSetDriver? _driver;
     private IdolEffectRuntime? _effects;
     private Harmony? _harmony;
     private ConfigEntry<bool> _naturalSpawning = null!;
     private ConfigEntry<bool> _showIndividualIdolNames = null!;
+    private ConfigEntry<bool> _showIdolAdvice = null!;
     private float _nextMaintenance;
     private bool _sessionWeightsInitialized;
     private bool _failed;
@@ -64,15 +68,18 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Registry.Register(MosaicIdol.Definition);
         Registry.Register(OutlineIdol.Definition);
         Registry.Register(BigHeadFisheyeIdol.Definition);
-        Sync = new JumpingIdolSync(Log, () => Registry.Ready, () => Registry.Manifest);
+        Sync = new ExpansionSetSync(Log, () => Registry.Ready, () => Registry.Manifest);
         Spawns = new IdolSpawnIntegration(this);
         _effects = new IdolEffectRuntime(this);
         _naturalSpawning = Config.Bind("Gameplay", "NaturalSpawning", true,
             "新雕像加入原版自然生成池，保留生成总数和筛选规则，不保证每局出现。修改后重启。\n"
             + "/ Add new idols to vanilla spawn pools; keep spawn counts and filters. Spawns are not guaranteed. Restart after changes.");
         _showIndividualIdolNames = Config.Bind("UI", "ShowIndividualIdolNames", false,
-            "按游戏语言显示已支持原版与 MOD 雕像的名称；关闭时原版保留原名，MOD 使用对应语言的统一名称。箴言不变；仅本机，修改后重启。\n"
-            + "/ Show localized names for supported vanilla/MOD idols; when off, keep vanilla names and use one localized MOD name. Hints stay enabled. Local only; restart after changes.");
+            "按游戏语言显示已支持原版与 MOD 雕像的名称；关闭时原版保留原名，MOD 使用对应语言的统一名称。独立于箴言开关；仅本机，修改后重启。\n"
+            + "/ Show localized names for supported vanilla/MOD idols; when off, keep vanilla names and use one localized MOD name. Independent of idol advice. Local only; restart after changes.");
+        _showIdolAdvice = Config.Bind("UI", "ShowIdolAdvice", true,
+            "指向已支持的原版与 MOD 雕像时显示顶部箴言；不影响名称、原版教程与重要消息。仅本机，修改后重启。\n"
+            + "/ Show top-screen advice for supported vanilla/MOD idols. Independent of names, vanilla tutorials and important messages. Local only; restart after changes.");
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
         PawnCollisions = new QualityOfLife.BoardPawnCollision(this);
@@ -80,9 +87,12 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         VisualStates = new Visuals.IdolVisualSync(this);
         TestRoom = new Testing.TestRoomLaunch(this);
         LobbyBox = new Lobby.LobbyBoxRuntime(this);
+        RoomStatus = new QualityOfLife.RoomStatusSync(this);
+        ShopStamina = new QualityOfLife.ShopStamina(this);
+        PresenceLights = new Lobby.PlayerPresenceLights(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
-        _driver = AddComponent<JumpingIdolDriver>();
+        _driver = AddComponent<ExpansionSetDriver>();
         Log.LogInfo($"{PluginName} {PluginVersion} loaded. All players need compatible MOD content. "
             + "DebugMode enables one test console: F8 by default. Enter 'spawn jumping' in its input box.");
     }
@@ -97,6 +107,9 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         }
         PawnCollisions?.Dispose();
         LobbyBox?.Dispose();
+        PresenceLights?.Dispose();
+        ShopStamina?.Dispose();
+        RoomStatus?.Dispose();
         Instance = null;
         if (_driver != null) UnityEngine.Object.Destroy(_driver);
         _driver = null;
@@ -138,6 +151,9 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Registry.EnsureNetworkPrefabs();
             EnsureSessionWeights();
             Sync.Tick();
+            RoomStatus?.Tick();
+            ShopStamina?.Tick();
+            PresenceLights?.Tick();
             Registry.TickContentRuntimes();
             DebugTools.Tick();
             LobbyBox?.Tick();
@@ -161,6 +177,9 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         HoverInfo?.Dispose();
         DebugTools.Cancel();
         LobbyBox?.Dispose();
+        PresenceLights?.Dispose();
+        ShopStamina?.Dispose();
+        RoomStatus?.Dispose();
         Log.LogError($"Calypso's Expansion Set runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
         // Keep registered resources alive until live entities have been destroyed.
         Sync.BlockAdmission();
@@ -185,6 +204,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         && NetworkServer.active && Sync.AllReadyPeersCompatible;
     internal bool RuntimeFailed => _failed;
     internal bool ShowIndividualIdolNames => _showIndividualIdolNames.Value;
+    internal bool ShowIdolAdvice => _showIdolAdvice.Value;
 
     internal bool LocalGameplayReady(PlayerEntity player) => !DebugTools.PanelOpen && ControlsReady(player);
 

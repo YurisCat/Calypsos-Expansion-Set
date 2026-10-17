@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace CalypsoExpansionSet;
 
-public sealed class JumpingIdolDriver : MonoBehaviour
+public sealed class ExpansionSetDriver : MonoBehaviour
 {
-    public JumpingIdolDriver(IntPtr pointer) : base(pointer)
+    public ExpansionSetDriver(IntPtr pointer) : base(pointer)
     {
     }
 
