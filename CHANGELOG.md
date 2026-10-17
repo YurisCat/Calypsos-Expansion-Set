@@ -2,6 +2,15 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.64 — 2026-10-17（七语言本地化 / Seven-language localization）
+
+- 新增繁体中文、日语、俄语、巴西葡萄牙语和西班牙语，与现有简中、英文共支持七种语言。自动跟随本机游戏语言，无需额外配置；已有中英文文案保留。
+  Adds Traditional Chinese, Japanese, Russian, Brazilian Portuguese and Spanish, bringing support to seven languages. Automatically follows each player's game language without extra configuration, preserving the existing Chinese and English text.
+- 本地化原版 21 条及 MOD 14 条箴言和对应雕像名称。新箴言结合各语言的节奏、拟声与押韵表达原有效果；终局雕像和缺失拼图继续使用原版名称。
+  Localizes 21 vanilla and 14 MOD idol verses and their associated names. New verses use rhythm, wordplay and rhyme suited to each language while preserving their gameplay meaning. Endgame idols and missing pieces retain their native names.
+- 大厅盒子的完整介绍、查看／关闭／滚动提示和制作人员职责同步支持七语言。阅读中切换语言会刷新字体、换行和滚动范围，较长的署名及提示自动适配可用空间。
+  Extends all seven languages to the full lobby-box introduction, read/close/scroll prompts and credit roles. Language changes refresh fonts, wrapping and scroll bounds while reading; longer credits and prompts fit their available space.
+
 ## 0.2.63 — 2026-10-17（本机多人测试 / Local multiplayer testing）
 
 - F8 新增“本机联机”，可分别设置昵称、建房及加入本机，使用正常大厅和地图；测试会话禁止存档写入。

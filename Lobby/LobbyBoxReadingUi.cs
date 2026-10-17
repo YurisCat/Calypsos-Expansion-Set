@@ -14,6 +14,7 @@ internal sealed class LobbyBoxReadingUi : IDisposable
     private CanvasGroup? _group;
     private TextMeshProUGUI? _text;
     private TextMeshProUGUI? _scrollHint;
+    private PlayerEntity? _player;
     private RectTransform? _viewport;
     private LobbyBoxCredits? _credits;
     private Vector2 _viewSize;
@@ -34,6 +35,7 @@ internal sealed class LobbyBoxReadingUi : IDisposable
         var reference = source?._text?.Text;
         var gradient = source != null ? source.transform.Find("BackgroundGradient")?.GetComponent<Image>() : null;
         if (reference == null || reference.font == null || gradient == null || gradient.sprite == null) return false;
+        _player = player;
         _root = new GameObject("Calypso Box Reading") { hideFlags = HideFlags.DontSave, layer = source!.gameObject.layer };
         _root.SetActive(false);
         var rect = _root.AddComponent<RectTransform>();
@@ -71,8 +73,9 @@ internal sealed class LobbyBoxReadingUi : IDisposable
         _scrollHint.fontStyle = reference.fontStyle; _scrollHint.fontSize = _text.fontSize * 0.7f;
         _scrollHint.color = new Color32(174, 173, 169, 255);
         _scrollHint.raycastTarget = false; _scrollHint.maskable = false; _scrollHint.richText = false;
-        _scrollHint.enableWordWrapping = false; _scrollHint.enableAutoSizing = false;
-        _scrollHint.overflowMode = TextOverflowModes.Truncate;
+        _scrollHint.enableWordWrapping = false; _scrollHint.enableAutoSizing = true;
+        _scrollHint.fontSizeMax = _scrollHint.fontSize; _scrollHint.fontSizeMin = Mathf.Min(12, _scrollHint.fontSize);
+        _scrollHint.overflowMode = TextOverflowModes.Ellipsis;
         _scrollHint.rectTransform.anchorMin = new Vector2(150f / 1920, 235f / 1080);
         _scrollHint.rectTransform.anchorMax = new Vector2(940f / 1920, 260f / 1080);
         _scrollHint.rectTransform.offsetMin = _scrollHint.rectTransform.offsetMax = Vector2.zero;
@@ -107,14 +110,30 @@ internal sealed class LobbyBoxReadingUi : IDisposable
         if (Time.realtimeSinceStartup >= _nextText)
         {
             _nextText = Time.realtimeSinceStartup + 0.25f;
-            var content = LobbyBoxText.Introduction;
-            _credits?.SetLanguage(LobbyBoxText.Chinese);
+            var reference = _player?.SubtitleUI?._text?.Text;
+            if (reference == null || reference.font == null) { Dispose(); return; }
+            var strings = LobbyBoxText.Current;
+            var content = strings.Introduction;
+            _credits?.SetLanguage(LobbyBoxText.Language, reference);
+            // The native subtitle font can change while this overlay is open.
+            // Refresh only owned labels and recompute wrapping with the new metrics.
+            if (_text.font != reference.font || _text.fontSharedMaterial != reference.font.material
+                || _text.fontStyle != reference.fontStyle || _text.fontSize != reference.fontSize * 0.8f)
+            {
+                _text.font = reference.font; _text.fontSharedMaterial = reference.font.material;
+                _text.fontStyle = reference.fontStyle; _text.fontSize = reference.fontSize * 0.8f;
+                _scrollHint!.font = reference.font; _scrollHint.fontSharedMaterial = reference.font.material;
+                _scrollHint.fontStyle = reference.fontStyle;
+                _scrollHint.fontSizeMax = _text.fontSize * 0.7f;
+                _scrollHint.fontSizeMin = Mathf.Min(12, _scrollHint.fontSizeMax);
+                _viewSize = Vector2.zero;
+            }
             if (_content != content)
             {
                 _text.text = content; _content = content;
                 _scroll = 0; _viewSize = Vector2.zero; _moveArmed = false;
                 _wheelSampleTime = Mouse.current?.lastUpdateTime ?? -1;
-                _scrollHint!.text = LobbyBoxText.Pick("滚轮／移动键／摇杆：上下滚动", "Scroll: mouse wheel / movement controls");
+                _scrollHint!.text = strings.Scroll;
             }
         }
         var size = _viewport.rect.size;
@@ -176,6 +195,6 @@ internal sealed class LobbyBoxReadingUi : IDisposable
         _credits?.Dispose(); _credits = null;
         _viewport = null; _scrollHint = null; _viewSize = Vector2.zero; _scroll = _maxScroll = _lineHeight = 0; _moveArmed = false;
         _wheelSampleTime = -1;
-        _root = null; _text = null; _group = null; _content = ""; _nextText = 0; _lastFrame = -1; _closing = false;
+        _root = null; _text = null; _player = null; _group = null; _content = ""; _nextText = 0; _lastFrame = -1; _closing = false;
     }
 }

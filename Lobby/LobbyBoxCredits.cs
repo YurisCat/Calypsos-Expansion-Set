@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using CalypsoExpansionSet.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,7 +17,7 @@ internal sealed class LobbyBoxCredits : IDisposable
     private TextMeshProUGUI? _title;
     private Texture2D? _texture;
     private Sprite? _sprite;
-    private bool? _chinese;
+    private UiLanguage? _language;
     private float _bodySize;
     private Vector2 _layoutSize;
     private static readonly Color TitleColor = new Color32(205, 187, 145, 255);
@@ -51,18 +52,28 @@ internal sealed class LobbyBoxCredits : IDisposable
         _names[3].text = "Charrant";
     }
 
-    internal void SetLanguage(bool chinese)
+    internal void SetLanguage(UiLanguage language, TMP_Text reference)
     {
-        if (_root == null || !_root.gameObject.activeInHierarchy) return;
+        if (_root == null || !_root.gameObject.activeInHierarchy || reference == null || reference.font == null) return;
         var size = _root.rect.size;
-        if (size.x <= 0 || size.y <= 0 || (_chinese == chinese && _layoutSize == size)) return;
-        _title!.text = chinese ? "制作人员" : "Credits";
-        _roles[0].text = chinese ? "开发" : "Development";
-        _roles[1].text = chinese ? "模型制作" : "Modeling";
-        _roles[2].text = chinese ? "卡通形象绘制" : "Character artwork";
-        _names[0].text = chinese ? "尤里的猫卡里普索" : "YurisCat";
-        _names[1].text = chinese ? "马赛克了" : "Masaicker";
-        _names[2].text = chinese ? "番茄鱼F" : "Tomato_Fish";
+        var bodySize = reference.fontSize * 0.8f;
+        if (size.x <= 0 || size.y <= 0 || (_language == language && _layoutSize == size
+            && _title!.font == reference.font && _title.fontSharedMaterial == reference.font.material
+            && _title.fontStyle == reference.fontStyle && _bodySize == bodySize)) return;
+        _bodySize = bodySize;
+        var chinese = UiLanguages.IsChinese(language);
+        var text = LobbyBoxText.For(language);
+        _title!.text = text.Credits;
+        _roles[0].text = text.Development;
+        _roles[1].text = text.Modeling;
+        _roles[2].text = text.Artwork;
+        MatchFont(_title, reference);
+        foreach (var role in _roles) MatchFont(role, reference);
+        for (var i = 0; i < _names.Length; i++)
+        {
+            _names[i].text = LobbyBoxText.CreditName(i, language);
+            MatchFont(_names[i], reference);
+        }
         if (_sprite == null) CreateIcon();
         SetFontScale(1);
         var rowHeight = 0f;
@@ -71,6 +82,18 @@ internal sealed class LobbyBoxCredits : IDisposable
         // Fit actual font metrics into the fixed footer, including CJK fallback fonts.
         var scale = Mathf.Min(1, Mathf.Max(1, size.y * 0.22f - 2) / Mathf.Max(1, _title.GetPreferredValues(_title.text).y));
         scale = Mathf.Min(scale, Mathf.Max(1, size.y * 0.25f - 2) / Mathf.Max(1, rowHeight));
+        // Long translated roles and both developer names share the same row.
+        // Fit its measured width too; height alone can leave the second name off-screen.
+        var widestRole = 0f;
+        foreach (var role in _roles) widestRole = Mathf.Max(widestRole, role.GetPreferredValues(role.text).x);
+        var developersWidth = _names[0].GetPreferredValues(_names[0].text).x
+            + _names[1].GetPreferredValues(_names[1].text).x + _bodySize * 0.65f
+            + (chinese ? (_names[0].fontSize + _names[1].fontSize) * 1.2f : 0);
+        var widestName = Mathf.Max(developersWidth, Mathf.Max(
+            _names[2].GetPreferredValues(_names[2].text).x + (chinese ? 0 : _names[2].fontSize * 1.2f),
+            _names[3].GetPreferredValues(_names[3].text).x));
+        var widestRow = Mathf.Max(_title.GetPreferredValues(_title.text).x, widestRole + _bodySize * 0.45f + widestName);
+        scale = Mathf.Min(scale, Mathf.Max(1, size.x - 8) / Mathf.Max(1, widestRow));
         SetFontScale(scale);
         var roleWidth = 0f;
         foreach (var role in _roles) roleWidth = Mathf.Max(roleWidth, role.GetPreferredValues(role.text).x);
@@ -89,7 +112,14 @@ internal sealed class LobbyBoxCredits : IDisposable
             left += width + _bodySize * scale * 0.65f;
         }
         PlaceIcon(2, !chinese, _names[2].GetPreferredValues(_names[2].text).x);
-        _chinese = chinese; _layoutSize = size;
+        _language = language; _layoutSize = size;
+    }
+
+    private static void MatchFont(TMP_Text text, TMP_Text reference)
+    {
+        text.font = reference.font;
+        text.fontSharedMaterial = reference.font.material;
+        text.fontStyle = reference.fontStyle;
     }
 
     private static Image CreateIconImage(Transform parent)
@@ -165,7 +195,7 @@ internal sealed class LobbyBoxCredits : IDisposable
     {
         if (_sprite != null) UObject.Destroy(_sprite);
         if (_texture != null) UObject.Destroy(_texture);
-        _sprite = null; _texture = null; _root = null; _title = null; _chinese = null; _layoutSize = Vector2.zero;
+        _sprite = null; _texture = null; _root = null; _title = null; _language = null; _layoutSize = Vector2.zero;
         Array.Clear(_roles, 0, _roles.Length);
         Array.Clear(_names, 0, _names.Length);
         Array.Clear(_developerRows, 0, _developerRows.Length);

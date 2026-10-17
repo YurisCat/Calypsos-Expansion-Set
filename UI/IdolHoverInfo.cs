@@ -17,15 +17,17 @@ namespace CalypsoExpansionSet.UI;
 // by the game; this controller owns only its extra TMP label.
 internal sealed class IdolHoverInfo : IDisposable
 {
-    internal static string GenericIdolName =>
-        IdolTextLocalization.GenericName(CalypsoExpansionSetPlugin.Instance?.HoverInfo?._useChinese == true);
+    internal static UiLanguage CurrentLanguage =>
+        CalypsoExpansionSetPlugin.Instance?.HoverInfo?._language ?? UiLanguage.English;
+    internal static string GenericIdolName => IdolTextLocalization.GenericName(CurrentLanguage);
     private readonly CalypsoExpansionSetPlugin _plugin;
     private UIManager? _ui;
     private TextMeshProUGUI? _reference, _label;
     private GameObject? _object;
     private Canvas? _canvas;
     private bool _disposed, _faulted, _visible;
-    private bool _useChinese, _languageWarning;
+    private UiLanguage _language;
+    private bool _languageWarning;
     private float _nextLanguageCheck;
     private uint _shownId;
     private float _nativeMessageUntil;
@@ -69,8 +71,8 @@ internal sealed class IdolHoverInfo : IDisposable
         try
         {
             var code = I2.Loc.LocalizationManager.CurrentLanguageCode;
-            _useChinese = IdolTextLocalization.IsChinese(code,
-                string.IsNullOrEmpty(code) ? I2.Loc.LocalizationManager.CurrentLanguage : null);
+            _language = UiLanguages.Resolve(code,
+                string.IsNullOrWhiteSpace(code) ? I2.Loc.LocalizationManager.CurrentLanguage : null);
         }
         catch (Exception error)
         {
@@ -104,11 +106,11 @@ internal sealed class IdolHoverInfo : IDisposable
             var definition = entry.Definition;
             if (string.IsNullOrEmpty(definition.ShortDescription)) return false;
             text = new(definition.Key, definition.DisplayName, definition.ShortDescription, true);
-            text = IdolTextLocalization.Resolve(definition.ConfigId, text, plugin.HoverInfo?._useChinese == true);
+            text = IdolTextLocalization.Resolve(definition.ConfigId, text, CurrentLanguage);
             return true;
         }
         if (!OriginalIdolAdvice.TryGet(idol.SoItem.Id, out text)) return false;
-        text = IdolTextLocalization.Resolve(idol.SoItem.Id, text, plugin.HoverInfo?._useChinese == true);
+        text = IdolTextLocalization.Resolve(idol.SoItem.Id, text, CurrentLanguage);
         return true;
     }
 

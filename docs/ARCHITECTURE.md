@@ -315,11 +315,11 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 当前十四种 MOD 雕像填写 `ShortDescription`，用作顶部箴言；原版 21 条 SOScoreTool 配置通过 `OriginalIdolAdvice` 对照接入同一提示流程。当前文案与尽量押韵的风格约定见 [箴言文案](IDOL_ADVICE.md)。按物品自身的实际配置 ID 查询，先查注册清单，再查原版对照，不按模板、皮肤或译名推断类型。外部定义默认空，空说明直接退出，不回退覆盖其交互显示。
 
-名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 统一显示本机语言对应的“卡里普索拓展包雕像”或“Calypso's Expansion Set Idol”；true 时返回本机语言的正式名称，中文含“雕像”、英文含“Idol”后缀。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自箴言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
+名称沿用本机 `[UI] ShowIndividualIdolNames`：默认 false 时原版保留原名，MOD 使用 `IdolTextLocalization.GenericName` 的本机语言统一名称；true 时返回本机语言的正式名称，中文含“雕像”、英文含“Idol”，其他语言使用相应类型称呼。原版有 19 个指定名称，Final/MissingPiece 名称空白，始终保留原名，但显示各自箴言。非空 MOD 定义仍只在自有克隆预制体开启名称、关闭模板描述。原版通过 ScoreTool 名称 getter 和继承自 GameplayElement 的 DisplayInteractibleName getter 返回显示结果，后者只在开关开启且原版名称非空时返回 true，不写原版实例字段、配置或预制体。游荡雕像通过实际 GrabbableScoreTool 交互子物体匹配，不处理其怪物根对象的名称。
 
-本地化由 `IdolTextLocalization` 提供英文名称与原创押韵双句；中文继续取原定义与原版对照。译文同时匹配实际配置 ID、key 和 IsMod，不按模板或译名识别。注册定义优先及空说明 opt-out 保持，外部定义无匹配译文时保留其原文，不新增公共 API，也不向游戏 I2 数据源写入词条。译文表不决定注册状态，怪相沿用当前注册清单；持有时的提示隐藏规则优先于本地化。
+本地化支持七种语言。`IdolTextLocalization` 保留已确认英文表，`IdolTextTranslations` 提供繁中、日语、俄语、葡语、西语名称和箴言；简中继续取原定义与原版对照。先同时核对实际配置 ID、key 和 IsMod，再选语言译文，不按模板或译名识别。注册定义优先及空说明 opt-out 保持，外部定义无匹配译文时保留其原文，不新增公共 API，也不向游戏 I2 数据源写入词条。译文表不决定注册状态，怪相沿用当前注册清单；持有时的提示隐藏规则优先于本地化。文案风格与覆盖范围见 [本地化说明](LOCALIZATION.md)。
 
-`IdolHoverInfo` 创建时及 Tick 中最多每半秒读取游戏 `I2.Loc.LocalizationManager.CurrentLanguageCode`，仅缺少代码时读取 CurrentLanguage；不依据系统语言，不在交互 getter 中封送语言字符串、扫描资源或反射。中文 zh/zh-*（含地区变体）保留中文，其他/未知语言回退英文；读取异常保留上次选择，最多记录一次警告并持续重试，不停止提示或玩法。选择保存在本机控制器实例中，不订阅全局事件、不发送网络消息。已有标签每次指向更新文本及原版当前字体，菜单、断线和销毁沿用原清理路径。I2.dll 使用游戏 interop 引用，Private=false，不随插件分发。
+`IdolHoverInfo` 创建时及 Tick 中最多每半秒读取游戏 `I2.Loc.LocalizationManager.CurrentLanguageCode`，仅缺少／空白代码时读取 CurrentLanguage；`UiLanguages` 区分简繁及其文字／地区变体，选择其余支持语言，未知语言回退英文。不依据系统语言，不在交互 getter 中封送语言字符串、扫描资源或反射。读取异常保留上次选择，最多记录一次警告并持续重试，不停止提示或玩法。选择保存在本机控制器实例中，盒子共享该缓存；主维护先更新提示语言再维护盒子，不订阅全局事件、不发送网络消息。已有标签每次指向更新文本及原版当前字体，菜单、断线和销毁沿用原清理路径。I2.dll 使用游戏 interop 引用，Private=false，不随插件分发。
 
 名称开关不影响顶部箴言，不修改玩法、稳定身份、网络状态或兼容清单；本次本机 UI 文案适配不提升 ContentVersion。原版交互动作、输入标签与价格格式继续由原交互 UI 负责，开发表格中的简介不加入游戏。F8 清单与测试房标签仍使用 MOD 定义名和稳定 key，不扩大原版测试房陈列范围。`jumping` 正式显示名为“弹跳雕像”。
 

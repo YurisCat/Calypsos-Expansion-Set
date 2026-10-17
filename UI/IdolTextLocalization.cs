@@ -2,7 +2,7 @@ namespace CalypsoExpansionSet.UI;
 
 // Presentation-only translations. Match both the stable config ID and identity
 // so an external definition with a similar key keeps its own supplied text.
-internal static class IdolTextLocalization
+internal static partial class IdolTextLocalization
 {
     private static readonly Dictionary<ulong, IdolHoverText> English = new()
     {
@@ -69,7 +69,7 @@ internal static class IdolTextLocalization
             "False cries resound where none appear; yet living hunters still may hear.", true),
         [0x4D4900000000000BUL] = new("wide_body", "Widebody Idol",
             "Your shape grows wide, your view sinks low; a flattened friend puts on a show.", true),
-        // Reserved text only: localization must never enable retired content.
+        // Text availability never controls content registration.
         [0x4D4900000000000CUL] = new("monster_disguise", "Monster Disguise Idol",
             "A monster's mask, a borrowed face; no borrowed powers join the chase.", true),
         [0x4D4900000000000DUL] = new("mosaic", "Pixel Idol",
@@ -80,24 +80,24 @@ internal static class IdolTextLocalization
             "Your head swells large, the edges bend; a fish-eyed world awaits you, friend.", true)
     };
 
-    internal static bool IsChinese(string? code, string? language)
+    internal static string GenericName(UiLanguage language) => language switch
     {
-        // The game's I2 codes include regional Chinese variants. Name fallback
-        // is only for startup/sources without a code; OS culture is irrelevant.
-        if (!string.IsNullOrEmpty(code))
-            return code.Equals("zh", StringComparison.OrdinalIgnoreCase)
-                || code.StartsWith("zh-", StringComparison.OrdinalIgnoreCase)
-                || code.StartsWith("zh_", StringComparison.OrdinalIgnoreCase);
-        return language != null && (language.Equals("Chinese", StringComparison.OrdinalIgnoreCase)
-            || language.StartsWith("Chinese (", StringComparison.OrdinalIgnoreCase)
-            || language.StartsWith("Chinese/", StringComparison.OrdinalIgnoreCase));
+        UiLanguage.SimplifiedChinese => "卡里普索拓展包雕像",
+        UiLanguage.TraditionalChinese => "卡里普索拓展包雕像",
+        UiLanguage.Japanese => "カリプソ拡張セットの像",
+        UiLanguage.Russian => "Идол из набора Калипсо",
+        UiLanguage.Portuguese => "Ídolo da expansão de Calypso",
+        UiLanguage.Spanish => "Ídolo de la expansión de Calypso",
+        _ => "Calypso's Expansion Set Idol"
+    };
+
+    internal static IdolHoverText Resolve(ulong configId, IdolHoverText original, UiLanguage language)
+    {
+        if (language == UiLanguage.SimplifiedChinese
+            || !English.TryGetValue(configId, out var translated)
+            || translated.Key != original.Key || translated.IsMod != original.IsMod)
+            return original;
+        return Translations.TryGetValue(language, out var table) && table.TryGetValue(original.Key, out var text)
+            ? translated with { DisplayName = text.Name, ShortDescription = text.Advice } : translated;
     }
-
-    internal static string GenericName(bool chinese) =>
-        chinese ? "卡里普索拓展包雕像" : "Calypso's Expansion Set Idol";
-
-    internal static IdolHoverText Resolve(ulong configId, IdolHoverText original, bool chinese) =>
-        !chinese && English.TryGetValue(configId, out var translated)
-            && translated.Key == original.Key && translated.IsMod == original.IsMod
-            ? translated : original;
 }

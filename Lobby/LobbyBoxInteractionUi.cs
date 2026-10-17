@@ -57,10 +57,12 @@ internal sealed class LobbyBoxInteractionUi : IDisposable
         {
             _nextText = Time.realtimeSinceStartup + 0.1f;
             var input = source.GetInputIndicatorText();
-            var action = open ? LobbyBoxText.Pick("关闭", "Close")
-                : LobbyBoxText.Title + "\n" + LobbyBoxText.Pick("查看介绍", "Read introduction");
+            var strings = LobbyBoxText.Current;
+            var action = open ? strings.Close : strings.Title + "\n" + strings.Read;
             CopyTextStyle(source.textPrimary.inputText, _input!);
             CopyTextStyle(source.textPrimary.ActionText, _action!);
+            _action!.fontSizeMax = source.textPrimary.ActionText.fontSize;
+            _action.fontSizeMin = Mathf.Min(18, _action.fontSizeMax);
             var spriteAsset = InputIcons.SpriteAsset;
             if (_input!.spriteAsset != spriteAsset) _input.spriteAsset = spriteAsset;
             if (input != _lastInput || action != _lastAction)
@@ -112,6 +114,8 @@ internal sealed class LobbyBoxInteractionUi : IDisposable
         _input = CreateText("Key glyph", promptRect, new Vector2(80, 80), Vector2.zero, TextAlignmentOptions.Center);
         _input.richText = true; _input.tintAllSprites = true;
         _action = CreateText("Name and action", promptRect, new Vector2(420, 90), new Vector2(42, 0), TextAlignmentOptions.MidlineLeft);
+        _action.enableAutoSizing = true;
+        _action.overflowMode = TextOverflowModes.Ellipsis;
         _action.rectTransform.pivot = new Vector2(0, 0.5f);
         CopyTextStyle(source.textPrimary.inputText, _input);
         CopyTextStyle(source.textPrimary.ActionText, _action);
