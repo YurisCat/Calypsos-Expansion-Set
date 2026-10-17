@@ -1,6 +1,6 @@
 # Nexus Mods 发布操作
 
-本文件约定 `Calypso's Expansion Set` 的 N 网发布目标、凭据填写及后续执行流程。官方接口核对日期：**2026-10-15**。发布方式采用本机直接调用 Nexus API，使用本地凭据和本机已验证的安装包。0.2.51 已完成实际上传、添加更新记录及 API 核验；公开网页复核受 Cloudflare 验证页阻挡，仍需人工查看。
+本文件约定 `Calypso's Expansion Set` 的 N 网发布目标、凭据填写及后续执行流程。官方接口核对日期：**2026-10-17**。发布方式采用本机直接调用 Nexus API，使用本地凭据和本机已验证的安装包。实际发布与 API／网页核验范围见下方发布记录。
 
 ## 何时执行上传
 
@@ -144,9 +144,13 @@ API 基地址为 `https://api.nexusmods.com/v3`。以下是执行说明，不是
 | 添加现有文件的新版本 | `POST /mod-files/{fileId}/versions` |
 | 添加更新记录 | `POST /mods/{modId}/changelogs` |
 
+当次明确授权同步整页介绍时，使用 `PATCH /mods/{modId}`，仅传 `description`，正文读取已确认的本地 `NEXUS.txt`；省略 `summary` 等字段以保留其现有内容。这不改变本地 `updateDescription=false` 的默认值。
+
 小于或等于 100 MiB 的包可以使用单段上传；更大的包使用 multipart。单段 `PUT` 按官方签名要求携带 `Content-Disposition` 和 `Content-MD5`，不向存储域名转发 Nexus 的 `apikey`。MD5 请求字段用十六进制，`Content-MD5` 用相同摘要的 Base64；官方标明 **2026-12-01 起**单段创建会话将要求 MD5，本流程从现在就提供。
 
 本次实传确认签名还包含 `Content-Type`，必须使用 **`application/octet-stream`**；即使文件是 ZIP，也不能替换为 `application/zip`，否则存储服务返回 `403 SignatureDoesNotMatch`。预签名 URL 只在创建响应中提供，不能依赖后续查询再次取得；仅在内存中使用，不写日志。
+
+存储地址以 Nexus 返回的 HTTPS 预签名 URL 为准，不固定存储域名。正文回读可能以 `\n<br />` 表示换行，比较时按一次换行归一。v1 模组详情存在缓存；版本／介绍尚未刷新时，可通过官方 v2 GraphQL 的 `mod(modId, gameId)` 查询 `version`、`description` 和 `summary` 交叉核对，不因旧缓存重复写入。
 
 新版本请求按当次 schema 填写 `upload_id`、`name`、`version`、`file_category` 等字段，版本取本次构建，不固定为文档编写时的版本。传输完成或会话可用都不等于文件版本已发布。更新记录接口是追加操作，超时后先读取/核对结果，再决定是否重试，避免重复文本。
 
@@ -154,7 +158,7 @@ API 基地址为 `https://api.nexusmods.com/v3`。以下是执行说明，不是
 
 接口细节及后续变化：[官方 v3 文档](https://api-docs.nexusmods.com/) · [官方维护的 OpenAPI](https://raw.githubusercontent.com/Nexus-Mods/Vortex/master/packages/nexus-api-v3/schema/openapi.yaml)。
 
-## 最近一次配置检查
+## 2026-10-15 配置检查记录
 
 - 2026-10-15，本地 JSON、固定目标和布尔选项有效；密钥已填写，配置仍被 Git 忽略。
 - 密钥验证、v3 模组查询、v3 文件列表、上传者交叉核对均为 GET，四项均返回 HTTP 200；认证账号与目标模组上传者 ID 一致。
@@ -164,6 +168,14 @@ API 基地址为 `https://api.nexusmods.com/v3`。以下是执行说明，不是
 - 后续实际发布需要当次明确指令；本文和配置文件本身不会触发发布。
 
 ## 最近一次实际发布
+
+- **2026-10-17 13:48:00（UTC+8）**，按当次授权将现有主文件从 0.2.58 更新至 **0.2.61**，保留旧版本及历史文案；另按明确授权用本地 `NEXUS.txt` 替换介绍正文。
+- 内部模组 ID `45638322487297`、持久主文件 ID `8155314`、新版本 ID `45638322487300`、游戏内文件 ID `4`。
+- 发布包 `CalypsoExpansionSet-0.2.61.zip`，**5,872,053 字节**，根目录仅 `CalypsoExpansionSet.dll`；SHA256 `08D385B918AB341F037B74755D17BC89C9A3575F90459E43EDB31CADB3E6E123`，线上大小及扫描元数据 SHA256 与本地一致。
+- API 已核验主下载／模组显示版本、中英下载说明、完整中英更新记录、介绍正文与本地一致，简介及历史记录保留。公开 Files／Description 网页复核超时，未确认实际渲染。
+- Release 编译 0 警告／0 错误，包清单、解压字节、BBCode 与双语文案检查通过；未追加游戏测试。完整证据、前后快照及脱敏回执见本机交付目录，研究记录见 DEVELOPMENT。此次介绍同步仅按当次授权执行，配置默认值保持。
+
+## 2026-10-15 实际发布记录
 
 - **2026-10-15 16:58:39（UTC+8）**，按当次明确授权向现有主文件发布 **0.2.51**；当前主下载为新版本，0.2.30 保留在旧版本分类。
 - 内部模组 ID `45638322487297`，持久主文件 ID `8155314`，新版本 ID `45638322487298`，游戏内文件 ID `2`。主文件组内部名称仍为最初的 0.2.30，实际新版本显示名称为 `Calypso's Expansion Set 0.2.51`，后续选择以稳定 ID 与版本列表为准。

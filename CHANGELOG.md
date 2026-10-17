@@ -2,6 +2,11 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.62 — 2026-10-17（房内名字提示 / Room presence names）
+
+- 用头像下方名字颜色替换房间指示灯：青色表示玩家在初始房内，其余情况恢复原色。保留原版文字特效、透明度、骷髅与语音绿光，沿用现有房间同步及死亡实体位置判定；大厅盒子中英提示同步更新。
+  Replaces room-presence lights with nickname colors below portraits: cyan means the player is in the starting room; otherwise the original color is restored. Preserves native text effects, opacity, skulls and voice glow, using existing room synchronization and dead-player positions. Updates the bilingual box tip.
+
 ## 0.2.61 — 2026-10-17（名称整理与提示 / Naming and tips）
 
 - 通用同步类与更新组件改名为 `ExpansionSetSync`、`ExpansionSetDriver`，同步修改文件名与引用；现有 CFG、消息编号及旧版兼容入口保持。

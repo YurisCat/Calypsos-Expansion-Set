@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.61";
+    public const string PluginVersion = "0.2.62";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -36,7 +36,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal Lobby.LobbyBoxRuntime? LobbyBox { get; private set; }
     internal QualityOfLife.RoomStatusSync? RoomStatus { get; private set; }
     internal QualityOfLife.ShopStamina? ShopStamina { get; private set; }
-    internal Lobby.PlayerPresenceLights? PresenceLights { get; private set; }
+    internal Lobby.PlayerPresenceNames? PresenceNames { get; private set; }
 
     private ExpansionSetDriver? _driver;
     private IdolEffectRuntime? _effects;
@@ -89,7 +89,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         LobbyBox = new Lobby.LobbyBoxRuntime(this);
         RoomStatus = new QualityOfLife.RoomStatusSync(this);
         ShopStamina = new QualityOfLife.ShopStamina(this);
-        PresenceLights = new Lobby.PlayerPresenceLights(this);
+        PresenceNames = new Lobby.PlayerPresenceNames(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
         _driver = AddComponent<ExpansionSetDriver>();
@@ -107,7 +107,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         }
         PawnCollisions?.Dispose();
         LobbyBox?.Dispose();
-        PresenceLights?.Dispose();
+        PresenceNames?.Dispose();
         ShopStamina?.Dispose();
         RoomStatus?.Dispose();
         Instance = null;
@@ -153,7 +153,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Sync.Tick();
             RoomStatus?.Tick();
             ShopStamina?.Tick();
-            PresenceLights?.Tick();
+            PresenceNames?.Tick();
             Registry.TickContentRuntimes();
             DebugTools.Tick();
             LobbyBox?.Tick();
@@ -177,7 +177,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         HoverInfo?.Dispose();
         DebugTools.Cancel();
         LobbyBox?.Dispose();
-        PresenceLights?.Dispose();
+        PresenceNames?.Dispose();
         ShopStamina?.Dispose();
         RoomStatus?.Dispose();
         Log.LogError($"Calypso's Expansion Set runtime disabled after a registry/network error; restart after fixing it.\n{exception}");
