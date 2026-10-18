@@ -73,7 +73,9 @@ for ($taskSlot = 1; $taskSlot -le $Count; $taskSlot++) {
         if (Test-Path -LiteralPath $taskConfigSource -PathType Leaf) { Copy-TestTree $taskConfigSource (Join-Path $taskBep "config\$taskConfigName") }
     }
     $taskBepConfig = Join-Path $taskBep 'config\BepInEx.cfg'
-    Set-TestConfig $taskBepConfig 'IL2CPP' 'UpdateInteropAssemblies' 'false'
+    # Game updates invalidate copied interop metadata; regenerate in each isolated
+    # instance before loading plugins instead of invoking stale native methods.
+    Set-TestConfig $taskBepConfig 'IL2CPP' 'UpdateInteropAssemblies' 'true'
     Set-TestConfig $taskBepConfig 'Logging.Console' 'Enabled' 'false'
     $taskModConfig = Join-Path $taskBep 'config\calypso.invokyr.expansionset.cfg'
     Set-TestConfig $taskModConfig 'Debug' 'DebugMode' 'true'
@@ -113,4 +115,5 @@ foreach ($taskInstance in $taskInstances) {
     Write-Output ("Local {0}: PID={1}, files={2}" -f $taskInstance.Slot, $taskInstance.ProcessId, $taskInstance.Directory)
 }
 $taskInstances | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $taskSession 'instances.json') -Encoding UTF8
-Write-Output 'In each window: F8 > Local multiplayer. Host in Local 1, then join from the other windows before starting a game.'
+Write-Output 'After a game update, BepInEx may take longer to rebuild outdated interfaces in each test window before loading the MOD.'
+Write-Output 'In each window: F8 > Local multiplayer. Host in Local 1 for the native shop and 5000 shared funds, then join from the other windows before starting a board.'

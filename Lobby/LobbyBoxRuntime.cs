@@ -17,6 +17,7 @@ namespace CalypsoExpansionSet.Lobby;
 internal sealed class LobbyBoxRuntime : IDisposable
 {
     private readonly CalypsoExpansionSetPlugin _plugin;
+    private readonly RuntimeFailureGate _recovery = new();
     internal LobbyFurniturePreview Furniture { get; }
     internal LobbyBoxLighting? Lighting { get; private set; }
     private readonly LobbyBoxInteractionUi _interactionUi = new();
@@ -24,7 +25,7 @@ internal sealed class LobbyBoxRuntime : IDisposable
     private Transform? _anchor;
     private readonly LobbyBoxInspection _inspection;
     private PlayerInteraction? _releaseOwner;
-    private bool _faulted;
+    private bool _faulted, _disposed;
     private float _nextCheck;
     private readonly string _placementPath = Path.Combine(Paths.ConfigPath, "CalypsoExpansionSet", "lobby-box-placement.json");
     private bool _usingDebugPlacement;
@@ -36,9 +37,17 @@ internal sealed class LobbyBoxRuntime : IDisposable
 
     internal void Tick()
     {
-        if (_faulted) return;
+        if (_disposed) return;
         try
         {
+            if (!NetworkClient.ready) { ClearScene(); return; }
+            if (_faulted)
+            {
+                var recoveryRoom = NetworkClient.ready ? Room.GetStartRoom() : null;
+                if (!_recovery.TryResume(recoveryRoom != null ? recoveryRoom.transform : null)) return;
+                _faulted = false;
+                _nextCheck = 0;
+            }
             if (InputsManager.Instance?.onInteract?.enabled != true || EntityManager.Me?.PlayerInteraction != _releaseOwner)
                 _releaseOwner = null;
             _inspection.Tick(_model);
@@ -291,11 +300,18 @@ internal sealed class LobbyBoxRuntime : IDisposable
     {
         if (_faulted) return;
         _faulted = true;
+        var faultAnchor = _anchor;
+        if (faultAnchor == null)
+        {
+            var room = NetworkClient.ready ? Room.GetStartRoom() : null;
+            faultAnchor = room != null ? room.transform : null;
+        }
+        _recovery.Block(faultAnchor, permanent: error is IOException or InvalidDataException or NotSupportedException);
         ClearScene();
         Furniture.Dispose();
-        _plugin.Log.LogError($"[Lobby box] disabled after an error; restart after fixing it.\n{error}");
+        _plugin.Log.LogError($"[Lobby box] suspended after an error; will retry after scene, connection or room replacement unless a resource is invalid.\n{error}");
     }
-    public void Dispose() { _faulted = true; ClearScene(); Furniture.Dispose(); }
+    public void Dispose() { _disposed = true; _faulted = true; ClearScene(); Furniture.Dispose(); }
 }
 
 [HarmonyPatch(typeof(PlayerInteraction), "LateUpdate")]

@@ -12,6 +12,7 @@ namespace CalypsoExpansionSet.QualityOfLife;
 internal sealed class BoardPawnCollision : IDisposable
 {
     private readonly CalypsoExpansionSetPlugin _plugin;
+    private readonly RuntimeFailureGate _recovery = new();
     private readonly ConfigEntry<bool> _enabled;
     private readonly Dictionary<int, Collider> _owned = new();
     private readonly HashSet<int> _seen = new();
@@ -53,11 +54,19 @@ internal sealed class BoardPawnCollision : IDisposable
 
     internal void Tick()
     {
-        if (_disposed || _failed) return;
-        if (!CanApply) { RestoreAll(); _nextMaintenance = 0; return; }
-        if (Time.realtimeSinceStartup < _nextMaintenance) return;
-        _nextMaintenance = Time.realtimeSinceStartup + 1f;
-        try { Refresh(BoardGameManager.Instance?.PawnManager); }
+        if (_disposed) return;
+        try
+        {
+            if (_failed)
+            {
+                if (!_recovery.TryResume(BoardGameManager.Instance)) return;
+                _failed = false;
+            }
+            if (!CanApply) { RestoreAll(); _nextMaintenance = 0; return; }
+            if (Time.realtimeSinceStartup < _nextMaintenance) return;
+            _nextMaintenance = Time.realtimeSinceStartup + 1f;
+            Refresh(BoardGameManager.Instance?.PawnManager);
+        }
         catch (Exception exception) { Fail(exception); }
     }
 
@@ -137,9 +146,11 @@ internal sealed class BoardPawnCollision : IDisposable
 
     private void Fail(Exception exception)
     {
+        if (_failed) return;
         _failed = true;
+        _recovery.Block(BoardGameManager.Instance);
         RestoreAll();
-        _plugin.Log.LogError($"Board pawn collision option disabled after an error; other MOD features continue. Restart after fixing it.\n{exception}");
+        _plugin.Log.LogError($"Board pawn collision option suspended after an error; will retry after scene, connection or board replacement.\n{exception}");
     }
 
     public void Dispose()

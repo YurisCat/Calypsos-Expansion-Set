@@ -39,6 +39,33 @@ internal static class TestNoSaveWritesPatch
     private static bool Prefix() => !TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive;
 }
 
+[HarmonyPatch(typeof(Save), nameof(Save.SrvBeginAutoSaveSession))]
+internal static class TestNoAutoSaveSessionPatch
+{
+    private static bool Prefix()
+    {
+        if (!TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive) return true;
+        // Keep the native custom-session cleanup, but allocate no slot and write
+        // no initial collection. A later callback cannot reuse a previous run's slot.
+        Save.ClearCustomSession();
+        Save.CurrentSaveSlot = null;
+        CalypsoExpansionSetPlugin.Instance?.Log.LogInfo("[Test session] Native autosave slot allocation skipped; no test save will be created.");
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(Save), "WriteSaveToFile")]
+internal static class TestNoSaveFileWritesPatch
+{
+    private static bool Prefix(ref bool __result)
+    {
+        // Initial collection-only saves bypass AutoSave and SaveToSlot.
+        if (!TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive) return true;
+        __result = false;
+        return false;
+    }
+}
+
 [HarmonyPatch(typeof(VhsNetworkManager), nameof(VhsNetworkManager.OnServerConnect))]
 internal static class TestLocalConnectionOnlyPatch
 {
@@ -64,6 +91,13 @@ internal static class LocalMultiplayerNicknamePatch
         __result = nickname;
         return false;
     }
+}
+
+[HarmonyPatch(typeof(VhsNetworkManager), nameof(VhsNetworkManager.SrvResetStateP2))]
+internal static class LocalMultiplayerRoundStartPatch
+{
+    private static void Postfix(bool __result)
+        => CalypsoExpansionSetPlugin.Instance?.DebugTools?.LocalMultiplayer.OnWorldReset(__result);
 }
 
 [HarmonyPatch]

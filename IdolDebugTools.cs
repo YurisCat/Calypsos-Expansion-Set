@@ -13,7 +13,7 @@ namespace CalypsoExpansionSet;
 
 internal sealed class IdolDebugTools : IDisposable
 {
-    private enum DebugAction { Spawn, Teleport, NextRound, AdvancePawn, ReviveAll, ToggleInvulnerability, TeleportAllHome, ToggleYeti, ToggleHunter }
+    private enum DebugAction { Spawn, Teleport, NextRound, AdvancePawn, ReviveAll, ToggleInvulnerability, TeleportAllHome, ToggleYeti, ToggleHunter, Disguise, ClearDisguise, FinishBoard, PrepareRules, AddFunds }
     private sealed record DebugRequest(DebugAction Action, string Key, IntPtr Player, IntPtr Connection, int Frame, float Expires,
         IntPtr Board = default);
     private readonly CalypsoExpansionSetPlugin _plugin;
@@ -27,7 +27,7 @@ internal sealed class IdolDebugTools : IDisposable
     private bool _previousCursorVisible;
     private DebugRequest? _pending;
     private string _command = "spawn jumping";
-    private string _result = "Commands: list | status | spawn <key> | teleport | next | revive\nExample: spawn jumping";
+    private string _result = "Commands: list | status | spawn <key> | teleport | next | revive | curse disguise | curse clear\nLocal test host: finish | rules | money 5000\nExample: spawn jumping";
     private float _nextRoundAfter;
     private PlayerEntity? _invulnerablePlayer;
     private IntPtr _invulnerableConnection;
@@ -111,7 +111,8 @@ internal sealed class IdolDebugTools : IDisposable
             return;
         }
         var sessionAction = pending.Action is DebugAction.NextRound or DebugAction.AdvancePawn or DebugAction.ReviveAll
-            or DebugAction.ToggleInvulnerability or DebugAction.TeleportAllHome or DebugAction.ToggleYeti or DebugAction.ToggleHunter;
+            or DebugAction.ToggleInvulnerability or DebugAction.TeleportAllHome or DebugAction.ToggleYeti or DebugAction.ToggleHunter
+            or DebugAction.Disguise or DebugAction.ClearDisguise or DebugAction.FinishBoard or DebugAction.PrepareRules or DebugAction.AddFunds;
         // Session tools must also work while the host is dead or seated at the board.
         if (sessionAction ? PanelOpen || Time.timeScale <= 0f : !_plugin.LocalGameplayReady(player)) return;
         _pending = null;
@@ -124,6 +125,17 @@ internal sealed class IdolDebugTools : IDisposable
                 else if (pending.Action == DebugAction.ReviveAll) ReviveAll();
                 else if (pending.Action == DebugAction.ToggleInvulnerability) ToggleInvulnerability();
                 else if (pending.Action == DebugAction.TeleportAllHome) TeleportAllHome();
+                else if (pending.Action == DebugAction.FinishBoard) LocalMultiplayer.RequestFinish();
+                else if (pending.Action == DebugAction.PrepareRules) LocalMultiplayer.RequestFinish(prepareRules: true);
+                else if (pending.Action == DebugAction.AddFunds) LocalMultiplayer.AddFunds(int.Parse(pending.Key, System.Globalization.CultureInfo.InvariantCulture));
+                else if (pending.Action == DebugAction.Disguise)
+                {
+                    var reason = "Disguise service is unavailable.";
+                    var started = _plugin.Disguises?.Start(out reason) == true;
+                    Report(started ? "Disguise curse applied for this round." : reason, !started);
+                }
+                else if (pending.Action == DebugAction.ClearDisguise)
+                { _plugin.Disguises?.ClearRound(); Report("Disguise curse cleared."); }
                 else if (pending.Action is DebugAction.ToggleYeti or DebugAction.ToggleHunter)
                     _monsters.Toggle(pending.Action == DebugAction.ToggleHunter);
                 else NextRound(pending);
@@ -191,7 +203,7 @@ internal sealed class IdolDebugTools : IDisposable
         switch (words[0].ToLowerInvariant())
         {
             case "help" when words.Length == 1:
-                Report("list: MOD + original spawn keys | status: registry / network\nspawn <key>: spawn near you (e.g. miniature; use original: for native names shared with MODs)\nteleport [key]: next matching MOD idol\nnext: advance round with a random 1-6 roll (host)\nrevive: revive dead players and fully heal all players (host)\nYeti / Hunter buttons: spawn or remove your manual test monster (host)\nvisual <key> texture|white|flat: local note comparison");
+                Report("list: MOD + original spawn keys | status: registry / network\nspawn <key>: spawn near you (e.g. miniature; use original: for native names shared with MODs)\nteleport [key]: next matching MOD idol\nnext: advance round with a random 1-6 roll (host)\nrevive: revive dead players and fully heal all players (host)\nfinish / rules / money <amount>: finish board, prepare post-master rule selection, or add shared funds (F8 local test host only)\ncurse disguise / clear: apply or remove this round's disguise curse (host, 2+ players to apply)\nYeti / Hunter buttons: spawn or remove your manual test monster (host)\nvisual <key> texture|white|flat: local note comparison");
                 break;
             case "list" when words.Length == 1:
                 var originals = Catalog.GetOriginals();
@@ -218,6 +230,23 @@ internal sealed class IdolDebugTools : IDisposable
                 break;
             case "revive" when words.Length == 1:
                 QueueSessionAction(DebugAction.ReviveAll);
+                break;
+            case "finish" when words.Length == 1:
+                QueueSessionAction(DebugAction.FinishBoard);
+                break;
+            case "rules" when words.Length == 1:
+                QueueSessionAction(DebugAction.PrepareRules);
+                break;
+            case "money" when words.Length == 2:
+                if (int.TryParse(words[1], out var amount) && amount is >= 1 and <= 1000000)
+                    QueueSessionAction(DebugAction.AddFunds, amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                else Report("Usage: money <1-1000000> (local test host only).", true);
+                break;
+            case "curse" when words.Length == 2 && words[1].Equals("disguise", StringComparison.OrdinalIgnoreCase):
+                QueueSessionAction(DebugAction.Disguise);
+                break;
+            case "curse" when words.Length == 2 && words[1].Equals("clear", StringComparison.OrdinalIgnoreCase):
+                QueueSessionAction(DebugAction.ClearDisguise);
                 break;
             case "visual" when words.Length == 3:
                 if (!Enabled || !_plugin.Registry.Ready || !_plugin.Registry.TryGet(words[1], out var visualEntry)
@@ -267,16 +296,18 @@ internal sealed class IdolDebugTools : IDisposable
         Close();
     }
 
-    private void QueueSessionAction(DebugAction action)
+    private void QueueSessionAction(DebugAction action, string key = "")
     {
         if (!Enabled || _plugin.RuntimeFailed) { Report("Debug session tools are disabled.", true); return; }
         var player = EntityManager.Me;
         var connection = NetworkClient.connection;
         if (!NetworkServer.active || !NetworkClient.ready || player == null || connection == null)
         { Report("Only the host in a ready game session can use these debug session tools.", true); return; }
+        if (action is DebugAction.FinishBoard or DebugAction.PrepareRules or DebugAction.AddFunds && !LocalMultiplayer.Active)
+        { Report("finish / rules / money require an F8 local multiplayer test session.", true); return; }
         if (_pending != null) { Report("A debug action is already pending; wait for it to finish.", true); return; }
         var board = BoardGameManager.Instance;
-        _pending = new DebugRequest(action, "", player.Pointer, connection.Pointer, Time.frameCount,
+        _pending = new DebugRequest(action, key, player.Pointer, connection.Pointer, Time.frameCount,
             Time.realtimeSinceStartup + 10f, board != null ? board.Pointer : IntPtr.Zero);
         Close();
     }

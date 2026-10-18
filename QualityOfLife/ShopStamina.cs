@@ -10,6 +10,7 @@ namespace CalypsoExpansionSet.QualityOfLife;
 internal sealed class ShopStamina : IDisposable
 {
     private readonly CalypsoExpansionSetPlugin _plugin;
+    private readonly RuntimeFailureGate _recovery = new();
     private PlayerEntity? _player;
     private Room? _shop;
     private uint _visit;
@@ -18,14 +19,26 @@ internal sealed class ShopStamina : IDisposable
 
     internal ShopStamina(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
-    internal void Tick() => Apply(EntityManager.Me);
+    internal void Tick()
+    {
+        if (_disposed) return;
+        if (!NetworkClient.isConnected || !NetworkClient.ready) { _inside = false; return; }
+        try { Apply(EntityManager.Me); }
+        catch (Exception error) { Fail(error, _player); }
+    }
 
     private bool Apply(PlayerEntity? player)
     {
-        if (_disposed || _failed) return false;
+        if (_disposed) return false;
         try
         {
+            if (!NetworkClient.isConnected || !NetworkClient.ready) { _inside = false; return false; }
             if (player != EntityManager.Me) return false;
+            if (_failed)
+            {
+                if (!_recovery.TryResume(player)) return false;
+                _failed = false;
+            }
             var connection = NetworkClient.connection?.Pointer ?? IntPtr.Zero;
             if (_connection != connection)
             {
@@ -48,9 +61,11 @@ internal sealed class ShopStamina : IDisposable
                 if (!float.IsFinite(maximum) || maximum <= 0) { _inside = false; return false; }
                 // Fill once per authoritative entry, including exhausted arrivals.
                 // No shared settings, maximum, recovery flag or coroutine is owned.
-                player.CliSetCurrentStamina(maximum);
+                // Consume the attempt before the native call: an exception may
+                // be raised after its side effect has already happened.
                 _shop = shop;
                 _visit = visit;
+                player.CliSetCurrentStamina(maximum);
             }
             if (!_inside && _plugin.DebugTools.Enabled)
                 _plugin.Log.LogInfo($"[Shop stamina] active for player={player.netId}, room={shop.index}, visit={visit}.");
@@ -59,11 +74,18 @@ internal sealed class ShopStamina : IDisposable
         }
         catch (Exception error)
         {
-            _failed = true;
-            _inside = false;
-            _plugin.Log.LogError($"Shop stamina disabled after an error; native stamina rules remain active: {error}");
+            Fail(error, player);
             return false;
         }
+    }
+
+    private void Fail(Exception error, PlayerEntity? player)
+    {
+        if (_failed) return;
+        _failed = true;
+        _inside = false;
+        _recovery.Block(player);
+        _plugin.Log.LogError($"Shop stamina suspended after an error; will retry after scene, connection or player replacement: {error}");
     }
 
     internal void FilterCost(PlayerEntity player, ref float amount)
@@ -75,6 +97,8 @@ internal sealed class ShopStamina : IDisposable
 
     internal void Reset()
     {
+        _recovery.TransportReset();
+        _failed = false;
         _inside = false;
         _player = null;
         _shop = null;

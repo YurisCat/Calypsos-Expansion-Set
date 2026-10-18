@@ -97,7 +97,7 @@ internal sealed class HeldAppearanceRuntime : IdolContentRuntime
         }
     }
 
-    internal static void RenderAll()
+    internal static void RenderAll(bool disguisesOnly = false)
     {
         if (!NetworkClient.isConnected || !NetworkClient.ready
             || CalypsoExpansionSetPlugin.Instance?.Sync.ClientCompatible != true) { ClearAll(); return; }
@@ -107,6 +107,7 @@ internal sealed class HeldAppearanceRuntime : IdolContentRuntime
             {
                 if (runtime._faulted.ContainsKey(pair.Key)) continue;
                 var state = pair.Value;
+                if (disguisesOnly && state.Appearance is not Curses.PlayerDisguiseAppearance) continue;
                 try
                 {
                     if (Held(state.Player, runtime._configId, out var idol) && idol == state.Idol)
@@ -116,6 +117,15 @@ internal sealed class HeldAppearanceRuntime : IdolContentRuntime
                 catch (Exception error) { runtime.Fault(pair.Key, state.Idol, error, remove: false); }
             }
         }
+        CalypsoExpansionSetPlugin.Instance?.Disguises?.Render();
+    }
+
+    internal static bool HasAppearance(PlayerEntity player)
+    {
+        foreach (var runtime in Instances)
+            if (runtime._states.TryGetValue(player.netId, out var state) && state.Player == player
+                && Held(player, runtime._configId, out var idol) && idol == state.Idol && state.Appearance.Matches(player)) return true;
+        return false;
     }
 
     internal static void ClearAll()
@@ -158,6 +168,8 @@ internal sealed class StretchedPlayerAppearance : IPlayerAppearance
     internal static IPlayerAppearance? Create(PlayerEntity player, Vector3 stretch, float headScale)
     {
         if (player == _200_Dev.Entities.EntityManager.Me && !player.UseFreeCamWorldRig) return null;
+        var curse = CalypsoExpansionSetPlugin.Instance?.Disguises;
+        if (curse?.TryLook(player, out _) == true) return curse.CreateAppearance(player, stretch, headScale);
         var rig = player.PlayerWorldRigController;
         var root = player.WorldRigInstance;
         if (rig == null || root == null || rig.SkinnedMeshRenderer == null) return null;
@@ -166,7 +178,7 @@ internal sealed class StretchedPlayerAppearance : IPlayerAppearance
         {
             foreach (var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
-                if (skin.GetComponentInParent<Items.Item>() != null) continue;
+                if (VisualRigCopy.IsSeparateItem(skin.transform, root.transform)) continue;
                 foreach (var bone in skin.bones)
                     if (bone != null && bone.name.Contains("head", StringComparison.OrdinalIgnoreCase)
                         && !bone.name.Contains("end", StringComparison.OrdinalIgnoreCase)
@@ -199,6 +211,7 @@ internal sealed class StretchedPlayerAppearance : IPlayerAppearance
         catch { Dispose(); throw; }
     }
     public bool Matches(PlayerEntity player) => _copy.Alive && player == _player
+        && CalypsoExpansionSetPlugin.Instance?.Disguises?.TryLook(player, out _) != true
         && (player != _200_Dev.Entities.EntityManager.Me || player.UseFreeCamWorldRig)
         && player.PlayerWorldRigController != null && player.WorldRigInstance == _rig;
     public void Render()
@@ -228,4 +241,9 @@ internal static class HeldAppearanceDisconnectPatch
 internal static class HeldAppearanceRenderPatch
 {
     [HarmonyPostfix] private static void Postfix() => HeldAppearanceRuntime.RenderAll();
+    private static Exception? Finalizer(Exception? __exception)
+    {
+        if (__exception != null) Curses.PlayerDisguiseAppearance.EndRendering();
+        return __exception;
+    }
 }

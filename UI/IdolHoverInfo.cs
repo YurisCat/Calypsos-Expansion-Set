@@ -21,6 +21,7 @@ internal sealed class IdolHoverInfo : IDisposable
         CalypsoExpansionSetPlugin.Instance?.HoverInfo?._language ?? UiLanguage.English;
     internal static string GenericIdolName => IdolTextLocalization.GenericName(CurrentLanguage);
     private readonly CalypsoExpansionSetPlugin _plugin;
+    private readonly RuntimeFailureGate _recovery = new();
     private UIManager? _ui;
     private TextMeshProUGUI? _reference, _label;
     private GameObject? _object;
@@ -87,10 +88,11 @@ internal sealed class IdolHoverInfo : IDisposable
     internal static bool HintsHidden(ScoreTool? idol)
     {
         var plugin = CalypsoExpansionSetPlugin.Instance;
-        var holder = idol != null ? idol.ItemOwner : null;
-        return plugin != null && !plugin.RuntimeFailed && plugin.Registry.Ready
-            && NetworkClient.isConnected && NetworkClient.ready && plugin.Sync.ClientCompatible
-            && idol != null && idol.SoItem != null && holder != null
+        if (plugin == null || plugin.RuntimeFailed || !plugin.Registry.Ready
+            || !NetworkClient.isConnected || !NetworkClient.ready || !plugin.Sync.ClientCompatible
+            || idol == null || idol.SoItem == null) return false;
+        var holder = idol.ItemOwner;
+        return holder != null
             && holder.isActiveAndEnabled && holder.CurrentHealthSync > 0 && holder.InventoryNew?.InHand == idol
             && plugin.Registry.TryGet(idol.SoItem.Id, out var entry) && entry.Definition.HideHintsWhileHeld;
     }
@@ -116,10 +118,11 @@ internal sealed class IdolHoverInfo : IDisposable
 
     private bool ControlsReady(out PlayerEntity player)
     {
+        player = null!;
+        if (_disposed || _faulted || _plugin.RuntimeFailed || !_plugin.Registry.Ready
+            || !NetworkClient.isConnected || !NetworkClient.ready || !_plugin.Sync.ClientCompatible) return false;
         player = EntityManager.Me!;
-        return !_disposed && !_faulted && !_plugin.RuntimeFailed && _plugin.Registry.Ready
-            && NetworkClient.isConnected && NetworkClient.ready && _plugin.Sync.ClientCompatible
-            && player != null && player.isActiveAndEnabled && player.CurrentHealthSync > 0
+        return player != null && player.isActiveAndEnabled && player.CurrentHealthSync > 0
             && player.PlayerInteraction != null && player.PlayerInteraction.isOwned
             && player.PlayerInteraction.CanInteract && _plugin.LocalGameplayReady(player)
             && !UIManager.IsGameOver;
@@ -131,10 +134,14 @@ internal sealed class IdolHoverInfo : IDisposable
     {
         if (_disposed) return;
         RefreshLanguage();
-        if (_faulted) return;
         try
         {
             var ui = UIManager.Instance;
+            if (_faulted)
+            {
+                if (!_recovery.TryResume(ui)) return;
+                _faulted = false;
+            }
             if (_testMessage != null && (!Testing.TestRoomLaunch.IsActive
                 || !NetworkClient.isConnected || !TextVisible(_testMessage) && Time.realtimeSinceStartup >= _nativeMessageUntil))
                 RestoreTestMessage();
@@ -154,6 +161,7 @@ internal sealed class IdolHoverInfo : IDisposable
         if (_disposed || _faulted) return;
         try
         {
+            if (!NetworkClient.isConnected || !NetworkClient.ready) { Hide(); return; }
             var local = EntityManager.Me;
             // Remote players also execute LateUpdate; they must not clear or
             // replace the local player's hint.
@@ -321,8 +329,10 @@ internal sealed class IdolHoverInfo : IDisposable
     {
         if (_faulted) return;
         _faulted = true;
+        _recovery.Block(_ui != null ? _ui : UIManager.Instance,
+            permanent: error is IOException or InvalidDataException or NotSupportedException);
         ReleaseLabel();
-        _plugin.Log.LogError($"Idol hover hints disabled after an error; gameplay remains active: {error}");
+        _plugin.Log.LogError($"Idol hover hints suspended after an error; will retry after scene, connection or UI replacement unless a resource is invalid: {error}");
     }
 
     public void Dispose()

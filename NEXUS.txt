@@ -1,6 +1,6 @@
 [center][size=6][color=#B78A50][b]Calypso's Expansion Set[/b][/color][/size][/center]
 
-[center]14 new idols with unusual carrying challenges, hand-drawn sticky-note symbols and short Chinese/English hints for custom and supported vanilla idols.[/center]
+[center]14 new idols with unusual carrying challenges, hand-drawn sticky-note symbols and short hints in seven languages for custom and supported vanilla idols.[/center]
 
 
 [size=4][color=#B78A50][b]The Idols[/b][/color][/size]
@@ -48,28 +48,36 @@ Turns your view into white outlines on a black background.
 Gives you a huge head and a strong fisheye view.
 
 
+[size=4][color=#B78A50][b]Disguise Curse[/b][/color][/size]
+
+With at least two players, dice can swap players' third-person appearances and overhead names for the round. Post-master boards can also include this rule, with new assignments each round.
+
+
+[size=4][color=#B78A50][b]Quality of Life[/b][/color][/size]
+
+[list]
+[*]Removes board-pawn collisions to make kicking dice easier.[/*]
+[*]Adds advice and optional individual names for vanilla and MOD idols.[/*]
+[*]Portrait names turn cyan while players are in the lobby.[/*]
+[*]Unlimited stamina while in the shop.[/*]
+[/list]
+
+
 [size=4][color=#B78A50][b]Shared Notes[/b][/color][/size]
 
 [list]
 [*]New idols join vanilla spawn pools without increasing the spawn total; encounters remain random.[/*]
-
 [*]Jumping, Duck-Step and Suspicious sounds can be heard nearby and can alert monsters.[/*]
-
 [/list]
-
 
 [size=4][color=#B78A50][b]Setup & Multiplayer[/b][/color][/size]
 
 [list=1]
 [*]Install [url=https://builds.bepinex.dev/projects/bepinex_be/788/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788%2B5b766a3.zip]BepInEx 6 IL2CPP — Windows x64[/url] in the Invokyr folder; launch once, then close the game.[/*]
-
 [*]Place [b]CalypsoExpansionSet.dll[/b] in [b]BepInEx/plugins/CalypsoExpansionSet/[/b] or [b]BepInEx/plugins/[/b], then launch normally.[/*]
 [/list]
-
 [quote]
-[b]Every player needs a compatible mod version; use the same release.[/b]
-[/quote]
-
+[b]Every player needs a compatible mod version; use the same release.[/b][/quote]
 
 [size=4][color=#B78A50][b]Options & Notes[/b][/color][/size]
 
@@ -90,10 +98,9 @@ Shows individual idol names.
 Shows advice when pointing at idols.
 
 [b]DebugMode = false[/b]
-Enables the F8 debug window and diagnostic logs.
-[/spoiler]
+Enables the F8 debug window and diagnostic logs.[/spoiler]
 
-[i]Names and hints follow the game language: Chinese or English; other languages currently fall back to English.[/i]
+[i]Names, hints and the lobby box follow the game language: English, Simplified/Traditional Chinese, Japanese, Russian, Brazilian Portuguese or Spanish.[/i]
 
 [i]Development release: full multiplayer/save compatibility remains unverified; relay fatigue and disguise history are not saved.[/i]
 
@@ -150,28 +157,36 @@ Detailed setup, testing and limitations are on GitHub below.
 头部变大，视野带有夸张的鱼眼效果。
 
 
+[size=4][color=#B78A50][b]伪装诅咒[/b][/color][/size]
+
+至少两名玩家时，骰子可能让玩家互换第三人称外观与头顶昵称，持续本小局。大师后的棋盘也可能出现该规则，每小局重新分配。
+
+
+[size=4][color=#B78A50][b]生活质量提升[/b][/color][/size]
+
+[list]
+[*]移除棋盘棋子的碰撞，方便踢骰子。[/*]
+[*]为原版与 MOD 雕像提供箴言和可选的具体名称。[/*]
+[*]玩家在大厅时，头像名字变为青色。[/*]
+[*]商店内无限体力。[/*]
+[/list]
+
+
 [size=4][color=#B78A50][b]通用说明[/b][/color][/size]
 
 [list]
 [*]新雕像默认加入原版随机生成池，保留生成总数，遇见哪一种仍由随机抽取决定。[/*]
-
 [*]弹跳、鸭步与疑神的声音附近玩家可听见，也可能引起怪物注意。[/*]
-
 [/list]
-
 
 [size=4][color=#B78A50][b]安装与联机[/b][/color][/size]
 
 [list=1]
 [*]将 [url=https://builds.bepinex.dev/projects/bepinex_be/788/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788%2B5b766a3.zip]BepInEx 6 IL2CPP — Windows x64[/url] 安装到 Invokyr 目录，启动一次后退出。[/*]
-
 [*]将 [b]CalypsoExpansionSet.dll[/b] 放入 [b]BepInEx/plugins/CalypsoExpansionSet/[/b] 或 [b]BepInEx/plugins/[/b]，正常启动游戏。[/*]
 [/list]
-
 [quote]
-[b]房主与所有加入者都需安装兼容版本，建议统一发布版本。[/b]
-[/quote]
-
+[b]房主与所有加入者都需安装兼容版本，建议统一发布版本。[/b][/quote]
 
 [size=4][color=#B78A50][b]配置与说明[/b][/color][/size]
 
@@ -192,10 +207,9 @@ Detailed setup, testing and limitations are on GitHub below.
 指向雕像时显示箴言。
 
 [b]DebugMode = false[/b]
-启用 F8 调试窗口和诊断日志。
-[/spoiler]
+启用 F8 调试窗口和诊断日志。[/spoiler]
 
-[i]名称与箴言跟随游戏语言，支持中文与英文，其他语言暂回退英文。[/i]
+[i]名称、箴言与大厅盒子跟随游戏语言，支持简中、繁中、英文、日文、俄文、巴西葡文和西班牙文。[/i]
 
 [i]当前为开发版本，完整联机与存读档兼容仍待验证；接力疲劳和怪相候选历史不入存档。[/i]
 

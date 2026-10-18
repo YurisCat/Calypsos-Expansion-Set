@@ -32,6 +32,7 @@
 | [Idols/DuckStepIdol.cs](../Idols/DuckStepIdol.cs)、[Audio/HeldIdolAudio.cs](../Audio/HeldIdolAudio.cs)、[Audio/IdolHearing.cs](../Audio/IdolHearing.cs) | 原版脚步触发、共享一次性音效协议、服务器听觉和 FMOD 资源 |
 | [Idols/RelayIdol.cs](../Idols/RelayIdol.cs)、[Idols/RelayFatigue.cs](../Idols/RelayFatigue.cs)、[Idols/RelayIdolRuntime.cs](../Idols/RelayIdolRuntime.cs) | 接力持有者减速、疲劳公式、服务器实例状态与全员快照 |
 | [Idols/MonsterDisguiseRuntime.cs](../Idols/MonsterDisguiseRuntime.cs)、[Idols/MonsterDisguiseAttack.cs](../Idols/MonsterDisguiseAttack.cs)、[Idols/MonsterAttackProfile.cs](../Idols/MonsterAttackProfile.cs) | 怪相选择快照、统一输入的攻击表演请求、资源匹配与一次性同步 |
+| [Curses/DisguiseCurse.cs](../Curses/DisguiseCurse.cs)、[Curses/DisguiseHouseRule.cs](../Curses/DisguiseHouseRule.cs)、[Curses/DisguiseRound.cs](../Curses/DisguiseRound.cs)、[Curses/DisguiseProtocol.cs](../Curses/DisguiseProtocol.cs)、[Curses/DisguiseArrivalEffects.cs](../Curses/DisguiseArrivalEffects.cs)、[Curses/DisguisePatches.cs](../Curses/DisguisePatches.cs)、[Curses/PlayerDisguiseAppearance.cs](../Curses/PlayerDisguiseAppearance.cs) | 骰子伪装诅咒、大师规则、每小局配对、完整快照、一次性抵达表现、原版清理边界及第三人称外观／昵称覆盖 |
 | [Visuals/IdolEyeOverlay.cs](../Visuals/IdolEyeOverlay.cs) | 声控与接力复用的眼睛覆盖网格、自有材质及 PropertyBlock |
 | [Visuals/IdolVisualSync.cs](../Visuals/IdolVisualSync.cs) | 类型无关的雕像外观状态上报、校验、完整快照与实例资源清理 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
@@ -43,6 +44,30 @@
 | [Lobby/LobbyBoxRuntime.cs](../Lobby/LobbyBoxRuntime.cs)、[Lobby/LobbyBoxEditor.cs](../Lobby/LobbyBoxEditor.cs)、[Lobby/LobbyBoxInteractionUi.cs](../Lobby/LobbyBoxInteractionUi.cs)、[Lobby/LobbyBoxInspection.cs](../Lobby/LobbyBoxInspection.cs)、[Lobby/LobbyBoxReadingUi.cs](../Lobby/LobbyBoxReadingUi.cs)、[Lobby/LobbyBoxFraming.cs](../Lobby/LobbyBoxFraming.cs)、[Lobby/LobbyBoxLighting.cs](../Lobby/LobbyBoxLighting.cs)、[Lobby/LobbyFurniturePreview.cs](../Lobby/LobbyFurniturePreview.cs) | 大厅盒子、原版样式交互点、原版检查相机下的右侧盒子／左侧介绍、拖动摆放、原灯输出跟随及测试商店陈设；契约见 [大厅盒子](LOBBY_BOX.md) |
 | [Lobby/LobbyBoxCredits.cs](../Lobby/LobbyBoxCredits.cs) | 独立于正文滚动的固定署名、中英昵称和 B 站图标；布局与资源契约见 [大厅盒子](LOBBY_BOX.md) |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
+
+## 伪装诅咒与大师规则
+
+`identity_disguise` 是普通骰子随机诅咒池的一项，不依赖 DebugMode 或雕像自然生成开关。至少两名已通过兼容准入的玩家时才参与抽取；仅在原版骰面选择调用期间只读遍历原候选，调用原版逐项过滤，将通过的类型与一个伪装标记放入托管列表等权抽取。不满足伪装资格时完整走原版选择。原生候选表始终不改写：当前 `FAlterationTypeInfo` 是含引用的值类型，生成的 `List.Add` 包装没有拆箱，不能用于复制这些条目。私有选择标记在应用入口被消费，不进入原版 alteration 列表、图标、runner 或存档。服务器每次骰子抽取记录一条 `[Dice curse]` 结果（名称与类型值），不受 DebugMode 控制；逐阶段诊断仍受 DebugMode 控制。
+
+[DisguiseHouseRule](../Curses/DisguiseHouseRule.cs) 独立注册原生 `HouseRule` 配置，稳定 ID 为 `calypso.identity_disguise`，难度成本 2，从大师后的最早规则阶段可选。使用原版难度预算、数量、地图和重复筛选，不设置固定抽中百分比、不强塞返回结果。自有标签组加入原版 `NoSolo` 标签，由原版人数筛选排除单人；即使恢复了多人棋盘也需至少两名兼容、已生成的玩家才能实际开始。配置列表在选择、ID 恢复与客户端规则回调前幂等注册；只接管自有实例的 ID，七语言词条使用自有 I2 数据源，不修改原版资源，也不注入自定义 ScriptableObject 子类或拦截共享空虚方法。管理器应用、撤销和事件开始入口驱动现有伪装服务；每小局清理后等待下一事件通知重新分配，重复通知不重抽，玩家尚未就绪时等待。规则结束只清除规则启动的映射，不清除先前独立骰出的本小局伪装；重开／断线重置规则状态。兼容握手协议为 7，旧客户端不得接收未知规则 ID 或新视觉事件。
+
+已有伪装效果不退出骰子池。原版随机选取只按 `excludeFromDicePool` 与单人标签过滤，已有濒死规则不会排除骰子濒死；原版仍发送顶部提示、播放诅咒魂表现，`EntityAlterationController.SrvCanApplyAlteration` 在施加阶段拒绝相同类型，保留原有永久状态。伪装对应处理为：重复骰中时保持当前配对和规则归属，再次发送身体抵达表现和顶部提示，照常完成骰子回合；不重抽配对、不叠加状态、不缩短规则期限。至少两名兼容玩家的资格仍适用。F8 的直接施加入口仍拒绝重复启动，清除后才能手动重抽。
+
+原生 `HouseRule` 是抽象类，interop 包装未保留该限制，不能直接 `CreateInstance<HouseRule>`。伪装配置使用可实例化的 `HouseRuleResume`，明确初始化独立且为空的事件恢复列表，其原生应用回调只遍历该列表，不会恢复原版事件；伪装效果仍由管理器生命周期单独驱动。创建成功并完成配置后才发布到规则列表，空返回给出明确异常，配置中途失败销毁自有实例。
+
+不直接补丁规则生成方法 `SrvGenerateHouseRulesByBoardConfig` 或其 ID 包装：其按值 `Nullable<bool>` 参数在当前 Harmony／interop 原生转接中会被错误地按指针封送。生成前注册改在三个无参数调用入口 `BoardGameManager.SrvInitializeBoardGameRules`、`BoardGameToolShop.OnStartServer` 和 `EndlessManager.SrvSpawnEndlessBoards` 执行，原版生成与筛选方法保持不变。
+
+[DisguiseArrivalEffects](../Curses/DisguiseArrivalEffects.cs) 在身体中心播放原版诅咒魂的抵达表现，仅创建自有 `VisualEffect` 与灯光并引用原 graph，不创建 `CurseSoul`、导航、网络或回执组件。骰子每次成功施加或重复抽中都播放；规则只在该规则所在棋盘首次变换时播放，后续小局重新配对不重播，规则撤销／新棋盘再次抽到／会话重置后重新计数。首次启动等待玩家就绪，成功前不消费首次标记。表现跟随身体中心，按原版抵达阶段缩小、淡出灯光、停止发射并释放尾迹；资源或实体最多等待 1.5 秒。死亡、映射失效、快照超时、解除及断线立即清理，死亡复活、换角色与晚加入的状态恢复不补播历史事件。所有效果保持立即生效，视觉异常仅跳过表现，不接管原版回合等待；
+
+[DisguiseStatusIcon](../Curses/DisguiseStatusIcon.cs) 用原版 `PlayerAlterationUI.alterationSlotPrefab` 在原版状态栏创建自有槽位；骰子和大师规则使用相同图标。获得时通过原版 `UIManager.CliEnqueueMessage` 排队一次顶部短提示，与大师规则共用七语言说明词条“玩家互换外观，小局重新分配”，时长沿用当前原版诅咒配置。提示与身体抵达表现由同一个现场事件触发：骰子每次抽中均提示，规则仅在同一棋盘首次变换时提示，后续小局只重新分配。待本人的玩家配对和消息 UI 就绪后入队，普通快照保留尚未显示的请求；周期同步、换角色、玩家加入、死亡复活和快照短暂超时恢复均不新增提示，晚加入不补播历史提示或特效；解除取消尚未入队的提示，断线清理本机请求状态。无持续顶部覆盖，不接入原版诅咒回执。图标由通过服务器来源、兼容和时效检查的快照 `Active` 驱动，不依赖当前生命、角色实体或视觉副本是否存在。死亡不解除图标状态；整条原版 HUD 被隐藏时随之隐藏，HUD 替换后重建唯一槽位，解除／超时／断线销毁。只使用 `UserInstance.Me` 的真实玩家 HUD，不跟随旁观目标切换；不改原版 alteration runner 或含引用值类型的槽位列表。图像使用已确认原画左下图案，透明裁切及原始 RGBA 契约见 [图标资源](../Assets/Curses/README.md)；Sprite／Texture 由该界面服务缓存并在卸载或失败回滚时释放，不使用 `LoadImage`。
+
+服务器把当前参与者随机排成单循环，每人取得另一人的角色、衣色、头饰和真实昵称快照。第三人称只创建 Transform 与网格的视觉副本，以本人的动画驱动对方角色；不替换玩家实体或运行原版换角色。仅覆盖头顶 `NickWorldSpaceUI.nickText`，旁观目标文字、头像、菜单、语音和账号归属继续使用真实身份。第一人称身体不替换；死亡时释放外观，复活后按原配对重建，尸体维持原版。搬运尸体时搬运者继续伪装；仅当前角色自身 ragdoll 引用的尸体组件属于本人骨架，他人尸体与嵌套角色不参与骨骼绑定、原身隐藏或手持网格复制。
+
+手持显示跟随伪装角色的对应挂点。原版手电保留唯一的 renderer，仅将不含玩法组件的网格叶节点临时挂到视觉锚点，不复制另一只电筒；结构不支持安全移动时保留原版位置，也不回退到复制手电。伪装显示在 `LateUpdate` 提前准备，使 Unity 采集 renderer 变换时已有伪装挂点；渲染上下文开始时再次核对，其他外观沿用原阶段。物品根节点、碰撞、灯光和开关逻辑保持原样。渲染结束、异常退出、外观接管和释放均恢复原网格的父节点与局部姿态，保留原版对网格可见性及材质的控制。调试仅在构建或实际父节点变化时记录结构及挂点匹配结果，准备成功不等于实际挂接成功；
+
+配对属于本小局，与持有骰子或其他物品无关。坠落传送、掉落、死亡复活、外观重建不解除；清理接入 `InventoryNew.SrvHandleZonePreChange`，与原版移除非永久诅咒的边界一致，保留地图的换局事件也解除。重开大局、断线和正常卸载清理各自状态。宽体／大头继续作用在伪装外观上；怪相持有时优先显示怪物，释放后恢复本局伪装。
+
+消息 `0x4D4F`、协议 2 周期发送完整映射，检查服务器来源、认证、Ready、兼容清单、序列／修订、长度、重复身份及原版外观值。kind 1 只恢复状态，用于周期同步和晚加入；kind 2 携带现场施加的完整状态与一次性抵达事件，要求生效中且至少两名目标，通过同一序列去重。客户端核对真实 user-player 关系，等待尚未生成的实体；快照超时撤销显示，有效快照恢复后可重建。正常联机按账号恢复重连配对，无账号按连接生命周期区分；显式“本机联机”测试也按连接生命周期区分，允许同一 Steam 账号的多个窗口分别参与，重新连接按新参与者处理。被模仿者离线仍使用已保存外观。晚加入插入原循环，最多调整一个已有配对，其余保持。解除时销毁自有视觉副本并撤销自己的隐藏／昵称覆盖，不修改共享角色资源。游戏验证范围见 [DEVELOPMENT](../DEVELOPMENT.md)。
 
 ## 棋盘进度棋子碰撞
 
@@ -60,9 +85,11 @@
 
 房间协议消息号 `0x4D4E`、版本 1，每 0.2 秒在可靠通道发送完整玩家表，包含兼容清单、递增序号、当前房间索引、角色 netId、房间标记和服务器分配的非零商店访问编号。接收方校验服务器连接、认证、Ready、版本、清单、长度／数量、重复和未知标记、序号及对象类型；未生成的角色等待后续快照，角色对象替换不能继承旧记录。快照超过一秒失效，断线、传输关闭与会话切换清空；处理器冲突直接拒绝，不覆盖其他 MOD。
 
-每个客户端按原版 `CurrentPortraitOwner` 绑定头像下方名字，仅在有效快照确认该角色处于初始房内时将文字 RGB 设为青色，其余情况恢复原色；不再创建指示灯。原版名字牌使用 `TextMeshProUGUI` 与 VHS 字体特效材质，改色保留当前透明度，不改文字、字体、材质、描边、布局或特效参数，头像、骷髅与语音绿光仍由原版控制。进入时保存原 RGB；期间原版或其他 MOD 更新 RGB 时记录新原色，恢复时不覆盖较新的外部颜色写入或透明度。空位、换人、文字组件替换、隐藏、状态过期、断线、换场景、异常及卸载均释放颜色覆盖。房间协议、尸体跟随判定及商店玩法保持。
+每个客户端按原版 `CurrentPortraitOwner` 绑定头像下方名字，仅在有效快照确认该角色处于初始房内时将文字 RGB 设为青色，其余情况恢复原色；不再创建指示灯。读取归属前先确认头像及文字可见、头像网络身份已登记到当前客户端生成表，跳过换场景期间未初始化或已注销的头像；单个头像异常只释放其颜色覆盖并暂缓重试，不永久停用染色，也不阻断本轮其他头像。原版名字牌使用 `TextMeshProUGUI` 与 VHS 字体特效材质，改色保留当前透明度，不改文字、字体、材质、描边、布局或特效参数，头像、骷髅与语音绿光仍由原版控制。进入时保存原 RGB；期间原版或其他 MOD 更新 RGB 时记录新原色，恢复时不覆盖较新的外部颜色写入或透明度。空位、换人、文字组件替换、隐藏、状态过期、断线、换场景、异常及卸载均释放颜色覆盖。房间协议、尸体跟随判定及商店玩法保持。
 
 商店体力只作用于本机有控制权的存活角色，同时要求有效服务器授权和即时本地商店体积检查。每次服务器确认的入店补满一次原版最大体力；仅把原版连续／离散体力入口的负消耗变为零，保留正常恢复与原方法副作用。短暂丢失授权不重复补满，同次离店后即使旧快照尚在也立即恢复正常消耗。角色、连接、商店或访问编号变化分别隔离；死亡、断线、场景失效、异常与卸载停止免耗。不改共享配置、最大体力或恢复协程，因此离店不通过固定值覆盖原版／其他 MOD 的规则。
+
+商店体力、棋子碰撞、大厅盒子、箴言提示与共享音效的普通运行异常经 `RuntimeFailureGate` 暂停：同一环境保持停用，不按定时器反复重试；场景实例、连接或对应玩家／棋盘／初始房／UI 更换后，才允许一次新的尝试，并保留短暂冷却。明确的传输重建也允许恢复；资源格式／文件错误保持停用，共享音效的 FMOD 错误与消息号冲突仍按原策略释放服务。共享音效恢复复用注册期音效库，序号及请求去重不因场景恢复重置；商店补满尝试在原生调用前记账，避免异常发生于副作用之后时重复补满。最终 `Dispose` 不参与恢复，注册和网络兼容层的全局故障策略保持。
 
 ## 类型注册
 
@@ -287,7 +314,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 执行器通过原版配置 ID 识别类型，以 ItemOwner 与 InventoryNew.InHand 判断实际持有物；本地动作还要求本机角色有移动控制权、连接 Ready、清单匹配且游戏控制可用。EntityManager.Me 来自 UserInstance.Me.playerEntity，不用 PlayerEntity.isLocalPlayer 再拒绝可移动房主。
 
-兼容协议由 `ExpansionSetSync` 统一处理，消息 ID=0x4D49、协议版本=4。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。版本 4 自 0.2.59 引入，用于排除尚不支持房间状态协议的旧客户端；仅比较雕像清单不足以识别这项差异。0.2.61 的类名调整不再提升协议，不改变消息号、稳定身份或当前 CFG 路径／键；旧 GUID 互斥、旧 DLL 迁移及旧 CFG 键兼容入口继续保留。
+兼容协议由 `ExpansionSetSync` 统一处理，消息 ID=0x4D49、协议版本=7。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。当前版本还要求支持伪装规则 ID 与伪装协议 2 的一次性视觉事件；仅比较雕像清单不足以识别这些差异。消息号、稳定身份和当前 CFG 路径／键保持；旧 GUID 互斥、旧 DLL 迁移及旧 CFG 键兼容入口继续保留。
 
 雕像生成、配置、物品持有状态及实例晚加入恢复使用原版网络 prefab/SyncVar；没有重复的自有实例 marker 快照。跳跃只有持有者所属端发起原版动作，观察者依靠原版运动/动画同步看到结果，声音走一次性广播。极速的按键锁定属于当前持有者输入，不向观察者发送虚拟按键或历史方向快照；原版运动仍负责同步。原版路径接入、托管模拟与真实双端验收是不同证据，当前边界查看 [TODO](../TODO.md)。
 
@@ -349,9 +376,17 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 F8 的“本机联机”由 [LocalMultiplayer.cs](../Testing/LocalMultiplayer.cs) 管理。仅 DebugMode 开启、非专用陈列房、主菜单就绪且无活动或待连接会话时接受请求；关闭面板、恢复输入后下一帧再调用原版 `HostKcp("INVOKY")` / `JoinKcp("INVOKY")`，使用原版 KCP 与正常大厅／地图，不屏蔽事件、怪物或小局边界伤害。所有窗口须在开始游戏前加入，沿用原版准入规则与 MOD 兼容握手，不新增网络协议或更改玩法清单。
 
-启动前设置自有会话标记，清除待加载存档，暂时将原版地址／端口设为 `127.0.0.1:7777`；原生同步读取后立即在 finally 中恢复设置。测试期间仅接受回环来源的远端连接，AutoSave／SrvSaveCollection／SaveToSlot 写入被拦截；正常会话不受这两个保护影响。昵称仅在自有会话中覆盖 `ResolveNickName`，不写昵称 PlayerPrefs；临时开启后台运行，退出时按所有权恢复昵称与后台设置。关闭 F8 或 DebugMode 只取消待发请求，活动会话的保护持续到实际断开；90 秒未就绪会尝试停止一次连接，停止尚未完成时继续保护。管理器更换、正常退出与卸载幂等清理；插件玩法停用后仍维护这项退出清理。
+启动前设置自有会话标记，清除待加载存档，暂时将原版地址／端口设为 `127.0.0.1:7777`；原生同步读取后立即在 finally 中恢复设置。建房不排队结算，也不启动结算超时；等待其他窗口加入后，由房主手动执行 `finish`。首次请求在原版 `IsGameWorldReadyForLoad`、玩家及服务就绪后，通过 Bank 原版服务器入口独立添加一次 5000 公共资金并回读余额，不等待进店。待原版 Flow 与当前事件结束，启用大局开始状态、设置棋盘完成并调用原版结算第二阶段，由原版生成商店、替换棋盘及开放门交互，玩家自行开门；不调用 `EnterShopNew`。完成等待只读取商店生成与棋盘初始化标记，不轮询带替换副作用的 `SrvTrySwapRealBoardWithFake`。
 
-[Start-LocalMultiplayer.ps1](../scripts/Start-LocalMultiplayer.ps1) 编译后在 `.local/local-multiplayer/` 下创建每次独立的 1～3 个实例目录，分别复制 BepInEx 核心、已有 interop／unity-libs 与本插件，配置仅在副本中开启 F8 调试、关闭单人陈列房。通过 Doorstop 参数选择各自的预加载程序集及启动配置；启动配置只从副本移除原版 `single-instance` 项，不改原文件，不复制游戏资源或替换 Steam API。每个窗口有独立配置、预加载／BepInEx／Player 日志；Steam 身份与 Unity 用户设置仍共用，本方案不验证账号身份差异、Steam 传输或跨电脑网络。参数及操作见 [README](../README.md#本机多人测试)。
+F8 `finish` 排队完成当前棋盘，`money <1-1000000>` 显式追加公共资金；均仅已就绪且启用 DebugMode 的本机多人测试房主可用，关闭 F8 后下一帧执行。不写测试存档文件、不快捷分配衣色，消费及后续大局／小局不自动补钱。准备超时、关闭 DebugMode、运行失败、结算后重置大厅或断线／管理器替换时取消待处理结算；原生变更异常后不自动重复，已独立发放的资金也不重发。正常会话、单人陈列房和加入端不初始化此状态。
+
+测试命令跳过要求持有终局物件的原版结算第一阶段，因此在新棋盘需要结算时，清除上一棋盘遗留的第二阶段完成标记与准备状态，再请求结算。大师后的选盘可能保留旧的完成与商店标记，不能仅凭这些标记复用旧结算；结合棋盘网络实例、已开始的游戏状态与棋子完成情况识别新棋盘。调用原生结算前记住该棋盘 netId，同一实例异常或超时重试只等待原有结果，不重复计分；大厅重置、断线与会话释放时清除。商店已准备好、尚未开始下一棋盘时，`finish` 与 `rules` 复用现有完成状态；所选棋盘放上桌并开始后才再次结算。
+
+F8 `rules` 复用上述结算与资金流程，额外等待兼容玩家、原版商店生成及棋盘替换完成后，调用原版 `ZoneManager.EnterEndless` 开放大师后的规则选关阶段。商店已准备好且仍等待棋盘初始化时直接复用，不重复结算；玩家自行开门与选择棋盘。校验原版模式与访问次数，不直接改规则列表、不自动把伪装加入规则池。
+
+测试期间仅接受回环来源的远端连接，开始时清空内存中的当前存档槽，并在 `SrvBeginAutoSaveSession` 保留原版自定义会话清理、跳过存档槽分配和初始收藏写盘。AutoSave／SrvSaveCollection／SaveToSlot 及底层 WriteSaveToFile 继续拦截后续写入；正常会话保持原版存档规则。昵称仅在自有会话中覆盖 `ResolveNickName`，不写昵称 PlayerPrefs；临时开启后台运行，退出时按所有权恢复昵称与后台设置。关闭 F8 只取消待发操作请求，活动会话的保护持续到实际断开；90 秒未就绪会尝试停止一次连接，停止尚未完成时继续保护。管理器更换、正常退出与卸载幂等清理；插件玩法停用后仍维护这项退出清理。
+
+[Start-LocalMultiplayer.ps1](../scripts/Start-LocalMultiplayer.ps1) 编译后在 `.local/local-multiplayer/` 下创建每次独立的 1～3 个实例目录，分别复制 BepInEx 核心、已有 interop／unity-libs 与本插件，配置仅在副本中开启 F8 调试、关闭单人陈列房，并启用 BepInEx 接口自动更新。复制的接口仅作为缓存；原版更新后，由各副本在加载插件前重建失效接口，不跳过哈希检查或伪造缓存哈希。通过 Doorstop 参数选择各自的预加载程序集及启动配置；启动配置只从副本移除原版 `single-instance` 项，不改原文件，不复制游戏资源或替换 Steam API。每个窗口有独立配置、预加载／BepInEx／Player 日志；Steam 身份与 Unity 用户设置仍共用，本方案不验证账号身份差异、Steam 传输或跨电脑网络。参数及操作见 [README](../README.md#本机多人测试)。
 
 专用测试房要求 --ces-test-room、DebugMode=true、TestRoomEnabled=true 同时满足，普通启动不会自动建房。它沿原版 KCP 流程开本机单人会话，跳过 Logo，在初始房门外建立陈列房、打开连接门并放置玩家；只允许本地连接，阻止事件/怪物生成和存档写入，不自动补刷展品。
 

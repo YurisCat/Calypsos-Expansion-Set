@@ -1,8 +1,12 @@
 using System.Net;
+using EnvironmentElements;
 using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using _200_Dev.BoardGameLogic;
 using _200_Dev.Entities;
+using _200_Dev.FlowLogic;
+using _200_Dev.EndGame;
 using _200_Dev.Settings;
 using _200_Dev.Utility;
 using _200_Dev.Utility.Runtime.NetworkManager;
@@ -11,6 +15,7 @@ namespace CalypsoExpansionSet.Testing;
 
 internal sealed class LocalMultiplayer : IDisposable
 {
+    internal const int StartingFunds = 5000;
     private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly Action _closePanel;
     private string _nickname = $"Local {Environment.ProcessId}";
@@ -20,6 +25,14 @@ internal sealed class LocalMultiplayer : IDisposable
     private VhsNetworkManager? _manager;
     private bool _connected;
     private bool _connectionFailed;
+    private bool _prepareRound;
+    private bool _prepareRules;
+    private bool _roundRequested;
+    private uint _completionBoardId;
+    private bool _fundsGranted;
+    private GameEventData? _endingEvent;
+    private string _roundWaitStage = "";
+    private float _roundDeadline;
     private float _deadline;
     private bool _previousBackground;
     private string? _previousNick;
@@ -45,8 +58,8 @@ internal sealed class LocalMultiplayer : IDisposable
         _textStyle ??= new GUIStyle { wordWrap = true, fontSize = 14 };
         _textStyle.normal.textColor = Color.white;
         GUI.Label(new Rect(area.x, area.y, area.width, 50), Pick(
-            "在不同游戏窗口分别建房、加入，进入正常大厅。地址固定为本机 127.0.0.1:7777。",
-            "Host in one game window and join from the others. Uses the normal lobby at 127.0.0.1:7777."), _textStyle);
+            "本机建房后等待所有窗口加入，再由房主输入 finish 结算；首次结算添加 5000 公共资金。其他窗口加入 127.0.0.1:7777。",
+            "Wait for all windows to join, then have the host enter finish. The first request adds 5000 shared funds. Other windows join 127.0.0.1:7777."), _textStyle);
         GUI.Label(new Rect(area.x, area.y + 60, 100, 25), Pick("玩家昵称", "Nickname"));
         var enabled = GUI.enabled;
         try
@@ -59,15 +72,16 @@ internal sealed class LocalMultiplayer : IDisposable
             if (GUI.Button(new Rect(area.x + width + 10, area.y + 100, width, 32), Pick("加入本机", "Join localhost"))) Request(false);
         }
         finally { GUI.enabled = enabled; }
-        var state = Active && NetworkClient.ready && EntityManager.Me != null
-            ? Pick(NetworkServer.active ? "房主已就绪" : "客户端已就绪", NetworkServer.active ? "Host ready" : "Client ready")
-            : _status;
+        var state = _prepareRound ? Pick("正在完成当前棋盘……", "Completing the current board…") : _status;
         if (state.Length == 0 && !CanStart(out var reason)) state = reason;
         if (state.Length == 0) state = Pick("未连接", "Disconnected");
-        GUI.Label(new Rect(area.x, area.y + 150, area.width, 90), state, _textStyle);
-        GUI.Label(new Rect(area.x, area.y + 250, area.width, 110), Pick(
-            "先让所有窗口加入，再开始游戏。切换窗口控制各自角色；测试会话不写入存档。退出使用游戏原有菜单。",
-            "Join all windows before starting the game. Switch windows to control each player. Test sessions do not save. Leave through the normal game menu."), _textStyle);
+        GUI.Label(new Rect(area.x, area.y + 145, area.width, 80), state, _textStyle);
+        GUI.Label(new Rect(area.x, area.y + 230, area.width, 55), Pick(
+            "通过原版商店买衣、换衣后再测试伪装；若诅咒已生效，请清空后重新施加，以重新采集衣服。",
+            "Buy and change clothes in the normal shop before testing disguise. Clear and reapply an active curse to capture the new clothes."), _textStyle);
+        GUI.Label(new Rect(area.x, area.y + 290, area.width, 90), Pick(
+            "F8：finish 手动结算；rules 结算并开放大师后的规则选关。完成后自己开门去商店、选棋盘；money 5000 加钱。仅本机测试房主可用，启动资金只发一次；测试会话不写存档。",
+            "F8: finish settles the board; rules also prepares post-master rule selection. Use the normal shop door and choose a board. money 5000 adds funds. Local test host only; starting funds once; no saves."), _textStyle);
     }
 
     private bool CanStart(out string reason)
@@ -130,6 +144,177 @@ internal sealed class LocalMultiplayer : IDisposable
             else if (!failed)
                 Report(Pick("连接已结束；若未成功加入，请查看游戏错误提示或日志。", "Connection ended. If joining failed, check the game's error message or log."), true);
         }
+        TickRoundCompletion();
+    }
+
+    internal void OnWorldReset(bool succeeded)
+    {
+        if (!succeeded || !Active || !NetworkServer.active) return;
+        _completionBoardId = 0;
+        if (!_prepareRound || !_roundRequested) return;
+        _prepareRound = false;
+        _prepareRules = false;
+        Report(Pick("大厅已重新初始化，取消待处理的跳关；可使用 finish 重试。",
+            "The lobby was reset; pending board completion cancelled. Use finish to retry."), true);
+    }
+
+    private void WaitForRound(string stage)
+    {
+        if (_roundWaitStage == stage) return;
+        _roundWaitStage = stage;
+        _plugin.Log.LogInfo($"[Local multiplayer] Board completion waiting for {stage}.");
+    }
+
+    internal void RequestFinish(bool prepareRules = false)
+    {
+        if (!CanChangeRun()) return;
+        if (_prepareRound) { Report(Pick("跳关正在处理中，请等待。", "Board completion is already pending."), true); return; }
+        _prepareRound = true;
+        _prepareRules = prepareRules;
+        var zone = ZoneManager.Instance;
+        var board = BoardGameManager.Instance;
+        var round = RoundEndManager.Instance;
+        _roundRequested = false;
+        _endingEvent = null;
+        _roundWaitStage = "host scene and local player";
+        _roundDeadline = Time.realtimeSinceStartup + 150f;
+        _plugin.Log.LogInfo($"[Local multiplayer] Queued {(prepareRules ? "rules" : "finish")}: board={board?.netId}, state={board?.BoardGameState}, active={board?.SrvIsActive}, boardCompleted={GameEventManager.Instance?.BoardCompleted}, secondStepCompleted={round?._srvRoundEndSecondStepCompleted}, shopCompleted={zone?.ShopSpawnCompleted}, requireBoardInitialization={zone?.SrvRequireBoardShopInitialization}, lastCompletionBoard={_completionBoardId}.");
+    }
+
+    internal void AddFunds(int amount)
+    {
+        if (!CanChangeRun()) return;
+        if (amount is < 1 or > 1000000 || Bank.instance == null)
+        { Report(Pick("资金服务未就绪，或金额不在 1～1000000 之间。", "Bank is not ready, or amount is outside 1–1000000."), true); return; }
+        var bank = Bank.instance;
+        var before = bank.GetCurrentTotalScore();
+        if (before > int.MaxValue - amount) throw new InvalidOperationException("Test funds would overflow the native bank.");
+        bank.SrvAddToTotalScore(amount);
+        bank.SrvSetScoreUiVisible(true);
+        var after = bank.GetCurrentTotalScore();
+        if (after != before + amount) throw new InvalidOperationException($"Native bank did not apply test funds: before={before}, after={after}, amount={amount}.");
+        Report(Pick($"已添加 {amount} 公共资金，当前共 {after}。", $"Added {amount} shared funds; total is {after}."));
+        _plugin.Log.LogInfo($"[Local multiplayer] Shared funds: {before} -> {after} (+{amount}).");
+    }
+
+    private bool CanChangeRun()
+    {
+        if (Active && NetworkServer.active && NetworkClient.ready && _plugin.DebugTools.Enabled && !_plugin.RuntimeFailed) return true;
+        Report(Pick("仅已就绪的本机测试房主可执行此操作。", "Only the ready local test host can use this action."), true);
+        return false;
+    }
+
+    private void TickRoundCompletion()
+    {
+        if (!Active || !_prepareRound) return;
+        try
+        {
+            if (_connectionFailed || !_plugin.DebugTools.Enabled || _plugin.RuntimeFailed)
+                throw new InvalidOperationException("Board completion cancelled: connection or debug tools unavailable.");
+            if (Time.realtimeSinceStartup >= _roundDeadline)
+                throw new TimeoutException($"Board completion timed out waiting for {_roundWaitStage}.");
+            if (!NetworkServer.active || !_connected || _manager!.IsLoading
+                || !NetworkClient.ready || EntityManager.Me == null)
+            { WaitForRound("host scene and local player"); return; }
+            // Fresh hosting does not call SrvResetStateP2. Use the same read-only
+            // world readiness check as native save loading, without resetting the run.
+            if (!_plugin.Registry.Ready || !VhsNetworkManager.IsGameWorldReadyForLoad())
+            { WaitForRound("native game world"); return; }
+            if (_prepareRules && !_plugin.Sync.AllReadyPeersCompatible)
+            { WaitForRound("compatible ready players"); return; }
+            var zone = ZoneManager.Instance;
+            var bank = Bank.instance;
+            var events = GameEventManager.Instance;
+            var round = RoundEndManager.Instance;
+            var board = BoardGameManager.Instance;
+            if (zone == null || bank == null || events == null || round == null || board == null || board.netId == 0 || Flow.Instance == null)
+            { WaitForRound("native round services"); return; }
+            if (!_fundsGranted)
+            {
+                // Funding is independent of shop entry or completion callbacks.
+                _fundsGranted = true;
+                AddFunds(StartingFunds);
+            }
+            if (Flow.IsPlaying) { WaitForRound("native flow completion"); return; }
+            if (!_roundRequested)
+            {
+                // Post-master selection can retain both the previous board's completion
+                // latch and shop flags. A different, started board needs its own settlement.
+                var unfinishedBoard = board.netId != _completionBoardId && board.SrvIsActive
+                    && board.BoardGameState != EBoardGameState.NotStarted
+                    && board.BoardGameRulesEngine != null && !board.BoardGameRulesEngine.AllAgentsHaveFinished();
+                if (!unfinishedBoard && (board.netId == _completionBoardId
+                    || (round._srvRoundEndSecondStepCompleted && events.BoardCompleted)
+                    || (zone.ShopSpawnCompleted && zone.SrvRequireBoardShopInitialization)))
+                    _roundRequested = true;
+                else
+                {
+                    if (events.CurrentGameEventDataId != events.NoGameEventId)
+                    {
+                        var current = events.CurrentGameEventData;
+                        if (current != null && current != _endingEvent && !events._isCurrentEventLocked)
+                        {
+                            _endingEvent = current;
+                            current.SrvGameEventCompleted();
+                        }
+                        WaitForRound("current event completion");
+                        return;
+                    }
+                    if (!zone.ShopPrefabAssigned || zone._shopSpawnPending)
+                    { WaitForRound("shop prefab availability"); return; }
+                    _roundRequested = true;
+                    if (round._srvRoundEndSecondStepCompleted)
+                    {
+                        // Native first-step completion resets these fields, but requires
+                        // carrying the missing piece. The explicit test shortcut skips it.
+                        round._srvIsSealHeartBoardTextDisplayed = false;
+                        round._srvRoundEndSecondStepCompleted = false;
+                        round.SrvClearAllPlayersReady();
+                        _plugin.Log.LogInfo("[Local multiplayer] Reset previous round-end completion for the current unfinished board.");
+                    }
+                    ZoneManager.SrvDebugEnableRunStarted();
+                    events.SrvSetBoardCompleted(true);
+                    // Remember the attempted board before native work: even a partial
+                    // failure or timeout must not submit its score again on retry.
+                    _completionBoardId = board.netId;
+                    // Use native scoring and post-round board replacement. Do not enter
+                    // the shop: players reach it through the normal post-round doors.
+                    round.SrvCompleteRoundEndSequenceSecondStep();
+                    _plugin.Log.LogInfo("[Local multiplayer] Requested native board completion; players use the normal shop door.");
+                    WaitForRound("native post-round board replacement");
+                    return;
+                }
+            }
+            // The native spawn-completed callback owns board replacement.
+            // SrvTrySwapRealBoardWithFake mutates the world; never poll it here.
+            if (zone._shopSpawnPending || !zone.ShopSpawnCompleted || !zone.SrvRequireBoardShopInitialization)
+            { WaitForRound("native post-round board replacement"); return; }
+            _prepareRound = false;
+            if (_prepareRules)
+            {
+                _prepareRules = false;
+                // Wait for the shop so the native shortcut opens rule selection without entering it for players.
+                var visit = zone.FirstEndlessVisit;
+                if (visit <= 0) throw new InvalidOperationException("Native rule-selection visit is invalid.");
+                ZoneManager.EnterEndless();
+                if (zone.ShopVisitCount < visit || zone.GameModeType != ZoneManager.EGameModeType.Endless)
+                    throw new InvalidOperationException("Native endless shortcut did not prepare rule selection.");
+                _plugin.Log.LogInfo($"[Local multiplayer] Prepared post-master rule selection: visit={zone.ShopVisitCount}.");
+                Report(Pick("已开放大师后的规则选关阶段，请正常开门去商店、选择棋盘；多人棋盘可能抽到伪装规则。",
+                    "Post-master rule selection prepared. Use the shop door and choose a board; multiplayer boards may include Disguise."));
+                return;
+            }
+            Report(Pick("棋盘已完成，请正常开门前往商店；新选棋盘放上桌并开始后，再使用 finish。",
+                "Board completed. Use the normal shop door. Place and start your next board before using finish again."));
+        }
+        catch (Exception exception)
+        {
+            _prepareRound = false;
+            _prepareRules = false;
+            Report(Pick("跳关未完成，请查看日志；可使用 finish 重试、money 5000 手动加钱。",
+                "Board completion did not finish. Check the log; use finish to retry or money 5000 to add funds."), true);
+            _plugin.Log.LogError($"[Local multiplayer] Failed to complete the board: {exception}");
+        }
     }
 
     private void Start(bool host)
@@ -140,13 +325,22 @@ internal sealed class LocalMultiplayer : IDisposable
         _sessionNick = _nickname;
         _connected = false;
         _connectionFailed = false;
+        _prepareRound = false;
+        _prepareRules = false;
+        _roundRequested = false;
+        _completionBoardId = 0;
+        _fundsGranted = false;
+        _endingEvent = null;
+        _roundWaitStage = "";
         _deadline = Time.realtimeSinceStartup + 90f;
+        _roundDeadline = 0f;
         Active = true;
         try
         {
             Application.runInBackground = true;
             VhsNetworkManager.LastNick = _sessionNick;
             Save.ClearPendingLoad();
+            Save.CurrentSaveSlot = null;
             // The native KCP helpers read these overrides synchronously. Do not persist them.
             var settings = NetworkSettings.I;
             if (settings == null) throw new InvalidOperationException("Native network settings are not ready.");
@@ -194,6 +388,13 @@ internal sealed class LocalMultiplayer : IDisposable
     {
         if (!Active) return;
         Active = false;
+        _prepareRound = false;
+        _prepareRules = false;
+        _roundRequested = false;
+        _completionBoardId = 0;
+        _fundsGranted = false;
+        _endingEvent = null;
+        _roundWaitStage = "";
         if (VhsNetworkManager.LastNick == _sessionNick) VhsNetworkManager.LastNick = _previousNick;
         if (Application.runInBackground) Application.runInBackground = _previousBackground;
         _sessionNick = null;

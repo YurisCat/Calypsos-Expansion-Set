@@ -2,6 +2,17 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.65 — 2026-10-18（伪装诅咒与规则 / Disguise curse and rule）
+
+- 新增骰子伪装诅咒与大师后的棋盘规则，互换第三人称外观与头顶昵称。骰子诅咒持续本小局，棋盘规则每小局重新分配；至少两名玩家才能触发。
+  Adds a dice disguise curse and post-master board rule, swapping third-person appearances and overhead names. The dice curse lasts one round; the board rule reassigns players each round. Requires at least two players.
+- 配有诅咒栏图标、顶部提示和身体变换特效；规则在同一棋盘仅首次变换时提示，重复骰中仍提示并保留配对。支持角色／衣装变化、死亡复活与搬运尸体，其他身份界面保持原版。
+  Includes a curse-bar icon, acquisition message and transformation effect. Rules announce only their first transformation per board; repeated dice results announce again while keeping assignments. Handles character/outfit changes, death, revival and carrying bodies; other identity displays remain native.
+- 修复放弃后重试时大厅名字颜色提示失效，完善相关模块在场景切换后的恢复。
+  Fixes lobby name colors becoming unavailable after abandoning and retrying, and improves related modules' recovery across scenes.
+- 本机多人测试新增 `finish`、`rules`、`money` 指令，支持手动结算、规则选关与加钱，测试会话不创建存档；适配游戏更新后的测试接口重建。
+  Adds local multiplayer test commands for board completion, rule selection and funds, without creating saves. Allows test instances to rebuild outdated interop after game updates.
+
 ## 0.2.64 — 2026-10-17（七语言本地化 / Seven-language localization）
 
 - 新增繁体中文、日语、俄语、巴西葡萄牙语和西班牙语，与现有简中、英文共支持七种语言。自动跟随本机游戏语言，无需额外配置；已有中英文文案保留。

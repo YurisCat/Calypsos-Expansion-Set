@@ -15,7 +15,8 @@ internal static class LobbyBoxText
     internal const string ChineseIntroduction =
         "欢迎游玩《卡里普索的拓展包》！\n\n"
         + "本拓展包为您带来：\n\n"
-        + "游戏性提升：\n・添加很多有趣又富有挑战性的雕像\n\n"
+        + "游戏性提升：\n・添加很多有趣又富有挑战性的雕像\n"
+        + "・骰子会带来新的诅咒：你会变成其他人。大师棋盘也有几率出现该规则。\n\n"
         + "生活质量提升：\n・移除棋盘上棋子的碰撞，方便踢骰子\n"
         + "・为所有雕像提供箴言和名称提示，可分别配置（箴言默认打开，名称默认关闭）\n"
         + "・在大厅时，头像名字变为青色\n"
@@ -24,7 +25,8 @@ internal static class LobbyBoxText
     internal const string EnglishIntroduction =
         "Welcome to Calypso's Expansion Set!\n\n"
         + "Here's what this expansion brings you:\n\n"
-        + "Gameplay improvements:\n· Lots of fun and challenging new idols\n\n"
+        + "Gameplay improvements:\n· Lots of fun and challenging new idols\n"
+        + "· Dice bring a new curse: you become someone else. Master boards also have a chance to include this rule.\n\n"
         + "Quality of life improvements:\n· Removes board-pawn collisions to make kicking dice easier\n"
         + "· Adds advice and individual names for all idols, configurable separately (advice on, names off by default)\n"
         + "· Portrait names turn cyan while players are in the lobby\n"
@@ -33,7 +35,8 @@ internal static class LobbyBoxText
     private const string TraditionalIntroduction =
         "歡迎遊玩《卡里普索的拓展包》！\n\n"
         + "本拓展包為您帶來：\n\n"
-        + "遊戲性提升：\n・新增許多有趣又富有挑戰性的雕像\n\n"
+        + "遊戲性提升：\n・新增許多有趣又富有挑戰性的雕像\n"
+        + "・骰子會帶來新的詛咒：你會變成其他人。大師棋盤也有機率出現該規則。\n\n"
         + "生活品質提升：\n・移除棋盤上棋子的碰撞，方便踢骰子\n"
         + "・為所有雕像提供箴言和名稱提示，可分別設定（箴言預設開啟，名稱預設關閉）\n"
         + "・在大廳時，頭像名字變為青色\n"
@@ -42,7 +45,8 @@ internal static class LobbyBoxText
     private const string JapaneseIntroduction =
         "『カリプソの拡張セット』へようこそ！\n\n"
         + "この拡張セットで楽しめること：\n\n"
-        + "新しい遊び：\n・楽しくて手ごわい像がたくさん登場\n\n"
+        + "新しい遊び：\n・楽しくて手ごわい像がたくさん登場\n"
+        + "・サイコロがもたらす新たな呪い：あなたは別の誰かになります。マスターのボードにもこのルールが登場することがあります。\n\n"
         + "遊びやすさの改善：\n・ボード上のコマの当たり判定をなくし、サイコロを蹴りやすくします\n"
         + "・すべての像に短い詩のヒントと個別の名前を追加。それぞれ設定可能です（初期設定：ヒントはオン、名前はオフ）\n"
         + "・ロビーにいるプレイヤーは、ポートレートの名前が水色になります\n"
@@ -51,7 +55,8 @@ internal static class LobbyBoxText
     private const string RussianIntroduction =
         "Добро пожаловать в набор дополнений Калипсо!\n\n"
         + "Что вас ждёт:\n\n"
-        + "Новые возможности:\n· Множество забавных идолов, с которыми придётся повозиться\n\n"
+        + "Новые возможности:\n· Множество забавных идолов, с которыми придётся повозиться\n"
+        + "· Кубики приносят новое проклятие: вы становитесь кем-то другим. На досках мастера также может появиться это правило.\n\n"
         + "Удобство игры:\n· Фишки на игровом поле больше не мешают пинать кубики\n"
         + "· Подсказки в стихах и отдельные имена для всех идолов. Настраиваются независимо (подсказки включены, имена выключены по умолчанию)\n"
         + "· Имена на портретах становятся бирюзовыми, пока игроки находятся в лобби\n"
@@ -60,7 +65,8 @@ internal static class LobbyBoxText
     private const string PortugueseIntroduction =
         "Boas-vindas ao pacote de expansão de Calypso!\n\n"
         + "Veja o que esta expansão traz:\n\n"
-        + "Novidades na jogabilidade:\n· Muitos ídolos divertidos e desafiadores\n\n"
+        + "Novidades na jogabilidade:\n· Muitos ídolos divertidos e desafiadores\n"
+        + "· Os dados trazem uma nova maldição: você se torna outra pessoa. Tabuleiros de mestre também têm chance de incluir essa regra.\n\n"
         + "Melhorias de qualidade de vida:\n· Remove a colisão das peças do tabuleiro para facilitar os chutes nos dados\n"
         + "· Adiciona dicas em versos e nomes individuais para todos os ídolos, configuráveis separadamente (dicas ativadas e nomes desativados por padrão)\n"
         + "· Os nomes nos retratos ficam em ciano enquanto os jogadores estão no lobby\n"
@@ -69,7 +75,8 @@ internal static class LobbyBoxText
     private const string SpanishIntroduction =
         "¡Te damos la bienvenida a la expansión de Calypso!\n\n"
         + "Esto es lo que trae esta expansión:\n\n"
-        + "Novedades de juego:\n· Muchos ídolos divertidos y desafiantes\n\n"
+        + "Novedades de juego:\n· Muchos ídolos divertidos y desafiantes\n"
+        + "· Los dados traen una nueva maldición: te conviertes en otra persona. Los tableros de maestro también pueden incluir esta regla.\n\n"
         + "Mejoras de comodidad:\n· Elimina las colisiones de las fichas del tablero para facilitar las patadas a los dados\n"
         + "· Añade pistas en verso y nombres individuales para todos los ídolos, configurables por separado (pistas activadas y nombres desactivados por defecto)\n"
         + "· Los nombres de los retratos se vuelven cian mientras los jugadores están en la sala\n"

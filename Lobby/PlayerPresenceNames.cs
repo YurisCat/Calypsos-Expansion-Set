@@ -1,5 +1,6 @@
 using Entities.Player;
 using EnvironmentElements;
+using Mirror;
 using TMPro;
 using UnityEngine;
 using _200_Dev.Portrait;
@@ -39,7 +40,7 @@ internal sealed class PlayerPresenceNames : IDisposable
     private readonly List<int> _removed = new();
     private Room? _room;
     private float _nextUpdate;
-    private bool _disposed, _failed;
+    private bool _disposed, _errorReported;
 
     internal PlayerPresenceNames(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
@@ -50,7 +51,7 @@ internal sealed class PlayerPresenceNames : IDisposable
 
     internal void Tick()
     {
-        if (_disposed || _failed) return;
+        if (_disposed) return;
         try
         {
             var room = Mirror.NetworkClient.ready ? Room.GetStartRoom() : null;
@@ -63,22 +64,8 @@ internal sealed class PlayerPresenceNames : IDisposable
             _seen.Clear();
             for (var index = 0; index < portraits.Count; index++)
             {
-                var portrait = portraits[index];
-                var owner = portrait != null ? portrait.CurrentPortraitOwner : null;
-                var source = portrait != null ? portrait.portraitRenderer : null;
-                var text = portrait != null ? portrait._textMesh : null;
-                if (portrait == null || !portrait.isActiveAndEnabled || source == null || owner == null
-                    || text == null || !text.isActiveAndEnabled || !source.enabled
-                    || !source.gameObject.activeInHierarchy) continue;
-                bool inside = false;
-                if (_plugin.RoomStatus?.InCurrentStartRoom(owner, room!, out inside) != true || !inside) continue;
-                var key = portrait.GetInstanceID();
-                _seen.Add(key);
-                if (_names.TryGetValue(key, out var name)
-                    && (name.Portrait != portrait || name.Owner != owner || name.Text != text))
-                { Restore(name); _names.Remove(key); name = null; }
-                if (name == null) _names[key] = name = new NameTint(portrait, owner, text);
-                name.Apply();
+                try { UpdatePortrait(portraits[index], room!); }
+                catch (Exception error) { RetryAfterError(error); }
             }
             _removed.Clear();
             foreach (var key in _names.Keys) if (!_seen.Contains(key)) _removed.Add(key);
@@ -86,17 +73,46 @@ internal sealed class PlayerPresenceNames : IDisposable
         }
         catch (Exception error)
         {
-            _failed = true;
             Clear();
-            _plugin.Log.LogError($"Player presence name tint disabled after an error; native portraits remain active: {error}");
+            RetryAfterError(error);
         }
+    }
+
+    private void UpdatePortrait(PlayerPortrait portrait, Room room)
+    {
+        if (portrait == null || !portrait.isActiveAndEnabled) return;
+        // Mirror's owner getter dereferences netIdentity. Scene reload can leave
+        // an active portrait in the list before spawn or after network teardown.
+        var identity = portrait.netIdentity;
+        if (identity == null || identity.netId == 0
+            || !NetworkClient.spawned.TryGetValue(identity.netId, out var spawned) || spawned != identity) return;
+        var source = portrait.portraitRenderer;
+        var text = portrait._textMesh;
+        if (source == null || text == null || !text.isActiveAndEnabled || !source.enabled
+            || !source.gameObject.activeInHierarchy) return;
+        var owner = portrait.CurrentPortraitOwner;
+        if (owner == null || _plugin.RoomStatus?.InCurrentStartRoom(owner, room, out var inside) != true || !inside) return;
+        var key = portrait.GetInstanceID();
+        if (_names.TryGetValue(key, out var name)
+            && (name.Portrait != portrait || name.Owner != owner || name.Text != text))
+        { Restore(name); _names.Remove(key); name = null; }
+        if (name == null) _names[key] = name = new NameTint(portrait, owner, text);
+        name.Apply();
+        _seen.Add(key);
+    }
+
+    private void RetryAfterError(Exception error)
+    {
+        _nextUpdate = Time.realtimeSinceStartup + 1f;
+        if (_errorReported) return;
+        _errorReported = true;
+        _plugin.Log.LogWarning($"[Player presence] Nickname color update deferred after an error; will retry: {error}");
     }
 
     private void Restore(NameTint name)
     {
         try { name.Restore(); }
-        catch (Exception error)
-        { _plugin.Log.LogWarning($"[Player presence] could not restore nickname color: {error.Message}"); }
+        catch (Exception error) { RetryAfterError(error); }
     }
 
     private void Clear()
@@ -104,7 +120,6 @@ internal sealed class PlayerPresenceNames : IDisposable
         foreach (var name in _names.Values) Restore(name);
         _names.Clear();
         _room = null;
-        _nextUpdate = 0;
     }
 
     public void Dispose()

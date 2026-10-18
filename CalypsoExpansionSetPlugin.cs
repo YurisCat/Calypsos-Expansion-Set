@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.64";
+    public const string PluginVersion = "0.2.65";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -37,6 +37,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal QualityOfLife.RoomStatusSync? RoomStatus { get; private set; }
     internal QualityOfLife.ShopStamina? ShopStamina { get; private set; }
     internal Lobby.PlayerPresenceNames? PresenceNames { get; private set; }
+    internal Curses.DisguiseCurse? Disguises { get; private set; }
 
     private ExpansionSetDriver? _driver;
     private IdolEffectRuntime? _effects;
@@ -90,6 +91,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         RoomStatus = new QualityOfLife.RoomStatusSync(this);
         ShopStamina = new QualityOfLife.ShopStamina(this);
         PresenceNames = new Lobby.PlayerPresenceNames(this);
+        Disguises = new Curses.DisguiseCurse(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
         _driver = AddComponent<ExpansionSetDriver>();
@@ -105,6 +107,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Log.LogWarning("Leave the network session before unloading Calypso's Expansion Set.");
             return false;
         }
+        Disguises?.Dispose();
         PawnCollisions?.Dispose();
         LobbyBox?.Dispose();
         PresenceNames?.Dispose();
@@ -159,6 +162,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             RoomStatus?.Tick();
             ShopStamina?.Tick();
             PresenceNames?.Tick();
+            Disguises?.Tick();
             Registry.TickContentRuntimes();
             DebugTools.Tick();
             HoverInfo?.Tick();
@@ -176,6 +180,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     {
         if (_failed) return;
         _failed = true;
+        Disguises?.Dispose();
         _effects?.Dispose();
         Registry.StopContentRuntimes();
         VisualStates?.Dispose();

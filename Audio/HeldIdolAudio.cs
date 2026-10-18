@@ -25,12 +25,13 @@ internal sealed class HeldIdolAudio : IDisposable
     private readonly Dictionary<int, Peer> _peers = new();
     private readonly List<int> _removed = new();
     private readonly NetworkMessageDelegate _serverHandler, _clientHandler;
+    private readonly RuntimeFailureGate _recovery = new();
     private readonly System.Random _random = new();
     private readonly Channel[] _channels = new Channel[12];
     private int _sourceIndex;
     private uint _requestSequence, _eventSequence, _receivedSequence;
     private IntPtr _clientConnection;
-    private bool _disposed;
+    private bool _disposed, _failed;
 
     private sealed class Peer
     {
@@ -153,11 +154,12 @@ internal sealed class HeldIdolAudio : IDisposable
     {
         var service = _instance;
         var plugin = CalypsoExpansionSetPlugin.Instance;
-        if (service == null || service._disposed || plugin == null || plugin.RuntimeFailed || context.Idol == null
-            || context.Idol.SoItem == null || !service._banks.ContainsKey(context.Idol.SoItem.Id)
-            || !Idols.LocalHeldGuard.Ready(context, context.Idol.SoItem.Id)) return;
+        if (service == null || service._disposed) return;
         try
         {
+            if (!service.CanRun() || plugin == null || plugin.RuntimeFailed || context.Idol == null
+                || context.Idol.SoItem == null || !service._banks.ContainsKey(context.Idol.SoItem.Id)
+                || !Idols.LocalHeldGuard.Ready(context, context.Idol.SoItem.Id)) return;
             service.EnsureHandlers();
             var connection = NetworkClient.connection;
             if (connection == null) return;
@@ -213,6 +215,7 @@ internal sealed class HeldIdolAudio : IDisposable
     {
         try
         {
+            if (!CanRun()) return;
             var plugin = CalypsoExpansionSetPlugin.Instance;
             var sender = connection.TryCast<NetworkConnectionToClient>();
             if (!NetworkServer.active || sender == null || !sender.isAuthenticated || !sender.isReady
@@ -269,6 +272,7 @@ internal sealed class HeldIdolAudio : IDisposable
     {
         try
         {
+            if (!CanRun()) return;
             var server = NetworkClient.connection;
             if (!NetworkClient.isConnected || !NetworkClient.ready || server == null || !server.isAuthenticated
                 || connection.Pointer != server.Pointer || CalypsoExpansionSetPlugin.Instance?.Sync.ClientCompatible != true
@@ -314,8 +318,10 @@ internal sealed class HeldIdolAudio : IDisposable
         if (service == null || service._disposed) return;
         try
         {
+            if (!service.CanRun()) return;
+            if (!NetworkClient.isConnected || !NetworkClient.ready) { service.StopAudio(); return; }
             var local = EntityManager.Me;
-            if (!NetworkClient.isConnected || !NetworkClient.ready || local == null) { service.StopAudio(); return; }
+            if (local == null) { service.StopAudio(); return; }
             if (!source._ready || source._playerPerlinShake != local.playerPerlinShake) return;
             // The game's existing FMOD listener supplies position/orientation.
             // Only owned channels are updated; no extra global listener or mixer.
@@ -350,6 +356,8 @@ internal sealed class HeldIdolAudio : IDisposable
         if (service == null || service._disposed) return;
         try
         {
+            service._recovery.TransportReset();
+            service._failed = false;
             if (server) { service._peers.Clear(); service._eventSequence = 0; }
             else { service._clientConnection = IntPtr.Zero; service._receivedSequence = service._requestSequence = 0; service.StopAudio(); }
             service.EnsureHandlers();
@@ -357,11 +365,25 @@ internal sealed class HeldIdolAudio : IDisposable
         catch (Exception error) { service.Fail(error); }
     }
     private void StopAudio() { for (var i = 0; i < _channels.Length; i++) { if (_channels[i].handle != IntPtr.Zero) _channels[i].stop(); _channels[i] = default; } }
+    private bool CanRun()
+    {
+        if (_disposed) return false;
+        if (!_failed) return true;
+        if (!_recovery.TryResume()) return false;
+        _failed = false;
+        return true;
+    }
+
     private void Fail(Exception error)
     {
-        if (_disposed) return;
-        Dispose();
-        CalypsoExpansionSetPlugin.Instance?.Log.LogError($"Held audio disabled after an error: {error}");
+        if (_disposed || _failed) return;
+        _failed = true;
+        // FMOD failures and handler conflicts cannot be repaired by a scene reload.
+        var permanent = error is InvalidOperationException or IOException or InvalidDataException or NotSupportedException;
+        _recovery.Block(permanent: permanent);
+        StopAudio();
+        if (permanent) Dispose();
+        CalypsoExpansionSetPlugin.Instance?.Log.LogError($"Held audio {(permanent ? "disabled" : "suspended until scene or connection replacement")} after an error: {error}");
     }
     public void Dispose()
     {
