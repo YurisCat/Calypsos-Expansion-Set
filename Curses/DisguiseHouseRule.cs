@@ -6,6 +6,7 @@ using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Items;
 using Mirror;
 using UnityEngine;
+using User;
 using _200_Dev.BoardGameLogic;
 using _200_Dev.Database.HouseRule;
 using _200_Dev.EnvironmentElements.Endless;
@@ -233,4 +234,18 @@ internal static class DisguiseRuleGenerationPatch
     }
 
     private static void Prefix() => DisguiseRuleRegistrationPatch.Register(HouseRuleManager.Instance);
+}
+
+// Filter before random selection, even when a caller overrides the native solo
+// flag. Room membership includes dead players and players awaiting their bodies.
+[HarmonyPatch(typeof(HouseRuleManager.__c__DisplayClass51_0), "_SrvGenerateHouseRulesByBoardConfig_b__0")]
+internal static class DisguiseRuleCandidatePatch
+{
+    private static void Postfix(HouseRule __0, ref bool __result)
+    {
+        if (__result && NetworkServer.active
+            && CalypsoExpansionSetPlugin.Instance?.Disguises?.HouseRule.Owns(__0) == true
+            && (UserInstancesManager.Instance?.Count ?? 0) < 2)
+            __result = false;
+    }
 }

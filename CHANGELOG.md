@@ -2,6 +2,13 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.74 — 2026-10-19（单人规则筛选 / Solo rule filtering）
+
+- 修复单人时仍会抽到伪装大师规则；至少两名玩家时沿用原有抽取与效果。
+  Prevents the Disguise master-board rule from being rolled in solo play, preserving its existing selection and effects with two or more players.
+- 统一大厅盒子介绍的列表标点，并注明伪装玩法仅限多人。
+  Standardizes lobby-box list punctuation and clarifies that Disguise is a multiplayer feature.
+
 ## 0.2.73 — 2026-10-19（尸体标记 / Body pings）
 
 - 修复落地尸体无法标记，描边包含完整身体；搬起或复活后清除，活人不会被标记。
