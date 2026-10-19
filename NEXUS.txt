@@ -1,6 +1,6 @@
 [center][size=6][color=#B78A50][b]Calypso's Expansion Set[/b][/color][/size][/center]
 
-[center]14 new idols with unusual carrying challenges, hand-drawn sticky-note symbols and short hints in seven languages for custom and supported vanilla idols.[/center]
+[center]15 new idols with unusual carrying challenges, hand-drawn sticky-note symbols and short hints in seven languages for custom and supported vanilla idols.[/center]
 
 
 [size=4][color=#B78A50][b]The Idols[/b][/color][/size]
@@ -46,6 +46,9 @@ Turns your view into white outlines on a black background.
 
 [b][color=#B78A50]14 ·[/color] Big-Head[/b]
 Gives you a huge head and a strong fisheye view.
+
+[b][color=#B78A50]15 ·[/color] Backstep[/b]
+Forward and backward both move you backward; left/right stay normal, and you can sprint backward.
 
 
 [size=4][color=#B78A50][b]Disguise Curse[/b][/color][/size]
@@ -116,7 +119,7 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [center][size=6][color=#B78A50][b]卡里普索拓展包[/b][/color][/size][/center]
 
-[center]为 Invokyr 添加 14 种搬运挑战各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向箴言。[/center]
+[center]为 Invokyr 添加 15 种搬运挑战各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向箴言。[/center]
 
 
 [size=4][color=#B78A50][b]雕像一览[/b][/color][/size]
@@ -162,6 +165,9 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [b][color=#B78A50]14 ·[/color] 大头[/b]
 头部变大，视野带有夸张的鱼眼效果。
+
+[b][color=#B78A50]15 ·[/color] 退行[/b]
+前进、后退都向后走，左右照常，可以向后冲刺。
 
 
 [size=4][color=#B78A50][b]伪装诅咒[/b][/color][/size]

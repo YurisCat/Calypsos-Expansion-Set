@@ -77,7 +77,9 @@ internal static partial class IdolTextLocalization
         [0x4D4900000000000EUL] = new("outline", "Outline Idol",
             "On blackest night, white edges glow; no hidden things these outlines show.", true),
         [0x4D4900000000000FUL] = new("big_head_fisheye", "Big Head Idol",
-            "Your head swells large, the edges bend; a fish-eyed world awaits you, friend.", true)
+            "Your head swells large, the edges bend; a fish-eyed world awaits you, friend.", true),
+        [0x4D49000000000010UL] = new("backstep", "Backstep Idol",
+            "Step forth, retreat; step back, repeat.", true)
     };
 
     internal static string GenericName(UiLanguage language) => language switch

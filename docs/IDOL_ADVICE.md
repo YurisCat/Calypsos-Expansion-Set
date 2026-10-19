@@ -38,7 +38,7 @@
 
 ## MOD 雕像
 
-当前启用十四种；0.2.30 公开稳定版曾暂停怪相，0.2.33 整合版保留修正后的怪相注册。下表按当前启用清单列出已确认文案。
+当前启用十五种；0.2.30 公开稳定版曾暂停怪相，0.2.33 整合版保留修正后的怪相注册，0.2.75 加入退行。原有确认文案保持，退行中文箴言已确认。
 
 | 雕像 | key | 中文箴言 | 英文名称 | 英文箴言 |
 | --- | --- | --- | --- | --- |
@@ -52,6 +52,7 @@
 | 近景雕像 | near_view | 拿起放大，注意脚下 | Zoom Idol | The world draws close, the edges hide; look down before your next bold stride. |
 | 描边雕像 | outline | 黑底白线，轮廓浮现 | Outline Idol | On blackest night, white edges glow; no hidden things these outlines show. |
 | 接力雕像 | relay | 越走越慢，快找伙伴 | Relay Idol | The longer held, the slower you; pass on the weight to start anew. |
+| 退行雕像 | backstep | 进亦是退，退亦是退 | Backstep Idol | Step forth, retreat; step back, repeat. |
 | 疑神雕像 | suspicious | 怪声四起，干吓自己 | Paranoia Idol | False cries resound where none appear; yet living hunters still may hear. |
 | 倒立雕像 | upside_down | 上下翻转，左右不管 | Upside-Down Idol | The floor swings high, the ceiling low; mind which way your glances go. |
 | 声控雕像 | voice | 发声前进，闭嘴立定 | Voice Idol | Speak aloud to spur your stride; hold your tongue and steps subside. |

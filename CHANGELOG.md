@@ -2,6 +2,13 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.75 — 2026-10-20（退行雕像 / Backstep Idol）
+
+- 新增退行雕像：前进、后退输入均向后移动，左右保持，支持键盘和手柄；可向后冲刺，沿用原版速度和体力规则。
+  Adds the Backstep Idol: forward and backward inputs both move backward, with left/right unchanged and keyboard/controller support. Allows backward sprinting with vanilla speed and stamina rules.
+- 补齐新雕像的七语言名称与箴言；新增类型使用独立身份，纳入原有自然池、测试入口和联机兼容清单。
+  Adds names and advice in seven languages. The new idol has its own identity and uses the existing natural pools, testing tools and multiplayer compatibility checks.
+
 ## 0.2.74 — 2026-10-19（单人规则筛选 / Solo rule filtering）
 
 - 修复单人时仍会抽到伪装大师规则；至少两名玩家时沿用原有抽取与效果。
