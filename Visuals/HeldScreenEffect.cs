@@ -156,5 +156,9 @@ internal class HeldScreenEffect : HeldIdolEffect
 internal static class IdolScreenFramePatch
 {
     [HarmonyPostfix]
-    private static void Postfix(Il2CppSystem.Collections.Generic.List<Camera> cameras) => HeldScreenEffect.Render(cameras);
+    private static void Postfix(Il2CppSystem.Collections.Generic.List<Camera> cameras)
+    {
+        CalypsoExpansionSetPlugin.Instance?.Pings?.Render(cameras);
+        HeldScreenEffect.Render(cameras);
+    }
 }

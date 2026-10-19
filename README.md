@@ -19,6 +19,7 @@ Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像及�
 - **描边雕像**：场景与 HUD 变为黑底白线，打开菜单恢复清晰；不透视遮挡物。
 - **大头雕像**：他人眼中的角色头部变大，持有者的场景与 HUD 产生强烈鱼眼畸变；菜单正常。
 - **伪装诅咒**：至少两名玩家时，骰子可能让玩家互换第三人称外观与头顶昵称，持续本小局；大师后的棋盘也可能出现该规则，每小局重新分配。详见 [规则说明](docs/ARCHITECTURE.md#伪装诅咒与大师规则)。
+- **队友标记**：短按鼠标中键（手柄十字键上）标记地点、物品或尸体，长按 0.5 秒清除自己的标记。
 
 每种 MOD 雕像均带独立手绘便签，指向时显示箴言，名称与文案跟随游戏语言。文案见 [顶部箴言](docs/IDOL_ADVICE.md)，详细玩法与限制见 [设计说明](docs/ARCHITECTURE.md#内置雕像)。
 
@@ -36,6 +37,8 @@ Invokyr 的内容扩展 MOD，为游戏添加具有特殊效果的新雕像及�
 | --- | --- | --- |
 | [Gameplay] NaturalSpawning | true | 让 MOD 雕像参与自然生成，保留原版生成总数 |
 | [QualityOfLife] DisableBoardPawnCollision | true | 关闭棋盘进度棋子的实体碰撞；联机建议各端一致 |
+| [QualityOfLife] PingMouseKeyboard | `<Mouse>/middleButton` | 标记键鼠绑定，如 `<Keyboard>/g`；空值禁用 |
+| [QualityOfLife] PingGamepad | `<Gamepad>/dpad/up` | 标记的手柄绑定；空值禁用 |
 | [UI] ShowIndividualIdolNames | false | 开启后显示具体名称；默认 MOD 使用统一名称 |
 | [UI] ShowIdolAdvice | true | 显示指向箴言，与名称开关独立；关闭不影响原版教程与重要消息 |
 | [Debug] DebugMode | false | 开启 F8 测试工具和诊断日志 |

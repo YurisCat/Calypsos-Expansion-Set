@@ -57,14 +57,22 @@ internal static class HeldCameraBeginPatch
 {
     // Read the native/test-room camera parameters before adding visual layers.
     [HarmonyPostfix, HarmonyPriority(Priority.Last)]
-    private static void Postfix(Camera camera) => HeldCameraOverrides.BeginRender(camera);
+    private static void Postfix(Camera camera)
+    {
+        HeldCameraOverrides.BeginRender(camera);
+        CalypsoExpansionSetPlugin.Instance?.Pings?.Capture(camera);
+    }
 }
 
 [HarmonyPatch(typeof(RenderPipelineManager), "EndCameraRendering")]
 internal static class HeldCameraEndPatch
 {
     [HarmonyPrefix, HarmonyPriority(Priority.First)]
-    private static void Prefix(Camera camera) => HeldCameraOverrides.End(camera);
+    private static void Prefix(Camera camera)
+    {
+        CalypsoExpansionSetPlugin.Instance?.Pings?.FinishCamera(camera);
+        HeldCameraOverrides.End(camera);
+    }
 }
 
 [HarmonyPatch(typeof(RenderPipelineManager), "DoRenderLoop_Internal")]

@@ -40,16 +40,31 @@
 | [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
 | [QualityOfLife/RoomAreas.cs](../QualityOfLife/RoomAreas.cs)、[QualityOfLife/RoomStatusSync.cs](../QualityOfLife/RoomStatusSync.cs) | 原版房间体积检测、服务器判定的初始房／商店状态与完整快照 |
 | [Lobby/PlayerPresenceNames.cs](../Lobby/PlayerPresenceNames.cs)、[QualityOfLife/ShopStamina.cs](../QualityOfLife/ShopStamina.cs) | 头像下方名字的房内颜色提示、商店内体力补满与免耗 |
+| [QualityOfLife/Pings/SharedPings.cs](../QualityOfLife/Pings/SharedPings.cs) | 队友标记的房主验证、状态快照、输入与穿墙显示 |
 | [IdolDebugTools.cs](../IdolDebugTools.cs)、[IdolDebugTeleport.cs](../IdolDebugTeleport.cs) | F8 命令窗口、输入恢复与服务器调试传送 |
 | [Lobby/LobbyBoxRuntime.cs](../Lobby/LobbyBoxRuntime.cs)、[Lobby/LobbyBoxEditor.cs](../Lobby/LobbyBoxEditor.cs)、[Lobby/LobbyBoxInteractionUi.cs](../Lobby/LobbyBoxInteractionUi.cs)、[Lobby/LobbyBoxInspection.cs](../Lobby/LobbyBoxInspection.cs)、[Lobby/LobbyBoxReadingUi.cs](../Lobby/LobbyBoxReadingUi.cs)、[Lobby/LobbyBoxFraming.cs](../Lobby/LobbyBoxFraming.cs)、[Lobby/LobbyBoxLighting.cs](../Lobby/LobbyBoxLighting.cs)、[Lobby/LobbyFurniturePreview.cs](../Lobby/LobbyFurniturePreview.cs) | 大厅盒子、原版样式交互点、原版检查相机下的右侧盒子／左侧介绍、拖动摆放、原灯输出跟随及测试商店陈设；契约见 [大厅盒子](LOBBY_BOX.md) |
 | [Lobby/LobbyBoxCredits.cs](../Lobby/LobbyBoxCredits.cs) | 独立于正文滚动的固定署名、中英昵称和 B 站图标；布局与资源契约见 [大厅盒子](LOBBY_BOX.md) |
 | [Testing/TestRoomLaunch.cs](../Testing/TestRoomLaunch.cs)、[Testing/TestRoomScene.cs](../Testing/TestRoomScene.cs) | 专用单人入口与陈列房；其他 Testing 文件负责布局、资源和模式补丁 |
 
+## 队友标记
+
+地点与物品共用每位真实用户一个标记槽。有效新标记覆盖本人旧标记，服务器重新计算 60 秒期限；未命中保留原标记。短按松开时沿用原有新增／替换／刷新，长按 0.5 秒清除本人当前标记，无需瞄准；按下时不先创建标记，长按后松开也不补标。地点显示图钉，物品仅显示贴合模型的空心轮廓，屏幕外均显示边缘箭头。显示不设距离上限、不受墙壁遮挡；物品跟随移动，被拾取、出售或销毁后撤销。多人标记同一物品时，只显示房主最后接受的有效标记者的完整颜色，边缘箭头同样选择该记录；各自记录与期限保留，当前优先者换目标、主动清除或离开后恢复仍有效的前一条记录。
+
+地点图钉由各客户端按当帧实际相机与标记点的空间距离动态调整大小与不透明度，近距离保持上限，统一近远区间内使用 SmoothStep 衰减，远距离达到可读下限；中段变化明显，两端斜率归零，避免跨越边界时突变。不以创建距离为基准，不把世界单位直接标为米。生成／替换标记及更换相机时直接按当前距离显示，后续采用与帧率无关的短暂平滑。尖端保持锚定，绘制区域随图钉大小同步调整；边缘箭头保持原有大小与不透明度，物品描边不随距离淡化。曲线参数集中在 `PingPresentation`，这些本地显示计算不新增网络周期或消息。
+
+颜色依据 `PortraitManager.Portrait` 中 `CurrentPortraitOwner` 对应的原版头像槽位，由服务器随快照同步，固定色序见 `PingView`；采用柔和但有区分的珊瑚红、浅蓝、金黄、薄荷绿、淡紫、杏橙、青绿与玫瑰粉，图钉／描边／箭头统一使用，保留暗色外缘。原版分配采用第一个空槽，离开后空槽可复用，角色替换或槽位变化会撤销旧标记，不另建加入顺序。输入默认值与两项 CFG 路径见 README；自有 InputAction 只在存活、原版控制与交互就绪、正常站立／蹲下第一人称时启用，重新启用先等输入更新并释放按键。菜单／控制或交互失效、角色替换、换局／换场景、快照代次变化及传输重置时，取消尚未完成的按键手势，恢复后不能补发。死亡观察者可以查看已有标记。
+
+`SharedPings` 使用可靠消息 `0x4D50`、子协议 3；整体兼容准入协议为 13，要求两端采用相同的选点与显示规则。新增请求只携带瞄准射线、预期物品 netId、序号和小局代次；房主核对真实 user-player-connection、认证／Ready／兼容、生命、头像槽、来源位置、方向、速率和重放，再用与客户端相同的 `SharedPings.Raycast` 重新选点，客户端不能提交任意标记坐标。物品身份必须匹配当前服务器实体且未被持有。清除请求携带本人当前标记的 Revision，复用真实来源、认证／Ready／兼容、代次、序号与限速校验；房主仅删除来源用户的匹配版本，延迟请求不能误删替换后的标记，也不能指定其他用户。无标记时长按不发送请求，清除不调用选点射线，客户端等待权威快照更新显示。完整快照携带真实用户 netId、目标、位置、槽位、NetworkTime 绝对期限及房主分配的非零标记先后序号，周期及有效动作后发送；序号独立于时间戳，保证同一帧接受的标记也有一致顺序，并按回绕安全方式比较。晚加入只恢复剩余期限与原有显示优先级，不重新计时。接收校验来源、通道、版本／清单、序号、精确长度、数量、有限数值、重复用户／槽位／标记序号、期限和已生成实体类型，未生成物品等待后续快照。快照超时撤销显示，换小局（包括保留地图）、换场景、断线与退出清空；代次拒绝旧小局请求，处理器不覆盖其他 MOD。
+
+选点沿用原版交互与遮挡层，使用 `QueryTriggerInteraction.Collide` 包含物品交互 Trigger，并跳过无 Item 身份的无关 Trigger；仅在有效短按松开或通过限速的新增请求中调用 `Physics.RaycastAll`，按距离选取最近的有效命中，不依赖返回数组顺序。不标记持有中的 Item，射线跳过持有物及非 Item 的玩家／怪物碰撞体，继续寻找后面的物品或场景表面；墙壁等实体障碍仍挡住后方目标，只有被跳过对象而无有效表面时保留旧标记。物品范围按 `Item` 继承关系判断，包含骰子、雕像、棋盘及常规道具；未持有的尸体／骷髅 Tool 保留物品身份，搬起或持有时同样撤销。`PingItems.Find` 对普通物品读取根节点 Item，对尸体使用联网根上的 `PlayerRigConfigWorld` 及其保存的 ragdoll／DeadPlayerTool 引用，并核对 Tool 确实共享该 NetworkIdentity，不扫描所有子物品。尸体还要求原版 rig.entity 对应玩家已经死亡，复活、角色绑定失效或停用即撤销；不使用可在搬运中变化的物理启用标志判断死亡。客户端选点、房主复核、快照类型与后续有效性共用这一解析路径。其他可交互对象不自动属于物品，命中其场景表面时使用地点图钉。
+
+`PingView` 在持有镜头覆盖完成后记录实际视图／投影，最终帧样式处理前绘制，使标记随倒立、宽体及鱼眼等当前画面变换。物品层级只在首次建立目标缓存时扫描；普通 Item 保留自己的子树，尸体改从其原版 ragdoll 模型根选择完整身体、头部与自身衣装，过滤其他 Item 及其他世界角色根，避免漏掉骨骼兄弟节点上的主网格或纳入携带物。静态网格直接绘制，蒙皮网格使用自有 BakeMesh 缓存；不创建网络视觉附件、不改扫描或物品材质。私有遮罩使用 `GL.GetGPUProjectionMatrix(projection, true)` 转换纹理投影，不读场景深度，仅为自身绘制绕过近远裁剪。`PingPostProcessing` 只捕获当前游戏相机实际执行的 Panini pass 与 LensDistortion 参数；使用自有材质克隆和属性块重投影遮罩，再以匹配镜头畸变的 UV 采样轮廓，不修改原版材质或仅依赖 Volume 默认值。空心轮廓全屏合成，不做物品包围盒裁剪；每个不同物品只绘制、重投影和合成一次，取消按玩家重复合成与轮廓分段。程序图钉／箭头保留周边区域绘制。网格、图钉平滑缓存、RenderTexture、Material、CommandBuffer 和 bundle 由服务释放，异常只停用标记并记录一次必要错误；选点、目标网格和相机参数等常规诊断仅在 DebugMode 开启时输出，没有逐帧或周期快照日志。资源与构建见 [Pings](../Assets/Pings/README.md)，验证范围见 DEVELOPMENT。
+
 ## 伪装诅咒与大师规则
 
 `identity_disguise` 是普通骰子随机诅咒池的一项，不依赖 DebugMode 或雕像自然生成开关。至少两名已通过兼容准入的玩家时才参与抽取；仅在原版骰面选择调用期间只读遍历原候选，调用原版逐项过滤，将通过的类型与一个伪装标记放入托管列表等权抽取。不满足伪装资格时完整走原版选择。原生候选表始终不改写：当前 `FAlterationTypeInfo` 是含引用的值类型，生成的 `List.Add` 包装没有拆箱，不能用于复制这些条目。私有选择标记在应用入口被消费，不进入原版 alteration 列表、图标、runner 或存档。服务器每次骰子抽取记录一条 `[Dice curse]` 结果（名称与类型值），不受 DebugMode 控制；逐阶段诊断仍受 DebugMode 控制。
 
-[DisguiseHouseRule](../Curses/DisguiseHouseRule.cs) 独立注册原生 `HouseRule` 配置，稳定 ID 为 `calypso.identity_disguise`，难度成本 2，从大师后的最早规则阶段可选。使用原版难度预算、数量、地图和重复筛选，不设置固定抽中百分比、不强塞返回结果。自有标签组加入原版 `NoSolo` 标签，由原版人数筛选排除单人；即使恢复了多人棋盘也需至少两名兼容、已生成的玩家才能实际开始。配置列表在选择、ID 恢复与客户端规则回调前幂等注册；只接管自有实例的 ID，七语言词条使用自有 I2 数据源，不修改原版资源，也不注入自定义 ScriptableObject 子类或拦截共享空虚方法。管理器应用、撤销和事件开始入口驱动现有伪装服务；每小局清理后等待下一事件通知重新分配，重复通知不重抽，玩家尚未就绪时等待。规则结束只清除规则启动的映射，不清除先前独立骰出的本小局伪装；重开／断线重置规则状态。兼容握手协议为 7，旧客户端不得接收未知规则 ID 或新视觉事件。
+[DisguiseHouseRule](../Curses/DisguiseHouseRule.cs) 独立注册原生 `HouseRule` 配置，稳定 ID 为 `calypso.identity_disguise`，难度成本 2，从大师后的最早规则阶段可选。使用原版难度预算、数量、地图和重复筛选，不设置固定抽中百分比、不强塞返回结果。自有标签组加入原版 `NoSolo` 标签，由原版人数筛选排除单人；即使恢复了多人棋盘也需至少两名兼容、已生成的玩家才能实际开始。配置列表在选择、ID 恢复与客户端规则回调前幂等注册；只接管自有实例的 ID，七语言词条使用自有 I2 数据源，不修改原版资源，也不注入自定义 ScriptableObject 子类或拦截共享空虚方法。管理器应用、撤销和事件开始入口驱动现有伪装服务；每小局清理后等待下一事件通知重新分配，重复通知不重抽，玩家尚未就绪时等待。规则结束只清除规则启动的映射，不清除先前独立骰出的本小局伪装；重开／断线重置规则状态。兼容握手由 `ExpansionSetSync` 统一准入，旧客户端不得接收未知规则 ID 或新视觉事件。
 
 已有伪装效果不退出骰子池。原版随机选取只按 `excludeFromDicePool` 与单人标签过滤，已有濒死规则不会排除骰子濒死；原版仍发送顶部提示、播放诅咒魂表现，`EntityAlterationController.SrvCanApplyAlteration` 在施加阶段拒绝相同类型，保留原有永久状态。伪装对应处理为：重复骰中时保持当前配对和规则归属，再次发送身体抵达表现和顶部提示，照常完成骰子回合；不重抽配对、不叠加状态、不缩短规则期限。至少两名兼容玩家的资格仍适用。F8 的直接施加入口仍拒绝重复启动，清除后才能手动重抽。
 
@@ -314,7 +329,7 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 执行器通过原版配置 ID 识别类型，以 ItemOwner 与 InventoryNew.InHand 判断实际持有物；本地动作还要求本机角色有移动控制权、连接 Ready、清单匹配且游戏控制可用。EntityManager.Me 来自 UserInstance.Me.playerEntity，不用 PlayerEntity.isLocalPlayer 再拒绝可移动房主。
 
-兼容协议由 `ExpansionSetSync` 统一处理，消息 ID=0x4D49、协议版本=7。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。当前版本还要求支持伪装规则 ID 与伪装协议 2 的一次性视觉事件；仅比较雕像清单不足以识别这些差异。消息号、稳定身份和当前 CFG 路径／键保持；旧 GUID 互斥、旧 DLL 迁移及旧 CFG 键兼容入口继续保留。
+兼容协议由 `ExpansionSetSync` 统一处理，消息 ID=0x4D49、协议版本=13。客户端在 Ready 前发送清单握手，服务端暂缓 NetworkServer.SetClientReady，匹配后再恢复原版 Ready；缺失 MOD 超过 30 秒或版本/清单不匹配拒绝连接。连接 ID 复用核对实际连接身份，不继承旧兼容状态。当前版本还要求支持伪装规则 ID、伪装协议 2 的一次性视觉事件与队友标记协议；仅比较雕像清单不足以识别这些差异。旧消息号、内容稳定身份与原 CFG 键保持；旧 GUID 互斥、旧 DLL 迁移及旧 CFG 键兼容入口继续保留。
 
 雕像生成、配置、物品持有状态及实例晚加入恢复使用原版网络 prefab/SyncVar；没有重复的自有实例 marker 快照。跳跃只有持有者所属端发起原版动作，观察者依靠原版运动/动画同步看到结果，声音走一次性广播。极速的按键锁定属于当前持有者输入，不向观察者发送虚拟按键或历史方向快照；原版运动仍负责同步。原版路径接入、托管模拟与真实双端验收是不同证据，当前边界查看 [TODO](../TODO.md)。
 

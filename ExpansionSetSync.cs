@@ -9,7 +9,7 @@ internal sealed class ExpansionSetSync : IDisposable
 {
     private const ushort MessageId = 0x4D49;
     private const uint Magic = 0x4D49444C;
-    private const byte ProtocolVersion = 7;
+    private const byte ProtocolVersion = 13;
     private const byte Hello = 0;
     private const byte Acknowledge = 1;
     private const byte Reject = 2;

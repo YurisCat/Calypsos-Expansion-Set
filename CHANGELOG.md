@@ -2,6 +2,54 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.73 — 2026-10-19（尸体标记 / Body pings）
+
+- 修复落地尸体无法标记，描边包含完整身体；搬起或复活后清除，活人不会被标记。
+  Fixes pings on bodies on the ground and outlines the complete body. Picking up a body or reviving the player clears its pings; living players remain excluded.
+
+## 0.2.72 — 2026-10-19（标记清除 / Clearing pings）
+
+- 标记持续时间延长至 60 秒；长按标记键 0.5 秒可提前清除自己的标记，无需瞄准。默认仍为鼠标中键／手柄十字键上。
+  Extends pings to 60 seconds. Hold the ping button for 0.5 seconds to clear your own ping without aiming. Defaults remain middle mouse / D-pad up.
+- 短按松开时新增、替换或刷新标记；长按不会先生成标记，松开后也不补标。
+  A short release adds, replaces or refreshes a ping. Holding does not create a ping before clearing or on release.
+
+## 0.2.71 — 2026-10-19（标记远近与配色 / Ping distance and colors）
+
+- 地点图钉的大小与淡化集中在明确的近远区间内变化，远近差异更明显，保留远处可读下限与平滑过渡。
+  Concentrates location-pin scaling and fading within a defined distance range, making distance differences clearer while preserving readable minimums and smooth transitions.
+- 玩家标记改用柔和配色，沿用头像槽位对应的固定色序；图钉、描边与箭头保持一致。
+  Uses softer player colors in the same fixed portrait-slot order, shared by pins, outlines and arrows.
+
+## 0.2.70 — 2026-10-19（标记显示 / Ping presentation）
+
+- 同一物品优先显示最后标记者的完整颜色，保留其他玩家的标记及剩余时间；优先者换目标或离开后，恢复仍有效的前一个标记。
+  Shows the latest player's complete color on a shared item, preserving other players' pings and remaining time. Falls back to an earlier valid ping when that player changes targets or leaves.
+- 地点图钉随当前距离平滑变化，近大远小、近实远淡，并保留远处可读下限；屏幕边缘箭头保持清晰。同一物品不再按玩家重复合成描边。
+  Location pins smoothly become smaller and fainter with distance, with readable minimums. Screen-edge arrows stay clear, and shared items no longer repeat outline compositing per player.
+
+## 0.2.69 — 2026-10-19（物品选点与后处理 / Item targeting and post-processing）
+
+- 物品选点包含原版交互触发体，修复部分雕像和道具无法标记；描边匹配当前镜头的 Panini 与镜头畸变，修正移动视角后的错位。
+  Includes native interaction triggers when targeting items, restoring pings on affected idols and tools. Matches item outlines to the current camera's Panini projection and lens distortion to correct drift during camera movement.
+
+## 0.2.68 — 2026-10-19（标记选点 / Ping targeting）
+
+- 标记选点跳过玩家、怪物及持有物，继续寻找后面的物品或场景；墙壁仍阻挡选点。保留落地尸体标记，搬起后清除。
+  Ping targeting skips players, monsters and held items to reach items or scenery behind them, while walls still block targeting. Dropped bodies remain markable; carrying them clears their pings.
+
+## 0.2.67 — 2026-10-19（物品标记描边 / Item ping outlines）
+
+- 修正物品标记描边的屏幕坐标，移除物品轮廓的局部裁剪，解决转动视角时轮廓漂移、裁切及小物品漏显。
+  Corrects item-ping screen coordinates and removes local outline clipping to fix drift during camera movement, cut-off outlines and disappearing small-item outlines.
+
+## 0.2.66 — 2026-10-19（队友标记 / Shared pings）
+
+- 新增队友共享标记：地点图钉、物品空心描边与屏幕边缘箭头，穿墙显示 15 秒，每人一个，新标记覆盖旧标记；物品被拾取后清除。颜色按原版头像槽位固定分配。
+  Adds shared location pins, hollow item outlines and screen-edge arrows, visible through walls for 15 seconds. Each player has one ping; a new ping replaces it, and pickup clears item pings. Colors follow native portrait slots.
+- 默认鼠标中键／手柄十字键上，CFG 可分别改键；大厅盒子七语言在“游戏性提升”中简述标记。
+  Defaults to middle mouse / D-pad up, configurable separately in CFG. The seven-language lobby-box introduction lists pings under gameplay improvements.
+
 ## 0.2.65 — 2026-10-18（伪装诅咒与规则 / Disguise curse and rule）
 
 - 新增骰子伪装诅咒与大师后的棋盘规则，互换第三人称外观与头顶昵称。骰子诅咒持续本小局，棋盘规则每小局重新分配；至少两名玩家才能触发。

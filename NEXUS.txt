@@ -60,6 +60,7 @@ With at least two players, dice can swap players' third-person appearances and o
 [*]Adds advice and optional individual names for vanilla and MOD idols.[/*]
 [*]Portrait names turn cyan while players are in the lobby.[/*]
 [*]Unlimited stamina while in the shop.[/*]
+[*]Middle mouse (D-pad up) pings locations, items and bodies for teammates; hold for 0.5 seconds to clear your ping.[/*]
 [/list]
 
 
@@ -96,6 +97,12 @@ Shows individual idol names.
 
 [b]ShowIdolAdvice = true[/b]
 Shows advice when pointing at idols.
+
+[b]PingMouseKeyboard = <Mouse>/middleButton[/b]
+Keyboard/mouse ping binding (Input System path).
+
+[b]PingGamepad = <Gamepad>/dpad/up[/b]
+Controller ping binding (Input System path).
 
 [b]DebugMode = false[/b]
 Enables the F8 debug window and diagnostic logs.[/spoiler]
@@ -169,6 +176,7 @@ Detailed setup, testing and limitations are on GitHub below.
 [*]为原版与 MOD 雕像提供箴言和可选的具体名称。[/*]
 [*]玩家在大厅时，头像名字变为青色。[/*]
 [*]商店内无限体力。[/*]
+[*]鼠标中键（手柄十字键上）标记地点、物品和尸体，长按 0.5 秒清除自己的标记。[/*]
 [/list]
 
 
@@ -205,6 +213,12 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [b]ShowIdolAdvice = true[/b]
 指向雕像时显示箴言。
+
+[b]PingMouseKeyboard = <Mouse>/middleButton[/b]
+标记功能的键鼠按键，填写 Input System 路径。
+
+[b]PingGamepad = <Gamepad>/dpad/up[/b]
+标记功能的手柄按键，填写 Input System 路径。
 
 [b]DebugMode = false[/b]
 启用 F8 调试窗口和诊断日志。[/spoiler]
