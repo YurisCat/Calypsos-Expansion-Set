@@ -51,19 +51,23 @@ Gives you a huge head and a strong fisheye view.
 Forward and backward both move you backward; left/right stay normal, and you can sprint backward.
 
 
-[size=4][color=#B78A50][b]Disguise Curse[/b][/color][/size]
+[size=4][color=#B78A50][b]Gameplay Improvements[/b][/color][/size]
 
-With at least two players, dice can swap players' third-person appearances and overhead names for the round. Post-master boards can also include this rule, with new assignments each round.
+[list]
+[*]Adds 15 fun and challenging new idols.[/*]
+[*]In multiplayer, dice can swap players' appearances and overhead names; post-master boards can also include this rule.[/*]
+[*]Makes the Old Clock reusable (off by default; host setting only).[/*]
+[/list]
 
 
 [size=4][color=#B78A50][b]Quality of Life[/b][/color][/size]
 
 [list]
+[*]Middle mouse (D-pad up) pings locations, items and bodies for teammates; hold for 0.5 seconds to clear your ping.[/*]
 [*]Removes board-pawn collisions to make kicking dice easier.[/*]
-[*]Adds advice and optional individual names for vanilla and MOD idols.[/*]
+[*]Adds advice and individual names for vanilla and MOD idols, configurable separately (advice on by default, names off).[/*]
 [*]Portrait names turn cyan while players are in the lobby.[/*]
 [*]Unlimited stamina while in the shop.[/*]
-[*]Middle mouse (D-pad up) pings locations, items and bodies for teammates; hold for 0.5 seconds to clear your ping.[/*]
 [/list]
 
 
@@ -92,8 +96,8 @@ Edit [b]BepInEx/config/calypso.invokyr.expansionset.cfg[/b] after first launch; 
 [b]NaturalSpawning = true[/b]
 New idols enter natural spawn pools.
 
-[b]DisableBoardPawnCollision = true[/b]
-Disables board-pawn collisions to make kicking dice easier. Matching settings are recommended in multiplayer.
+[b]PermanentOldClock = false[/b]
+Makes the Old Clock reusable. Host setting only.
 
 [b]ShowIndividualIdolNames = false[/b]
 Shows individual idol names.
@@ -170,19 +174,23 @@ Detailed setup, testing and limitations are on GitHub below.
 前进、后退都向后走，左右照常，可以向后冲刺。
 
 
-[size=4][color=#B78A50][b]伪装诅咒[/b][/color][/size]
+[size=4][color=#B78A50][b]游戏性提升[/b][/color][/size]
 
-至少两名玩家时，骰子可能让玩家互换第三人称外观与头顶昵称，持续本小局。大师后的棋盘也可能出现该规则，每小局重新分配。
+[list]
+[*]添加 15 种有趣又富有挑战性的新雕像。[/*]
+[*]多人时，骰子可能让玩家互换外观与头顶昵称；大师棋盘也有几率出现该规则。[/*]
+[*]老旧挂钟可反复使用（默认关闭，仅主机设置生效）。[/*]
+[/list]
 
 
 [size=4][color=#B78A50][b]生活质量提升[/b][/color][/size]
 
 [list]
+[*]鼠标中键（手柄十字键上）标记地点、物品和尸体，长按 0.5 秒清除自己的标记。[/*]
 [*]移除棋盘棋子的碰撞，方便踢骰子。[/*]
-[*]为原版与 MOD 雕像提供箴言和可选的具体名称。[/*]
+[*]为原版与 MOD 雕像提供箴言和名称提示，可分别配置（箴言默认开启，名称默认关闭）。[/*]
 [*]玩家在大厅时，头像名字变为青色。[/*]
 [*]商店内无限体力。[/*]
-[*]鼠标中键（手柄十字键上）标记地点、物品和尸体，长按 0.5 秒清除自己的标记。[/*]
 [/list]
 
 
@@ -211,8 +219,8 @@ Detailed setup, testing and limitations are on GitHub below.
 [b]NaturalSpawning = true[/b]
 新雕像参与自然生成。
 
-[b]DisableBoardPawnCollision = true[/b]
-关闭棋盘棋子的碰撞，方便踢骰子；联机建议各端配置一致。
+[b]PermanentOldClock = false[/b]
+老旧挂钟可反复使用，仅主机设置生效。
 
 [b]ShowIndividualIdolNames = false[/b]
 显示雕像的具体名称。

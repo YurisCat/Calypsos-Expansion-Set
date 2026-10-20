@@ -37,7 +37,7 @@
 | [Visuals/IdolVisualSync.cs](../Visuals/IdolVisualSync.cs) | 类型无关的雕像外观状态上报、校验、完整快照与实例资源清理 |
 | [Visuals/StickyNoteVisuals.cs](../Visuals/StickyNoteVisuals.cs)、[Visuals/NoteTextureCodec.cs](../Visuals/NoteTextureCodec.cs) | 便签网格、共享纸底/无损差异解码、材质与诊断资源 |
 | [UI/IdolHoverInfo.cs](../UI/IdolHoverInfo.cs)、[UI/OriginalIdolAdvice.cs](../UI/OriginalIdolAdvice.cs)、[UI/IdolTextLocalization.cs](../UI/IdolTextLocalization.cs) | 已注册内容与原版对照的本地指向名称、顶部短说明、原版消息共存和清理 |
-| [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞开关、实例范围与恢复；不接入雕像注册/效果协议 |
+| [QualityOfLife/BoardPawnCollision.cs](../QualityOfLife/BoardPawnCollision.cs) | 原版棋盘进度棋子的碰撞关闭、实例范围与恢复；不接入雕像注册/效果协议 |
 | [QualityOfLife/RoomAreas.cs](../QualityOfLife/RoomAreas.cs)、[QualityOfLife/RoomStatusSync.cs](../QualityOfLife/RoomStatusSync.cs) | 原版房间体积检测、服务器判定的初始房／商店状态与完整快照 |
 | [Lobby/PlayerPresenceNames.cs](../Lobby/PlayerPresenceNames.cs)、[QualityOfLife/ShopStamina.cs](../QualityOfLife/ShopStamina.cs) | 头像下方名字的房内颜色提示、商店内体力补满与免耗 |
 | [QualityOfLife/Pings/SharedPings.cs](../QualityOfLife/Pings/SharedPings.cs) | 队友标记的房主验证、状态快照、输入与穿墙显示 |
@@ -86,11 +86,19 @@
 
 ## 棋盘进度棋子碰撞
 
-`[QualityOfLife] DisableBoardPawnCollision` 默认 true，独立于 DebugMode、雕像注册及兼容准入。首次加载自动迁移旧键 `关闭棋盘上棋子的碰撞箱` 的值并移除旧键；新旧键同时存在时优先英文键。只遍历当前 `BoardGameManager.Instance.PawnManager.pawns`，关闭每个 `Pawn.Collider` 中非触发器、原本启用的实体碰撞；不修改预制体、棋盘地面、骰子、怪物或 `EnvironmentElements.ChessboardPiece` 事件棋子。棋子显示、进度和移动动画沿用原版。
+棋盘进度棋子的实体碰撞固定关闭，不提供 CFG 开关，独立于 DebugMode、雕像注册及兼容准入。旧版遗留的中英文配置键不再读取。只遍历当前 `BoardGameManager.Instance.PawnManager.pawns`，关闭每个 `Pawn.Collider` 中非触发器、原本启用的实体碰撞；不修改预制体、棋盘地面、骰子、怪物或 `EnvironmentElements.ChessboardPiece` 事件棋子。棋子显示、进度和移动动画沿用原版。
 
-原版客户端棋盘启动、服务器 PawnManager 启动及进度棋子重新显示后立即应用，并每秒通过当前棋盘的已知列表维护，覆盖后续棋盘/实例替换与重连；不逐帧扫描场景或反射。各端按本机配置执行，不增加网络消息或同步 Unity 的 collider.enabled，因此联机建议全部参与端保持一致；不据此承诺只装房主有效。该开关没有改变任何雕像定义、身份或内容版本。
+原版客户端棋盘启动、服务器 PawnManager 启动及进度棋子重新显示后立即应用，并每秒通过当前棋盘的已知列表维护，覆盖后续棋盘/实例替换与重连；不逐帧扫描场景或反射。服务器与各客户端分别执行，不增加网络消息或同步 Unity 的 collider.enabled；不据此承诺只装房主有效。本功能不改变雕像定义、身份或内容版本；0.2.76 移除配置时兼容协议保持，新旧版本仍可能通过现有握手，统一固定行为需各端更新。
 
-只记录本功能从 enabled=true 改为 false 的 Collider。关闭开关、棋盘列表替换、离开会话及正常卸载时恢复这些仍存活且仍为 false 的组件，原先已禁用的碰撞不被重新启用；销毁对象安全移除。异常回滚已记录修改并单独停用本功能，保留其他模组功能；诊断日志受 DebugMode 控制。具体原版资源/原生研究与编译、托管、游戏验收边界见 [DEVELOPMENT](../DEVELOPMENT.md)。
+只记录本功能从 enabled=true 改为 false 的 Collider。棋盘列表替换、离开会话及正常卸载时恢复这些仍存活且仍为 false 的组件，原先已禁用的碰撞不被重新启用；销毁对象安全移除。异常回滚已记录修改并单独停用本功能，保留其他模组功能；诊断日志受 DebugMode 控制。具体原版资源/原生研究与编译、托管、游戏验收边界见 [DEVELOPMENT](../DEVELOPMENT.md)。
+
+## 老旧挂钟反复使用
+
+`[Gameplay] PermanentOldClock` 默认 false，仅主机设置生效，独立于 DebugMode；修改后重启。启用后仍需购买原版老旧挂钟，并具备原版有效存档；购买后，同一存档继续游玩、死亡回档或正常换下一张棋盘均不再消耗挂钟。选择“新游戏”重新开档时仍需重新购买。关闭后沿用原版一次性消费，重试按钮与回档触发方式保持。
+
+`PermanentOldClock` 不跳过 `Save.ConsumeLastChance`。仅在主机已拥有老旧挂钟时进入同步调用范围，并在原版为本次 LastChance 生成存档元数据前，将挂钟补回原版选定的 `SaveData.furnitures` 列表；原版自行选择故事／无尽条目，排队读档、首次购买的费用记账、时间、收藏、元数据与文件写入均保留。不会替无效存档补建数据，也不改正常存档、菜单续玩、普通重试或其他家具。Finalizer 正常／异常都结束本次范围并原样传播原异常；外部原生调用失败只记录一次并停用本功能至重启，后续走原版。
+
+已拥有家具由原版商店生成候选过滤，并在购买时再次检查 `IsFurnitureActive`，因此无需另加商品去重补丁。老旧挂钟保留在原版家具列表及存档中，恢复显示与联机状态继续走原版；不增加消息、同步客户端配置、改变雕像身份或 ContentVersion，兼容协议保持。主机切换、退出 MOD 或关闭配置后，已有挂钟仍是原版物品，后续消耗遵循届时主机设置。F8 本机联机可使用有效测试存档验证回档；专用陈列房仍禁止写档。原生证据与验证范围见 DEVELOPMENT。
 
 ## 初始房状态提示与商店体力
 
@@ -400,15 +408,19 @@ RelayIdolRuntime 的服务器端维护状态，客户端只接收当前快照。
 
 F8 的“本机联机”由 [LocalMultiplayer.cs](../Testing/LocalMultiplayer.cs) 管理。仅 DebugMode 开启、非专用陈列房、主菜单就绪且无活动或待连接会话时接受请求；关闭面板、恢复输入后下一帧再调用原版 `HostKcp("INVOKY")` / `JoinKcp("INVOKY")`，使用原版 KCP 与正常大厅／地图，不屏蔽事件、怪物或小局边界伤害。所有窗口须在开始游戏前加入，沿用原版准入规则与 MOD 兼容握手，不新增网络协议或更改玩法清单。
 
-启动前设置自有会话标记，清除待加载存档，暂时将原版地址／端口设为 `127.0.0.1:7777`；原生同步读取后立即在 finally 中恢复设置。建房不排队结算，也不启动结算超时；等待其他窗口加入后，由房主手动执行 `finish`。首次请求在原版 `IsGameWorldReadyForLoad`、玩家及服务就绪后，通过 Bank 原版服务器入口独立添加一次 5000 公共资金并回读余额，不等待进店。待原版 Flow 与当前事件结束，启用大局开始状态、设置棋盘完成并调用原版结算第二阶段，由原版生成商店、替换棋盘及开放门交互，玩家自行开门；不调用 `EnterShopNew`。完成等待只读取商店生成与棋盘初始化标记，不轮询带替换副作用的 `SrvTrySwapRealBoardWithFake`。
+启动前设置自有会话标记，清除旧待加载状态和当前存档槽，暂时将原版地址／端口设为 `127.0.0.1:7777`；原生同步读取后立即在 finally 中恢复设置。房主可新建或选择原版存档列表中的存档；选档先校验故事／无尽检查点，再以独立测试名复制完整文件，原版 `QueueLoad(MenuResume)` 只加载副本，后续存档与挂钟消费也只改副本。新档保留原版收藏初始化和写入，`NextUnusedSlotName` 在本机会话主机侧提供“本地多人测试_时间戳”的唯一名字，也覆盖读档失败后原版另分配新档的路径。失败停止本次建房，不自动删除副本或覆盖源档。列表仅首次打开及手动刷新时读取，不逐 GUI 事件扫描磁盘。
 
-F8 `finish` 排队完成当前棋盘，`money <1-1000000>` 显式追加公共资金；均仅已就绪且启用 DebugMode 的本机多人测试房主可用，关闭 F8 后下一帧执行。不写测试存档文件、不快捷分配衣色，消费及后续大局／小局不自动补钱。准备超时、关闭 DebugMode、运行失败、结算后重置大厅或断线／管理器替换时取消待处理结算；原生变更异常后不自动重复，已独立发放的资金也不重发。正常会话、单人陈列房和加入端不初始化此状态。
+`RunDebugCommands` 共用 F8 `finish`、`rules`、`money <1-1000000>` 的结算与资金流程，允许已就绪且开启 DebugMode 的正常单人房主或 F8 本机联机房主；普通多人、加入端和专用陈列房拒绝。正常单人以服务器仅一个连接判定，不启用本机会话标记、改名、地址或测试存档命名，仍沿原版读写当前存档。关闭 F8 后下一帧执行，首次显式使用命令才绑定连接／管理器，不主动结算。超时、关闭 DebugMode、运行失败、结算后重置大厅或断线／连接与管理器替换时取消待处理操作；原生变更异常后不自动重复。
+
+首次 `finish`／`rules` 在原版 `IsGameWorldReadyForLoad`、玩家及服务就绪后，经 Bank 服务器入口独立添加一次 5000 公共资金并回读余额，不等待进店。`SrvResetStateP2` 的 Prefix 捕获原版清空前的 PendingLoadReason，成功普通重试（None／EndlessRetry／CustomRetry）后恢复首次命令领款资格；LastChance 回档与 MenuResume 续玩不额外补发，失败重置不刷新。消费及换小局不自动补钱，显式 `money` 仍独立加钱。待原版 Flow 与当前事件结束，启用大局开始状态、设置棋盘完成并调用原版结算第二阶段，由原版生成商店和换盘，玩家自行开门，不调用 `EnterShopNew`。
 
 测试命令跳过要求持有终局物件的原版结算第一阶段，因此在新棋盘需要结算时，清除上一棋盘遗留的第二阶段完成标记与准备状态，再请求结算。大师后的选盘可能保留旧的完成与商店标记，不能仅凭这些标记复用旧结算；结合棋盘网络实例、已开始的游戏状态与棋子完成情况识别新棋盘。调用原生结算前记住该棋盘 netId，同一实例异常或超时重试只等待原有结果，不重复计分；大厅重置、断线与会话释放时清除。商店已准备好、尚未开始下一棋盘时，`finish` 与 `rules` 复用现有完成状态；所选棋盘放上桌并开始后才再次结算。
 
 F8 `rules` 复用上述结算与资金流程，额外等待兼容玩家、原版商店生成及棋盘替换完成后，调用原版 `ZoneManager.EnterEndless` 开放大师后的规则选关阶段。商店已准备好且仍等待棋盘初始化时直接复用，不重复结算；玩家自行开门与选择棋盘。校验原版模式与访问次数，不直接改规则列表、不自动把伪装加入规则池。
 
-测试期间仅接受回环来源的远端连接，开始时清空内存中的当前存档槽，并在 `SrvBeginAutoSaveSession` 保留原版自定义会话清理、跳过存档槽分配和初始收藏写盘。AutoSave／SrvSaveCollection／SaveToSlot 及底层 WriteSaveToFile 继续拦截后续写入；正常会话保持原版存档规则。昵称仅在自有会话中覆盖 `ResolveNickName`，不写昵称 PlayerPrefs；临时开启后台运行，退出时按所有权恢复昵称与后台设置。关闭 F8 只取消待发操作请求，活动会话的保护持续到实际断开；90 秒未就绪会尝试停止一次连接，停止尚未完成时继续保护。管理器更换、正常退出与卸载幂等清理；插件玩法停用后仍维护这项退出清理。
+单窗口快捷结算可能缺少本机的商店准备确认，导致一直等待棋盘替换，`rules` 无法继续。仅在商店生成回调完成、原版仍等待准备且确认表中唯一未准备者就是本地连接时，向原版服务器处理器补交一次本机确认；由原版先清理准备等待再换盘并广播完成，迟到确认不能重复换盘。其他玩家也在确认表中时继续等待，不代替远端确认、不轮询 `SrvTrySwapRealBoardWithFake`。部分失败不重发原生操作，保留日志和超时。
+
+F8 本机联机期间仅接受回环来源的远端连接，允许原版存档写入；AutoSave／SrvSaveCollection／SaveToSlot／WriteSaveToFile 的禁写只作用于专用陈列房。昵称仅在自有会话中覆盖 `ResolveNickName`，不写昵称 PlayerPrefs；临时开启后台运行，退出时按所有权恢复昵称与后台设置。关闭 F8 只取消待发操作请求，活动会话的连接限制与测试名分配持续到实际断开；90 秒未就绪会尝试停止一次连接，停止尚未完成时继续保持标记。管理器更换、正常退出与卸载幂等清理，仅清除仍指向自有副本的待读档请求，不删除存档文件；插件玩法停用后仍维护退出清理。
 
 [Start-LocalMultiplayer.ps1](../scripts/Start-LocalMultiplayer.ps1) 编译后在 `.local/local-multiplayer/` 下创建每次独立的 1～3 个实例目录，分别复制 BepInEx 核心、已有 interop／unity-libs 与本插件，配置仅在副本中开启 F8 调试、关闭单人陈列房，并启用 BepInEx 接口自动更新。复制的接口仅作为缓存；原版更新后，由各副本在加载插件前重建失效接口，不跳过哈希检查或伪造缓存哈希。通过 Doorstop 参数选择各自的预加载程序集及启动配置；启动配置只从副本移除原版 `single-instance` 项，不改原文件，不复制游戏资源或替换 Steam API。每个窗口有独立配置、预加载／BepInEx／Player 日志；Steam 身份与 Unity 用户设置仍共用，本方案不验证账号身份差异、Steam 传输或跨电脑网络。参数及操作见 [README](../README.md#本机多人测试)。
 

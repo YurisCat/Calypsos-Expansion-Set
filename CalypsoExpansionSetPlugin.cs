@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.75";
+    public const string PluginVersion = "0.2.76";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -32,6 +32,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal UI.IdolHoverInfo? HoverInfo { get; private set; }
     internal Visuals.IdolVisualSync? VisualStates { get; private set; }
     internal QualityOfLife.BoardPawnCollision? PawnCollisions { get; private set; }
+    internal QualityOfLife.PermanentOldClock? PermanentClock { get; private set; }
     internal Testing.TestRoomLaunch TestRoom { get; private set; } = null!;
     internal Lobby.LobbyBoxRuntime? LobbyBox { get; private set; }
     internal QualityOfLife.RoomStatusSync? RoomStatus { get; private set; }
@@ -86,6 +87,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Teleports = new IdolDebugTeleport(this);
         DebugTools = new IdolDebugTools(this);
         PawnCollisions = new QualityOfLife.BoardPawnCollision(this);
+        PermanentClock = new QualityOfLife.PermanentOldClock(this);
         HoverInfo = new UI.IdolHoverInfo(this);
         VisualStates = new Visuals.IdolVisualSync(this);
         TestRoom = new Testing.TestRoomLaunch(this);
@@ -139,6 +141,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         {
             // Keep test-session protection until disconnect, then restore its temporary settings.
             DebugTools.LocalMultiplayer.Tick();
+            DebugTools.RunCommands.Tick();
             return;
         }
         try

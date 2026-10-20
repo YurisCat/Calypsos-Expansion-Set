@@ -1,4 +1,3 @@
-using BepInEx.Configuration;
 using HarmonyLib;
 using Mirror;
 using UnityEngine;
@@ -13,43 +12,15 @@ internal sealed class BoardPawnCollision : IDisposable
 {
     private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly RuntimeFailureGate _recovery = new();
-    private readonly ConfigEntry<bool> _enabled;
     private readonly Dictionary<int, Collider> _owned = new();
     private readonly HashSet<int> _seen = new();
     private readonly List<int> _removed = new();
     private float _nextMaintenance;
     private bool _disposed, _failed;
 
-    internal BoardPawnCollision(CalypsoExpansionSetPlugin plugin)
-    {
-        _plugin = plugin;
-        _enabled = BindSetting(plugin.Config);
-    }
+    internal BoardPawnCollision(CalypsoExpansionSetPlugin plugin) => _plugin = plugin;
 
-    private static ConfigEntry<bool> BindSetting(ConfigFile config)
-    {
-        if (config.TryGetEntry<bool>("QualityOfLife", "DisableBoardPawnCollision", out var existing)) return existing;
-        var saveOnSet = config.SaveOnConfigSet;
-        config.SaveOnConfigSet = false;
-        try
-        {
-            // Read raw values to distinguish missing keys, prefer the new key,
-            // and keep the Boolean setting's documented default fixed at true.
-            var legacy = config.Bind("QualityOfLife", "关闭棋盘上棋子的碰撞箱", "");
-            var stored = config.Bind("QualityOfLife", "DisableBoardPawnCollision", legacy.Value);
-            var value = stored.Value;
-            config.Remove(legacy.Definition);
-            config.Remove(stored.Definition);
-            var setting = config.Bind("QualityOfLife", "DisableBoardPawnCollision", true,
-                "关闭棋盘进度棋子的实体碰撞，方便移动和踢骰子；显示、动画、棋盘、骰子及事件棋子不变。各端独立生效，联机建议一致；修改后重启。\n"
-                + "/ Disable board progress-pawn collisions for easier movement and dice kicking; visuals, animations, board, dice and event pieces stay unchanged. Local setting; matching settings recommended. Restart after changes.");
-            if (!string.IsNullOrWhiteSpace(value)) setting.SetSerializedValue(value);
-            return setting;
-        }
-        finally { config.SaveOnConfigSet = saveOnSet; }
-    }
-
-    private bool CanApply => !_disposed && !_failed && _enabled.Value
+    private bool CanApply => !_disposed && !_failed
         && (NetworkServer.active || NetworkClient.active);
 
     internal void Tick()
@@ -150,7 +121,7 @@ internal sealed class BoardPawnCollision : IDisposable
         _failed = true;
         _recovery.Block(BoardGameManager.Instance);
         RestoreAll();
-        _plugin.Log.LogError($"Board pawn collision option suspended after an error; will retry after scene, connection or board replacement.\n{exception}");
+        _plugin.Log.LogError($"Board pawn collision service suspended after an error; will retry after scene, connection or board replacement.\n{exception}");
     }
 
     public void Dispose()

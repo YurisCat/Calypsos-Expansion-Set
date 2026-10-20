@@ -2,6 +2,19 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.76 — 2026-10-20（老旧挂钟 / Reusable Old Clock）
+
+- 新增老旧挂钟反复使用选项，默认关闭，由主机开启。
+  Adds an option to reuse the Old Clock, disabled by default and enabled by the host.
+- F8 本机联机支持测试存档和选档副本，普通重试后首次 `finish`／`rules` 再次提供启动资金。
+  F8 local multiplayer supports named test saves and loading save copies. The first finish/rules request after a normal retry grants starting funds again.
+- 正常单人支持 `finish`、`rules` 和 `money`；修复单窗口快捷结算后规则选盘无法开放的问题。
+  Enables finish, rules and money in normal solo play, and fixes rule selection after single-window debug settlement.
+- 棋盘进度棋子的碰撞改为固定关闭，移除对应 CFG 开关；沿用各端处理、棋子重新显示与场景清理流程。
+  Board progress-pawn collisions are now always disabled. Removes the CFG toggle while preserving per-peer application, pawn redisplay handling and scene cleanup.
+- 大厅盒子七语言介绍将队友标记归入生活质量提升，功能与操作保持。
+  Moves shared pings to quality of life improvements in all seven lobby-box languages, with behavior and controls unchanged.
+
 ## 0.2.75 — 2026-10-20（退行雕像 / Backstep Idol）
 
 - 新增退行雕像：前进、后退输入均向后移动，左右保持，支持键盘和手柄；可向后冲刺，沿用原版速度和体力规则。

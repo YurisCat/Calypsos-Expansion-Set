@@ -14,7 +14,7 @@ using _200_Dev.BoardGameLogic.Elements.Tool.ToolExtension;
 
 namespace CalypsoExpansionSet.Testing;
 
-// Gallery-only patches use the dedicated launch; save/connection guards also cover explicit local tests.
+// Gallery-only patches use the dedicated launch; connection guards also cover explicit local tests.
 [HarmonyPatch(typeof(SplashManager), "OnPlay")]
 internal static class TestSkipLogosPatch
 {
@@ -36,15 +36,21 @@ internal static class TestNoSaveWritesPatch
         yield return AccessTools.Method(typeof(Save), nameof(Save.SrvSaveCollection));
         yield return AccessTools.Method(typeof(Save), "SaveToSlot");
     }
-    private static bool Prefix() => !TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive;
+    private static bool Prefix() => !TestRoomLaunch.IsActive;
 }
 
 [HarmonyPatch(typeof(Save), nameof(Save.SrvBeginAutoSaveSession))]
 internal static class TestNoAutoSaveSessionPatch
 {
-    private static bool Prefix()
+    private static bool Prefix(ref bool useIncrementalSlot)
     {
-        if (!TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive) return true;
+        if (!TestRoomLaunch.IsActive)
+        {
+            // The local-test allocator supplies a named slot while native
+            // collection initialization and unique-name handling stay intact.
+            if (LocalMultiplayer.IsActive) useIncrementalSlot = true;
+            return true;
+        }
         // Keep the native custom-session cleanup, but allocate no slot and write
         // no initial collection. A later callback cannot reuse a previous run's slot.
         Save.ClearCustomSession();
@@ -60,7 +66,7 @@ internal static class TestNoSaveFileWritesPatch
     private static bool Prefix(ref bool __result)
     {
         // Initial collection-only saves bypass AutoSave and SaveToSlot.
-        if (!TestRoomLaunch.IsActive && !LocalMultiplayer.IsActive) return true;
+        if (!TestRoomLaunch.IsActive) return true;
         __result = false;
         return false;
     }
@@ -94,10 +100,13 @@ internal static class LocalMultiplayerNicknamePatch
 }
 
 [HarmonyPatch(typeof(VhsNetworkManager), nameof(VhsNetworkManager.SrvResetStateP2))]
-internal static class LocalMultiplayerRoundStartPatch
+internal static class RunDebugCommandsWorldResetPatch
 {
-    private static void Postfix(bool __result)
-        => CalypsoExpansionSetPlugin.Instance?.DebugTools?.LocalMultiplayer.OnWorldReset(__result);
+    private static void Prefix(out Save.EPendingLoadReason __state)
+        => __state = NetworkServer.active ? Save.PendingLoadReason : Save.EPendingLoadReason.None;
+
+    private static void Postfix(bool __result, Save.EPendingLoadReason __state)
+        => CalypsoExpansionSetPlugin.Instance?.DebugTools?.RunCommands.OnWorldReset(__result, __state);
 }
 
 [HarmonyPatch]

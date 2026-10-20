@@ -76,7 +76,7 @@ for ($taskSlot = 1; $taskSlot -le $Count; $taskSlot++) {
     # Game updates invalidate copied interop metadata; regenerate in each isolated
     # instance before loading plugins instead of invoking stale native methods.
     Set-TestConfig $taskBepConfig 'IL2CPP' 'UpdateInteropAssemblies' 'true'
-    Set-TestConfig $taskBepConfig 'Logging.Console' 'Enabled' 'false'
+    Set-TestConfig $taskBepConfig 'Logging.Console' 'Enabled' (($taskSlot -eq 1).ToString().ToLowerInvariant())
     $taskModConfig = Join-Path $taskBep 'config\calypso.invokyr.expansionset.cfg'
     Set-TestConfig $taskModConfig 'Debug' 'DebugMode' 'true'
     Set-TestConfig $taskModConfig 'Debug' 'WindowKey' 'F8'
