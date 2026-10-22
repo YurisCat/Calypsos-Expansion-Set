@@ -20,7 +20,7 @@ internal static class LobbyBoxText
         + "・老旧挂钟可反复使用（默认关闭，由主机开启）\n\n"
         + "生活质量提升：\n・新增鼠标中键（手柄十字键上）标记地点、物品和尸体，长按清除\n"
         + "・移除棋盘上棋子的碰撞，方便踢骰子\n"
-        + "・为所有雕像提供箴言和名称提示，可分别配置（箴言默认打开，名称默认关闭）\n"
+        + "・为所有雕像提供箴言和名称提示，可在主菜单分别配置（箴言默认打开，名称默认关闭）\n"
         + "・在大厅时，头像名字变为青色\n"
         + "・进入商店时无限体力\n\n"
         + "祝您游戏愉快！:3";
@@ -32,7 +32,7 @@ internal static class LobbyBoxText
         + "· Makes the Old Clock reusable (off by default; enabled by the host)\n\n"
         + "Quality of life improvements:\n· Ping locations, items and bodies with middle mouse (D-pad up on controllers); hold to clear\n"
         + "· Removes board-pawn collisions to make kicking dice easier\n"
-        + "· Adds advice and individual names for all idols, configurable separately (advice on, names off by default)\n"
+        + "· Adds advice and individual names for all idols, configurable separately in the main menu (advice on, names off by default)\n"
         + "· Portrait names turn cyan while players are in the lobby\n"
         + "· Unlimited stamina while in the shop\n\n"
         + "Have fun! :3";
@@ -44,7 +44,7 @@ internal static class LobbyBoxText
         + "・老舊掛鐘可反覆使用（預設關閉，由房主開啟）\n\n"
         + "生活品質提升：\n・新增滑鼠中鍵（手把十字鍵上）標記地點、物品和屍體，長按清除\n"
         + "・移除棋盤上棋子的碰撞，方便踢骰子\n"
-        + "・為所有雕像提供箴言和名稱提示，可分別設定（箴言預設開啟，名稱預設關閉）\n"
+        + "・為所有雕像提供箴言和名稱提示，可在主選單分別設定（箴言預設開啟，名稱預設關閉）\n"
         + "・在大廳時，頭像名字變為青色\n"
         + "・進入商店時無限耐力\n\n"
         + "祝您遊戲愉快！:3";
@@ -56,7 +56,7 @@ internal static class LobbyBoxText
         + "・古時計を繰り返し使えるようにします（初期設定はオフ、ホストが設定）\n\n"
         + "遊びやすさの改善：\n・マウス中ボタン（コントローラーは方向キー上）で場所・アイテム・遺体をマーク、長押しで解除\n"
         + "・ボード上のコマの当たり判定をなくし、サイコロを蹴りやすくします\n"
-        + "・すべての像に短い詩のヒントと個別の名前を追加、それぞれ設定可能です（初期設定：ヒントはオン、名前はオフ）\n"
+        + "・すべての像に短い詩のヒントと個別の名前を追加、メインメニューでそれぞれ設定可能です（初期設定：ヒントはオン、名前はオフ）\n"
         + "・ロビーにいるプレイヤーは、ポートレートの名前が水色になります\n"
         + "・ショップ内ではスタミナが無制限になります\n\n"
         + "どうぞお楽しみください！:3";
@@ -68,7 +68,7 @@ internal static class LobbyBoxText
         + "· Старые часы можно использовать повторно (по умолчанию выключено, включает хост)\n\n"
         + "Удобство игры:\n· Отмечайте места, предметы и тела средней кнопкой мыши (крестовина вверх на геймпаде); удерживайте для удаления\n"
         + "· Фишки на игровом поле больше не мешают пинать кубики\n"
-        + "· Подсказки в стихах и отдельные имена для всех идолов; настраиваются независимо (подсказки включены, имена выключены по умолчанию)\n"
+        + "· Подсказки в стихах и отдельные имена для всех идолов; настраиваются независимо в главном меню (подсказки включены, имена выключены по умолчанию)\n"
         + "· Имена на портретах становятся бирюзовыми, пока игроки находятся в лобби\n"
         + "· В магазине запас выносливости не ограничен\n\n"
         + "Приятной игры! :3";
@@ -80,7 +80,7 @@ internal static class LobbyBoxText
         + "· Permite reutilizar o relógio antigo (desativado por padrão; ativado pelo anfitrião)\n\n"
         + "Melhorias de qualidade de vida:\n· Marque locais, itens e corpos com o botão do meio do mouse (direcional para cima no controle); segure para remover\n"
         + "· Remove a colisão das peças do tabuleiro para facilitar os chutes nos dados\n"
-        + "· Adiciona dicas em versos e nomes individuais para todos os ídolos, configuráveis separadamente (dicas ativadas e nomes desativados por padrão)\n"
+        + "· Adiciona dicas em versos e nomes individuais para todos os ídolos, configuráveis separadamente no menu principal (dicas ativadas e nomes desativados por padrão)\n"
         + "· Os nomes nos retratos ficam em ciano enquanto os jogadores estão no lobby\n"
         + "· Vigor ilimitado dentro da loja\n\n"
         + "Divirta-se! :3";
@@ -92,7 +92,7 @@ internal static class LobbyBoxText
         + "· Permite reutilizar el reloj antiguo (desactivado por defecto; lo activa el anfitrión)\n\n"
         + "Mejoras de comodidad:\n· Marca lugares, objetos y cuerpos con el botón central del ratón (cruceta arriba en mando); mantén pulsado para borrar\n"
         + "· Elimina las colisiones de las fichas del tablero para facilitar las patadas a los dados\n"
-        + "· Añade pistas en verso y nombres individuales para todos los ídolos, configurables por separado (pistas activadas y nombres desactivados por defecto)\n"
+        + "· Añade pistas en verso y nombres individuales para todos los ídolos, configurables por separado en el menú principal (pistas activadas y nombres desactivados por defecto)\n"
         + "· Los nombres de los retratos se vuelven cian mientras los jugadores están en la sala\n"
         + "· Resistencia ilimitada dentro de la tienda\n\n"
         + "¡Que te diviertas! :3";

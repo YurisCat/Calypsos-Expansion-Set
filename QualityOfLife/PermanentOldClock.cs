@@ -1,3 +1,4 @@
+using BepInEx.Configuration;
 using HarmonyLib;
 using Mirror;
 using _200_Dev.EnvironmentElements.Furnitures;
@@ -8,7 +9,7 @@ namespace CalypsoExpansionSet.QualityOfLife;
 internal sealed class PermanentOldClock
 {
     private readonly CalypsoExpansionSetPlugin _plugin;
-    private readonly bool _enabled;
+    private readonly ConfigEntry<bool> _enabled;
     private int _consuming;
     private bool _failed;
 
@@ -17,12 +18,12 @@ internal sealed class PermanentOldClock
         _plugin = plugin;
         _enabled = plugin.Config.Bind("Gameplay", "PermanentOldClock", false,
             "购买的老旧挂钟可反复使用，仍需有效存档；新游戏需重新购买。仅主机设置生效，修改后重启。\n"
-            + "/ Makes a purchased Old Clock reusable; a valid save is required. Buy it again in a New Game. Host setting only; restart after changes.").Value;
+            + "/ Makes a purchased Old Clock reusable; a valid save is required. Buy it again in a New Game. Host setting only; restart after changes.");
     }
 
     internal bool BeginConsumption()
     {
-        if (!_enabled || _failed || _plugin.RuntimeFailed || !NetworkServer.active) return false;
+        if (!_enabled.Value || _failed || _plugin.RuntimeFailed || !NetworkServer.active) return false;
         try
         {
             var manager = GameRoomFurnituresManager.Instance;

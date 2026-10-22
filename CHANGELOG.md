@@ -2,6 +2,15 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.77 — 2026-10-22（主菜单设置 / Main-menu settings）
+
+- 主菜单新增原版样式的“拓展包设置”，可调整名称、箴言、自然生成与挂钟四项开关，支持七语言。
+  Adds a native-style Expansion settings page to the main menu, with four toggles for names, advice, natural spawning and the Old Clock in seven languages.
+- 房主选项置顶；队友标记可分别修改键鼠／手柄按键，随当前操作设备显示，点击后提示录入与取消。修复主菜单入口反向导航跳过，以及手柄无法导航到“应用并返回”。
+  Host options appear first. Team ping bindings can be changed for mouse/keyboard and gamepad, showing the current device with capture and cancel instructions after selection. Fixes reverse navigation skipping the main-menu entry and gamepad navigation failing to reach Apply and back.
+- 进入房间前应用即可生效并保存 CFG，无需重启；直接返回放弃修改。名称与箴言仅影响本机，自然生成与挂钟由主机决定；原 CFG 键、默认值与注释保持。
+  Apply before entering a room to update and save the CFG without restarting, or go back to discard edits. Names and advice are local; spawning and the clock follow the host. Existing CFG keys, defaults and comments are preserved.
+
 ## 0.2.76 — 2026-10-20（老旧挂钟 / Reusable Old Clock）
 
 - 新增老旧挂钟反复使用选项，默认关闭，由主机开启。

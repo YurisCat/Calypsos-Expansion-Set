@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.76";
+    public const string PluginVersion = "0.2.77";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -40,6 +40,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
     internal Lobby.PlayerPresenceNames? PresenceNames { get; private set; }
     internal Curses.DisguiseCurse? Disguises { get; private set; }
     internal QualityOfLife.Pings.SharedPings? Pings { get; private set; }
+    internal UI.ExpansionSettingsMenu? SettingsMenu { get; private set; }
 
     private ExpansionSetDriver? _driver;
     private IdolEffectRuntime? _effects;
@@ -97,6 +98,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         PresenceNames = new Lobby.PlayerPresenceNames(this);
         Disguises = new Curses.DisguiseCurse(this);
         Pings = new QualityOfLife.Pings.SharedPings(this);
+        SettingsMenu = new UI.ExpansionSettingsMenu(this);
         _harmony = new Harmony(PluginId);
         _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
         _driver = AddComponent<ExpansionSetDriver>();
@@ -112,6 +114,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Log.LogWarning("Leave the network session before unloading Calypso's Expansion Set.");
             return false;
         }
+        SettingsMenu?.Dispose();
         Pings?.Dispose();
         Disguises?.Dispose();
         PawnCollisions?.Dispose();
@@ -135,6 +138,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 
     internal void Tick()
     {
+        SettingsMenu?.Tick();
         PawnCollisions?.Tick();
         TestRoom.Tick();
         if (_failed)

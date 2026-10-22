@@ -12,6 +12,7 @@ internal sealed class PingInput : IDisposable
     private readonly CalypsoExpansionSetPlugin _plugin;
     private readonly ConfigEntry<string> _mouse, _gamepad;
     private InputAction? _action;
+    private string? _mousePath, _gamepadPath;
     private readonly PingPress _press = new();
     private PlayerEntity? _player;
     private double _nextRequest;
@@ -43,11 +44,18 @@ internal sealed class PingInput : IDisposable
             Reset();
             return;
         }
+        if (_action != null && (_mousePath != _mouse.Value || _gamepadPath != _gamepad.Value))
+        {
+            Reset();
+            _action.Dispose();
+            _action = null;
+        }
         if (_action == null)
         {
             _action = new InputAction("Calypso shared ping", InputActionType.Button);
-            if (!string.IsNullOrWhiteSpace(_mouse.Value)) _action.AddBinding(_mouse.Value);
-            if (!string.IsNullOrWhiteSpace(_gamepad.Value)) _action.AddBinding(_gamepad.Value);
+            _mousePath = _mouse.Value; _gamepadPath = _gamepad.Value;
+            if (!string.IsNullOrWhiteSpace(_mousePath)) _action.AddBinding(_mousePath);
+            if (!string.IsNullOrWhiteSpace(_gamepadPath)) _action.AddBinding(_gamepadPath);
         }
         if (!_action.enabled) { _press.Reset(); _action.Enable(); return; }
         var now = Time.realtimeSinceStartupAsDouble;

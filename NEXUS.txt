@@ -91,6 +91,8 @@ Forward and backward both move you backward; left/right stay normal, and you can
 
 Edit [b]BepInEx/config/calypso.invokyr.expansionset.cfg[/b] after first launch; restart after changes.
 
+Some of the options below can be adjusted in the main menu's Expansion settings.
+
 [b]Default settings[/b]
 [spoiler]
 [b]NaturalSpawning = true[/b]
@@ -213,6 +215,8 @@ Detailed setup, testing and limitations are on GitHub below.
 [size=4][color=#B78A50][b]配置与说明[/b][/color][/size]
 
 首次加载后编辑 [b]BepInEx/config/calypso.invokyr.expansionset.cfg[/b]，修改后重启。
+
+下列部分参数可在主菜单“拓展包设置”中调整。
 
 [b]默认配置[/b]
 [spoiler]

@@ -35,6 +35,8 @@ MOD 雕像附有便签，指向时显示箴言，名称与文案跟随游戏语�
 
 配置文件为 `BepInEx/config/calypso.invokyr.expansionset.cfg`。
 
+下列部分参数可在主菜单“拓展包设置”中调整。
+
 | 配置项 | 默认值 | 用途 |
 | --- | --- | --- |
 | [Gameplay] NaturalSpawning | true | 让 MOD 雕像参与自然生成，保留原版生成总数 |
@@ -47,7 +49,7 @@ MOD 雕像附有便签，指向时显示箴言，名称与文案跟随游戏语�
 | [Debug] WindowKey | F8 | 打开/关闭测试窗口；None 禁用按键 |
 | [Debug] TestRoomEnabled | false | 允许专用测试房启动，仍需参数与 DebugMode |
 
-修改配置后重启游戏。普通游玩保持 `DebugMode=false`。
+手动修改 CFG 后重启游戏。普通游玩保持 `DebugMode=false`。
 
 `DebugMode=true` 时按 F8，点击雕像按钮生成，或输入命令后按回车／Run 执行：
 
