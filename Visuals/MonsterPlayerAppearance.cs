@@ -45,7 +45,7 @@ internal sealed class MonsterPlayerAppearance : IPlayerAppearance
     internal static IPlayerAppearance? Create(PlayerEntity player, MonsterEntity template,
         AnimationClip? attack = null, Func<float?>? attackElapsed = null)
     {
-        if (player == EntityManager.Me && !player.UseFreeCamWorldRig) return null;
+        if (player == EntityManager.Me && !LocalWorldRigView.IsVisible(player)) return null;
         var rig = player.PlayerWorldRigController;
         if (rig == null || player.WorldRigInstance == null || rig.SkinnedMeshRenderer == null) return null;
         return new MonsterPlayerAppearance(player, player.WorldRigInstance, rig.SkinnedMeshRenderer.gameObject.layer, template, attack, attackElapsed);
@@ -116,7 +116,7 @@ internal sealed class MonsterPlayerAppearance : IPlayerAppearance
     }
 
     public bool Matches(PlayerEntity player) => !_disposed && _copy.Alive && player == _player
-        && (player != EntityManager.Me || player.UseFreeCamWorldRig)
+        && (player != EntityManager.Me || LocalWorldRigView.IsVisible(player))
         && player.PlayerWorldRigController != null && player.WorldRigInstance == _playerRig
         && player.InventoryNew?.InHand == _heldItem && player.FlashLight == _flashlight
         && _flashlight?.FlashLightController == _flashlightController && _flashlightController?.SelfLight == _light
@@ -127,7 +127,7 @@ internal sealed class MonsterPlayerAppearance : IPlayerAppearance
     {
         if (_disposed || _player == null || _playerRig == null) return;
         // The view can change after Tick. Restore before drawing the owner's POV.
-        if (_player == EntityManager.Me && !_player.UseFreeCamWorldRig) { Dispose(); return; }
+        if (_player == EntityManager.Me && !LocalWorldRigView.IsVisible(_player)) { Dispose(); return; }
         // World-mouth VFX is controlled independently by native biome updates.
         // Suppress that instance explicitly; the owner's camera VFX stays native.
         if (_player != EntityManager.Me && _coldMouth != null)

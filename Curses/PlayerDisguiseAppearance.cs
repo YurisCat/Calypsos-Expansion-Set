@@ -33,7 +33,7 @@ internal sealed class PlayerDisguiseAppearance : IPlayerAppearance
     internal static PlayerDisguiseAppearance? Create(DisguiseCurse curse, PlayerEntity player, DisguiseLook look,
         Vector3 stretch, float headScale)
     {
-        if (player == EntityManager.Me && !player.UseFreeCamWorldRig) return null;
+        if (player == EntityManager.Me && !LocalWorldRigView.IsVisible(player)) return null;
         var rig = player.WorldRigInstance;
         if (rig == null || player.PlayerWorldRigController?.SkinnedMeshRenderer == null) return null;
         var infos = UserInstancesManager.Instance?.PlayerCharacterInfos;
@@ -118,7 +118,7 @@ internal sealed class PlayerDisguiseAppearance : IPlayerAppearance
         && player.PlayerWorldRigController.SkinnedMeshRenderer == _body
         && player.PlayerCharacter == _character
         && player.NickWorldSpaceUI?.nickText == _nickname
-        && (player != EntityManager.Me || player.UseFreeCamWorldRig)
+        && (player != EntityManager.Me || LocalWorldRigView.IsVisible(player))
         && (_props == null || _props.Matches(player))
         && _curse.TryLook(player, out var look) && look == _look;
 

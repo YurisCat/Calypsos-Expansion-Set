@@ -2,6 +2,20 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.79 — 2026-10-23（怪相预览照明 / Monster preview lighting）
+
+- 怪相本机第三人称预览及进出过渡期间，临时关闭原版辅助光，避免照亮怪物背部；保留正常第一人称与其他玩家看到的照明。
+  Temporarily suppresses the native body light during the local monster preview and its transitions, preserving normal first-person lighting and other players' views.
+
+## 0.2.78 — 2026-10-23（游戏更新兼容 / Game update compatibility）
+
+- 适配原版冲刺输入入口改名，修复更新后 MOD 加载失败。
+  Adapts to the renamed vanilla sprint-input method, fixing MOD loading after the game update.
+- 恢复原版移除调试自由相机实现后受影响的怪相预览、测试外观检查与本机第三人称外观，并保留换装接管后的显示。
+  Restores monster previews, test appearance inspection and local third-person appearances after vanilla debug free-camera support was removed, preserving presentation when clothing changes take over.
+- 补丁安装失败时回滚并清理，避免残留回调持续报错。
+  Rolls back and cleans up after patch installation fails, preventing repeated errors from leftover callbacks.
+
 ## 0.2.77 — 2026-10-22（主菜单设置 / Main-menu settings）
 
 - 主菜单新增原版样式的“拓展包设置”，可调整名称、箴言、自然生成与挂钟四项开关，支持七语言。

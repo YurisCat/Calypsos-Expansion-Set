@@ -419,7 +419,7 @@ internal static class ExtremeSpeedRunGatePatch
     }
 }
 
-[HarmonyPatch(typeof(PlayerLocomotionController), "OnRunInput_ContinuousState")]
+[HarmonyPatch(typeof(PlayerLocomotionController), "OnRunInput")]
 internal static class ExtremeSpeedRunInputPatch
 {
     [HarmonyPrefix]

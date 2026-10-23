@@ -196,7 +196,7 @@ internal sealed partial class MonsterDisguiseRuntime : IdolContentRuntime
 
     private IPlayerAppearance? CreateAppearance(PlayerEntity player)
     {
-        if (player == _200_Dev.Entities.EntityManager.Me && !player.UseFreeCamWorldRig) return null;
+        if (player == _200_Dev.Entities.EntityManager.Me && !LocalWorldRigView.IsVisible(player)) return null;
         var asset = ChoiceFor(player);
         if (asset == 0) return null;
         var template = NativeMonsterCatalog.Current.Resolve(asset);

@@ -167,7 +167,7 @@ internal sealed class StretchedPlayerAppearance : IPlayerAppearance
 
     internal static IPlayerAppearance? Create(PlayerEntity player, Vector3 stretch, float headScale)
     {
-        if (player == _200_Dev.Entities.EntityManager.Me && !player.UseFreeCamWorldRig) return null;
+        if (player == _200_Dev.Entities.EntityManager.Me && !LocalWorldRigView.IsVisible(player)) return null;
         var curse = CalypsoExpansionSetPlugin.Instance?.Disguises;
         if (curse?.TryLook(player, out _) == true) return curse.CreateAppearance(player, stretch, headScale);
         var rig = player.PlayerWorldRigController;
@@ -212,7 +212,7 @@ internal sealed class StretchedPlayerAppearance : IPlayerAppearance
     }
     public bool Matches(PlayerEntity player) => _copy.Alive && player == _player
         && CalypsoExpansionSetPlugin.Instance?.Disguises?.TryLook(player, out _) != true
-        && (player != _200_Dev.Entities.EntityManager.Me || player.UseFreeCamWorldRig)
+        && (player != _200_Dev.Entities.EntityManager.Me || LocalWorldRigView.IsVisible(player))
         && player.PlayerWorldRigController != null && player.WorldRigInstance == _rig;
     public void Render()
     {

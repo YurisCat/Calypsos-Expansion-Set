@@ -2,6 +2,50 @@
 
 本文保留按版本/日期记录的研究、原生证据与编译、模拟、游戏验收历史。历史章节中的“当前”属于记录当时的语境；查询现行实现请看 [设计说明](docs/ARCHITECTURE.md)，最新状态看 [TODO](TODO.md)，使用方式看 [README](README.md)。
 
+## 2026-10-23：0.2.79 N 网发布与源码同步准备
+
+按当次明确授权，在完成日志研究记录后，将 N 网现有主文件由公开版 0.2.77 更新至 **0.2.79**，归并本次游戏更新的加载／本机第三人称兼容与怪相预览背部照明修正。中英文下载说明与更新记录沿用线上中文在前、英文在后的格式，精简为玩家可见修复；整页介绍、简介、旧文件和历史手动文案均保留，未列入本机调试工具或 GraphicsBuffer 研究过程。
+
+重新执行 `scripts/Build.ps1` 仅编译，Release **0 警告／0 错误**，DLL 哈希与此前交付一致。最新 19:05 双端实测 DLL 为 `20D736D3288756C1CE449134D90889E2115E25995CFE8EABA6F1D789EBC89310`；与本次构建对照，**2,547 个方法体**、`#~`／`#Strings`／`#US`／`#Blob` 元数据流和全部内嵌资源一致，不以文件整体哈希不同直接认定玩法不同。既有托管检查未因文档更新重复执行，不将其改写为新一轮游戏测试。
+
+**19:26（UTC+8）**完成文件版本创建，主文件 ID `8155314`、新版本 ID `45638322487316`、游戏内文件 ID `20`。ZIP **6,073,085 字节**，根目录仅 DLL，SHA256 `836D9189185CEAE8734E0B6216FC04CC8C59816496FCECAD1F6FE6A5FE219B7E`；清单、CRC、解压字节和中英文字段哈希通过。API 已读回主下载／模组版本、包大小、完整双语下载说明与更新记录，确认历史日志、旧文件说明、整页介绍及简介未改。TinyFish fetch／agent 公开页面读取失败，网页显示与下载按钮未确认；扫描哈希尚未返回，未下载回验远端 ZIP。回执、文案及前后快照见本机 `人类工作间/接收文件/Nexus-0.2.79-20261023/`。先补齐本节与发布文档，再按本次授权将源码与记录统一纳入 GitHub 同步；未部署或启动游戏。
+
+## 2026-10-23：GraphicsBuffer 警告来源与 0.2.79 新双端日志核对
+
+只读对照正常 Steam 安装的 Player.log 与五轮本机双端日志。每条原始 `GraphicsBuffer.Finalize` 警告随后由 `Mirror.ThreadLog` 带 `[Thread2]` 前缀转发一次，原始与转发条目各半；旧记录中的八条文本实际对应四次终结器警告，并非八个独立缓冲区。Steam 当前日志有两次原始警告；双端会话按实例 1／2 分别为：10-22 `153032268-05b0a1` 四／十二次，10-23 `181259470-579645` 二／十二次、`182901515-51f885` 二／二次、`185823879-57c014` 四／四次、最新 `190510969-7db864` 二／二次。0.2.77 旧日志已存在此现象，不能归因于 0.2.79 的照明修正。
+
+按当前 GameAssembly SHA256 `48DC0F4D3F3E15F58159274AF9536BDC7FBF750DBF70553A342822E712F90A0B` 核对原生实现，最强候选是原版 `RenderFeatureToolkit.FullScreenFeatureHolder.ModifyRendererData`（RVA `0x2EA96E0`）：反射调用 `ScriptableRendererData.Create` 后丢弃返回的渲染器，没有对该对象调用 Dispose；随后调用的是清理当前管线的 `RenderPipelineManager.CleanupRenderPipeline`，不接收这个临时对象。当前 `UniversalRendererData.Create`（`0x277FAA0`）返回新建 UniversalRenderer，其 ForwardLights 在 Forward+ 模式会成对创建 `m_ZBinsBuffer` 与 `m_TileMasksBuffer`。标准渲染器 Dispose／ForwardLights.Cleanup 及 PreSetup 重建路径均有明确释放，缺口集中于原版工具类自行创建却不保管／释放的临时渲染器；与现场成对警告吻合。日志只有终结器栈，没有分配栈或对象身份，故记为强候选，不声称现场对象已唯一追踪。MOD 没有直接申请 GraphicsBuffer／ComputeBuffer，也没有调用该工具类；未发现 MOD 直接关联，按用户要求不修补或屏蔽此警告。
+
+最新本机双端会话 `20261023-190510969-7db864` 均加载 **0.2.79**、清单 `38A0DB19FF38580D` 一致，房主记录十五次怪相选型。两端 BepInEx 日志均无 Error／Fatal；Player.log 无 NullReferenceException、DOTween、Duplicate sceneId 或此前 `CliRefresh: netIdentity is null`。两端 GraphicsBuffer 原始警告分别在 **19:05:48.494／19:05:50.783** 首次入场时出现，各两次；后续反复拿取怪相没有新增同类警告。此结果证明当前日志未重现上述异常，不替代背部亮光消失的目视反馈，也不扩写为全部联机边界验收。
+
+## 2026-10-23：0.2.79 怪相本机预览辅助光修正
+
+用户反馈游戏更新前没有预览时照亮怪物背部的现象，正常第一人称及其他玩家所见均正常，要求仅修本机临时第三人称。旧源码快照中的 `BodyLight.CliSetFreeCamSuppressed`、`_freeCamSuppressed` 与 `_enabledBeforeFreeCam` 在本次原版更新中删除；0.2.78 替代入口只恢复模型显示。怪相原有 `FlashLightController.SelfLight` 隐藏仍保留，故补回独立 BodyLight 的渲染隔离；尚未通过运行现场灯光切换唯一确认用户看到的光源。
+
+`MonsterDisguisePreview` 仅在已验证持有者本机输出相机、第三人称混合量大于零的实际绘制中，保存当前 `BodyLight._light` 的 enabled 并临时关闭；同次逆序收尾先恢复光，再恢复身体与相机。每次绘制重新读取实际组件／灯光状态，支持提前放下的返回过渡、组件替换、原本关闭、原版后续启用及菜单／死亡／断线／角色或相机替换清理；不调用原版全局灯光开关，不改强度、手电状态、网络／观察者逻辑或专用测试房 inspect。此修正恢复原预览照明，不改变玩家操作或外观资源契约，README 与大厅盒子介绍保持原有简洁说明，IDs、ContentVersion、CFG 与协议不变。
+
+复用实际相机／预览／外观源码的托管检查，新增 **45 项**辅助光隔离／恢复检查，包含正常第一人称、零混合量、进入与返回、原开关保留、渲染收尾、停止／接管、组件替换和观察者隔离；加既有相机回归共 **1,463 项通过**，另有 15,360 个网格角点校验。`scripts/Build.ps1` 仅编译 Release，**0 警告／0 错误**；DLL **0.2.79.0**、**7,221,248 字节**、SHA256 `FB567EBC3BE53E0FFABA6D301849CFA75548C1E49A2DD22C273ED9305780998B`。交付至 `人类工作间/接收文件/0.2.79_怪相预览照明_20261023/`，不覆盖旧交付，未部署或启动游戏。尚待仅回测怪相预览背部亮光与返回后的正常第一人称照明，托管结果不作为游戏／联机验收。
+
+另查用户提供的 19:00:16 两条 `GraphicsBuffer.Finalize` Warning：最新本机双端会话 `20261023-185823879-57c014` 的 Player.log 各有八条同类警告，BepInEx LogOutput.log 未收录。MOD 源码未发现 `GraphicsBuffer`／`ComputeBuffer` 或获取网格 GPU 缓冲区的直接调用；已读的标记绘制会释放自有 CommandBuffer、RenderTexture 与烘焙 Mesh。堆栈只有终结器，没有分配路径，不能据此确认原版或本 MOD 的具体创建者，也不能凭没有直接调用完全排除引擎间接路径；本轮保留为未归因的 Unity 资源释放警告，未修改或屏蔽。
+
+## 2026-10-23：0.2.78 后续双端 DOTween 日志研究与 inspect 反馈
+
+用户明确反馈“测试 inspect 没什么问题”，按本轮专用检查视角反馈记录正常。只读核对更新一组本机双端会话 `.local/local-multiplayer/20261023-182901515-51f885/`（18:29—18:34）：两端为 0.2.78、清单一致，无 BepInEx Error／Fatal。Player 日志在 **18:32:07.960—.962** 记录 `BoardAnimation.SpawnIdol`／`EndGameAnimationPart3` 回调空引用，客户端两次、房主三次；DOTween safe mode 捕获后游戏继续，不能据此认定该回调已完成。此前日志有 MOD 宽体／怪相出售，房主 F8 `rules` 调用快捷结算，故不能仅凭原版调用栈排除 MOD 间接影响。
+
+针对当前 GameAssembly 哈希重新按 token 定位原生方法，记录于 `.local/verification/GameUpdate20261023/native-settlement*.txt`：`EndGameAnimationPart1`（RVA `0x331A6D0`）将当前棋盘 Transform 赋给 BaseBoard（静态字段偏移 `0x120`）；`SpawnIdol`（`0x3321950`）在缺失 missing-piece holder 时回退读取 BaseBoard，随后需要访问其位置。现有 `RunDebugCommands` 直接请求第二阶段，跳过第一阶段的该初始化；第二／第三阶段不会补上此字段。这是调试快捷结算的明确初始化缺口，与本次显示所有权修补分属不同路径。日志未打印现场字段值，尚不能认定具体哪项空引用或常规结算也必然触发；列为 MOD 调试入口关联项，本轮继续分析，未新增玩法／补丁修改或启动游戏。
+
+本轮客户端重复加入仍有六个原版管理器 sceneId 重复，两端合计 26 条角色状态机未初始化及四条昵称 authority 提示，未再出现上一轮两条 `CliRefresh: netIdentity is null`。房主退出时另有 SpectatorUI 两条层级错误、Monster 空 EntityManager 和 JobTempAlloc 提示；五条无堆栈的 LookRotation 零向量、输入配对、原版 Bookshelf_big NavMesh 资源提示分别记录，证据不足的不判为已与 MOD 排除关联。完整日志快照及当前原生研究保留在忽略目录，本轮不以基本实机反馈扩大验收范围。
+
+## 2026-10-23：0.2.78 游戏更新兼容与双端日志排查
+
+按当前游戏、用户更新的 interop 源码与旧快照核对，确认极速所用冲刺输入入口改名，以及调试自由相机实现删除、遗留 getter 恒 false。修复新入口，共用原版保留的第三人称模型显示，六处本机外观／视角判断改用自有所有权；原版换装经静态显示函数接管后让出，清理不覆盖。插件补丁安装或驱动创建失败时先撤销已装补丁再释放服务，保留原始异常，避免初次日志中 1,302 条 Error 的重复触发。十五种雕像与其他模块的检查范围、当前游戏哈希和验证限制见 [逐项报告](docs/COMPATIBILITY_20261023.md)。ID、ContentVersion、CFG 键与网络协议保持。
+
+实际修复 DLL 的 408 个引用类型、1,366 个成员、137 个静态补丁目标全部匹配，12 组动态名称共 15 个方法均存在，清点 7,829 个直接 IL 调用点。1,458 项托管检查通过（相机／外观 1,418、检查视角 17、实际安装作用域回滚 23），扫描 830 个当前 bundle，28 项模板／菜单断言及五份尸体层级核对通过。Release 仅编译 0 警告／0 错误；DLL **0.2.78.0**、**7,220,736 字节**、SHA256 `F3AAEBD9456EC4BE21022D6BFE25423C9974D43261507FA776EDCB79A139B6EF`。本轮未操作部署、启动或 Git 提交／发布。
+
+工作期间用户已用修复版优先测试。本机正常安装 DLL 哈希与本轮构建一致；双端会话 `.local/local-multiplayer/20261023-181259470-579645/` 的日志显示同版、清单 `38A0DB19FF38580D` 一致，包含极速、宽体、怪相、声控、退行、倒立启停以及伪装和标记活动，没有 MOD 自身 Error／Fatal。最后同进程退出重建再加入时，客户端 18:18:45.074／.075 两次原版 `CliRefresh: netIdentity is null`，前有六个原版管理器 sceneId 重复和角色未初始化提示；调用链位于原版生成／Mirror 同步路径。用户反馈实际加入似乎不受影响，不将其当作根因已排除：F8 入口是否间接影响仍需对照，保留首次／重复加入与正常 Steam 联机待验。退出时 SpectatorUI 层级、Monster 空 EntityManager、设备配对与 JobTempAlloc 提示另列，不因原版堆栈直接认定全部与 MOD 无关。
+
+用户随后反馈“基本测试没有问题”，按本轮基本验证记录正常；未逐项列明操作，不扩写为所有设备、断线恢复或跨电脑联机通过。专用单人陈列房 `inspect` 尚无实际使用反馈，该命令仅临时切换角色外观检查视角，与 F8 本机多人及普通游戏入口分开，不作为普通游玩的必测项。重复加入时的原版初始化红字保留待归因，不以基本玩法正常替代根因结论。
+
 ## 2026-10-22：0.2.77 实机反馈、双端日志与 Nexus Mods 上传
 
 用户明确反馈“实机测试，多人测试没问题”，按本轮反馈记录主菜单设置、标记改键与导航修正验收通过，不扩写为所有设备、语言、分辨率或跨电脑网络边界均已逐项覆盖。核对本机双端会话 `.local/local-multiplayer/20261022-153032268-05b0a1/` 的 BepInEx、Player 与 ErrorLog 共六份日志：两端均为 0.2.77，设置页 active=True／alpha=1／raycasts=True、四开关和一个改键行；兼容清单 `38A0DB19FF38580D` 一致，记录多次建房／加入／离房与双方标记活动，没有 MOD Error／Fatal 或异常堆栈。ErrorLog 只有 Steam minidump 初始化信息，Player 在输入系统正常 Shutdown 后有 Unity JobTempAlloc 分配残留提示，无调用栈，暂不能归因于本 MOD。正常安装中的 UnityExplorer 另有 UniverseLib 类型缓存警告，与本次双端 MOD 日志分开记录。

@@ -1,4 +1,5 @@
 using Entities.Player;
+using CalypsoExpansionSet.Visuals;
 using HarmonyLib;
 using Mirror;
 using UnityEngine;
@@ -11,7 +12,8 @@ namespace CalypsoExpansionSet.Testing;
 // Explicit single-player test-room diagnostic. No normal-game camera change.
 internal static class TestRoomAppearanceView
 {
-    private static bool _requested, _oldWorldRig;
+    private static bool _requested;
+    private static readonly LocalWorldRigView WorldRig = new();
     private static PlayerEntity? _player;
     private static Camera? _camera;
     private static Vector3 _beforePosition, _writtenPosition;
@@ -43,12 +45,13 @@ internal static class TestRoomAppearanceView
             || plugin.RuntimeFailed || !NetworkClient.ready || player == null || player.CurrentHealthSync <= 0)
         { _requested = false; Reset(); return; }
         if (!plugin.LocalGameplayReady(player)) { Reset(); return; }
+        if (_player != null && !LocalWorldRigView.IsVisible(_player))
+        { _requested = false; Reset(); return; }
         if (_player != player)
         {
             Reset();
+            if (!WorldRig.TryShow(player)) { _requested = false; return; }
             _player = player;
-            _oldWorldRig = player.UseFreeCamWorldRig;
-            player.CliSetFreeCamWorldRig(true);
             var rig = player.PlayerWorldRigController;
             plugin.Log.LogInfo($"[Test appearance rig] world={rig?.RigGameObject?.name}, active={rig?.RigGameObject?.activeInHierarchy}, renderer={rig?.SkinnedMeshRenderer?.name}, enabled={rig?.SkinnedMeshRenderer?.enabled}, off={rig?.SkinnedMeshRenderer?.forceRenderingOff}; local={player.PlayerLocalRigController?.RigGameObject?.activeInHierarchy}.");
         }
@@ -85,9 +88,8 @@ internal static class TestRoomAppearanceView
     private static void Reset()
     {
         End();
-        if (_player != null && _player.UseFreeCamWorldRig)
-            _player.CliSetFreeCamWorldRig(_oldWorldRig);
         _player = null;
+        WorldRig.Dispose();
     }
 
     internal static void Stop()

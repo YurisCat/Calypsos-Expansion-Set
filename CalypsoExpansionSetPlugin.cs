@@ -20,7 +20,7 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
 {
     public const string PluginId = "calypso.invokyr.expansionset";
     public const string PluginName = "Calypso's Expansion Set";
-    public const string PluginVersion = "0.2.77";
+    public const string PluginVersion = "0.2.79";
     // The former plugin must not register the same content/message IDs alongside this one.
     public const string LegacyPluginId = "mhz.invokyr.moreidols";
     internal static CalypsoExpansionSetPlugin? Instance { get; private set; }
@@ -100,8 +100,22 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         Pings = new QualityOfLife.Pings.SharedPings(this);
         SettingsMenu = new UI.ExpansionSettingsMenu(this);
         _harmony = new Harmony(PluginId);
-        _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
-        _driver = AddComponent<ExpansionSetDriver>();
+        try
+        {
+            _harmony.PatchAll(typeof(CalypsoExpansionSetPlugin).Assembly);
+            _driver = AddComponent<ExpansionSetDriver>();
+        }
+        catch
+        {
+            // PatchAll can fail after installing earlier render/network hooks.
+            // Remove those callbacks before disposing their partially loaded owner.
+            try { _harmony.UnpatchSelf(); }
+            catch (Exception cleanup) { Log.LogError($"Plugin patch rollback failed: {cleanup}"); }
+            try { ReleasePlugin(); }
+            catch (Exception cleanup) { Log.LogError($"Plugin load rollback failed: {cleanup}"); }
+            finally { Instance = null; }
+            throw;
+        }
         Log.LogInfo($"{PluginName} {PluginVersion} loaded. All players need compatible MOD content. "
             + "DebugMode enables one test console: F8 by default. Enter 'spawn jumping' in its input box.");
     }
@@ -114,6 +128,12 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
             Log.LogWarning("Leave the network session before unloading Calypso's Expansion Set.");
             return false;
         }
+        ReleasePlugin();
+        return true;
+    }
+
+    private void ReleasePlugin()
+    {
         SettingsMenu?.Dispose();
         Pings?.Dispose();
         Disguises?.Dispose();
@@ -133,7 +153,6 @@ public sealed class CalypsoExpansionSetPlugin : BasePlugin
         _harmony?.UnpatchSelf();
         Sync.Dispose();
         Registry.Dispose();
-        return true;
     }
 
     internal void Tick()

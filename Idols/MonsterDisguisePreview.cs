@@ -18,13 +18,16 @@ internal sealed class MonsterDisguisePreview : IDisposable
     private ScoreTool? _pickupIdol;
     private CameraManager? _manager;
     private Camera? _view, _renderCamera;
+    private Light? _renderBodyLight;
     private GameObject? _rig, _hiddenBody;
     private Renderer[] _bodyRenderers = Array.Empty<Renderer>();
     private bool[] _beforeBodyOff = Array.Empty<bool>();
     private int _bodySuppressedCount;
     private uint _waitingSequence, _monster;
     private float _until, _centerHeight, _radius;
-    private bool _shown, _beforeWorldRig, _ownsWorldRig, _framed, _faulted, _returning;
+    private bool _shown, _framed, _faulted, _returning;
+    private bool _beforeBodyLightEnabled;
+    private readonly LocalWorldRigView _worldRig = new();
     private readonly FovBlend _blend = new();
     private Vector3 _beforePosition, _writtenPosition;
     private Quaternion _beforeRotation, _writtenRotation;
@@ -69,12 +72,12 @@ internal sealed class MonsterDisguisePreview : IDisposable
         var view = source?._cam;
         if (_shown || monster == 0 || sequence == _waitingSequence || manager == null
             || source == null || !source._ready || view == null || !view.isActiveAndEnabled || view.orthographic
-            || source._playerPerlinShake != player!.playerPerlinShake || player.UseFreeCamWorldRig
+            || source._playerPerlinShake != player!.playerPerlinShake || LocalWorldRigView.IsVisible(player)
             || player.PlayerMovement?.isOwned != true || player.WorldRigInstance == null
             || player.PlayerWorldRigController?.SkinnedMeshRenderer == null
             || player._clothChangeItemsOnWorldRig || CalypsoExpansionSetPlugin.Instance?.LocalGameplayReady(player) != true
             || !IsPov(manager)) return;
-        _beforeWorldRig = player.UseFreeCamWorldRig;
+        if (!_worldRig.TryShow(player)) return;
         _holder = player; _idol = idol;
         _view = view;
         _manager = manager;
@@ -87,8 +90,6 @@ internal sealed class MonsterDisguisePreview : IDisposable
         _framed = _returning = false;
         _active = this;
         _until = float.PositiveInfinity;
-        _ownsWorldRig = true;
-        player.CliSetFreeCamWorldRig(true);
     }
 
     private static bool IsPov(CameraManager manager) =>
@@ -100,7 +101,7 @@ internal sealed class MonsterDisguisePreview : IDisposable
         && _holder != null && _holder == EntityManager.Me
         && _holder.isActiveAndEnabled && _holder.CurrentHealthSync > 0 && _holder.PlayerMovement?.isOwned == true
         && _manager != null && _manager == CameraManager.Instance && IsPov(_manager)
-        && _holder.UseFreeCamWorldRig && _holder.WorldRigInstance == _rig && !_holder._clothChangeItemsOnWorldRig
+        && LocalWorldRigView.IsVisible(_holder) && _holder.WorldRigInstance == _rig && !_holder._clothChangeItemsOnWorldRig
         && _view != null && _view.isActiveAndEnabled && !_view.orthographic
         && SetFovShakeData.Instance?._cam == _view && SetFovShakeData.Instance?._ready == true
         && SetFovShakeData.Instance?._playerPerlinShake == _holder.playerPerlinShake
@@ -217,6 +218,16 @@ internal sealed class MonsterDisguisePreview : IDisposable
                 renderer.forceRenderingOff = true;
             }
         }
+        // Native free-camera body-light suppression was removed. Limit its
+        // replacement to this local preview's draw, including the return blend.
+        var bodyLight = player.bodyLight;
+        var light = bodyLight != null ? bodyLight._light : null;
+        if (amount > 0 && light != null)
+        {
+            _renderBodyLight = light;
+            _beforeBodyLightEnabled = light.enabled;
+            light.enabled = false;
+        }
     }
 
     internal static void EndRender(Camera? camera = null)
@@ -229,6 +240,8 @@ internal sealed class MonsterDisguisePreview : IDisposable
 
     private void ReleaseRender()
     {
+        var light = _renderBodyLight; _renderBodyLight = null;
+        if (light != null && !light.enabled) light.enabled = _beforeBodyLightEnabled;
         var body = _hiddenBody; _hiddenBody = null;
         if (body != null) body.SetActive(true);
         if (_bodySuppressedCount > 0)
@@ -257,18 +270,11 @@ internal sealed class MonsterDisguisePreview : IDisposable
         try { ReleaseRender(); }
         finally
         {
-            var restoreWorldRig = _ownsWorldRig;
-            _ownsWorldRig = false;
             _returning = false; _blend.Clear();
             _manager = null; _view = null; _rig = null;
             _bodyRenderers = Array.Empty<Renderer>(); _beforeBodyOff = Array.Empty<bool>();
             if (_active == this) _active = null;
-            // A native clothing sequence taking over already owns world-rig
-            // visibility. Do not turn its model off while ending our preview.
-            if (restoreWorldRig && _holder != null && _holder.UseFreeCamWorldRig
-                && !_holder._clothChangeItemsOnWorldRig
-                && CameraManager.Instance?.LocalAnimatorState != CameraManager.ECameraAnimatorState.CHARACTER_SWAP)
-                _holder.CliSetFreeCamWorldRig(_beforeWorldRig);
+            _worldRig.Dispose();
         }
     }
 
