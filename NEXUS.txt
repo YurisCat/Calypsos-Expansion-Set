@@ -1,6 +1,6 @@
 [center][size=6][color=#B78A50][b]Calypso's Expansion Set[/b][/color][/size][/center]
 
-[center]15 new idols with unusual carrying challenges, hand-drawn sticky-note symbols and short hints in seven languages for custom and supported vanilla idols.[/center]
+[center]16 new idols with unusual effects, hand-drawn sticky-note symbols and short hints in seven languages for custom and supported vanilla idols.[/center]
 
 
 [size=4][color=#B78A50][b]The Idols[/b][/color][/size]
@@ -50,11 +50,14 @@ Gives you a huge head and a strong fisheye view.
 [b][color=#B78A50]15 ·[/color] Backstep[/b]
 Forward and backward both move you backward; left/right stay normal, and you can sprint backward.
 
+[b][color=#B78A50]16 ·[/color] Shifting[/b]
+Teleports to a nearby location when it leaves every player's view.
+
 
 [size=4][color=#B78A50][b]Gameplay Improvements[/b][/color][/size]
 
 [list]
-[*]Adds 15 fun and challenging new idols.[/*]
+[*]Adds 16 fun and challenging new idols.[/*]
 [*]In multiplayer, dice can swap players' appearances and overhead names; post-master boards can also include this rule.[/*]
 [*]Makes the Old Clock reusable (off by default; host setting only).[/*]
 [/list]
@@ -125,7 +128,7 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [center][size=6][color=#B78A50][b]卡里普索拓展包[/b][/color][/size][/center]
 
-[center]为 Invokyr 添加 15 种搬运挑战各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向箴言。[/center]
+[center]为 Invokyr 添加 16 种效果各异的新雕像，附有便签图案，并为新雕像与已支持的原版雕像提供指向箴言。[/center]
 
 
 [size=4][color=#B78A50][b]雕像一览[/b][/color][/size]
@@ -175,11 +178,14 @@ Detailed setup, testing and limitations are on GitHub below.
 [b][color=#B78A50]15 ·[/color] 退行[/b]
 前进、后退都向后走，左右照常，可以向后冲刺。
 
+[b][color=#B78A50]16 ·[/color] 游移[/b]
+脱离所有玩家视野时，瞬移至附近。
+
 
 [size=4][color=#B78A50][b]游戏性提升[/b][/color][/size]
 
 [list]
-[*]添加 15 种有趣又富有挑战性的新雕像。[/*]
+[*]添加 16 种有趣又富有挑战性的新雕像。[/*]
 [*]多人时，骰子可能让玩家互换外观与头顶昵称；大师棋盘也有几率出现该规则。[/*]
 [*]老旧挂钟可反复使用（默认关闭，仅主机设置生效）。[/*]
 [/list]

@@ -2,6 +2,43 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.86 — 2026-10-25（游移向下落点 / Shifting ground search）
+
+- 游移雕像可从桌面等高处寻找附近可达地面，只选向下检测首先遇到的实体表面，并复核导航贴合与安全空间；不穿过地板寻找下层平台，向上范围保持。
+  The Shifting Idol can find nearby reachable ground from tables and other elevated starting positions. It uses the first physical surface below each candidate and checks navigation alignment and safe space, without searching through floors for lower platforms. The upward range is unchanged.
+
+## 0.2.85 — 2026-10-25（游移范围 / Shifting range）
+
+- 提高游移雕像在大房间内的位移距离上限，仍按房间大小决定范围，并检查同房间、安全可达和全员视野盲区。
+  Increases the Shifting Idol's teleport distance cap in large rooms. Range still scales with room size, with destinations checked for safe access and exclusion from every player's view in the same room.
+
+## 0.2.84 — 2026-10-25（游移朝向与刚体修正 / Shifting orientation and rigidbody fix）
+
+- 游移雕像每次瞬移随机改变水平朝向，按旋转后的模型范围检查安全落点；修复对运动学刚体清零速度产生的 Unity 警告。
+  The Shifting Idol chooses a random horizontal orientation for each teleport and checks the rotated model bounds. Fixes Unity warnings from assigning velocities to a kinematic rigidbody.
+
+## 0.2.83 — 2026-10-25（游移即时尝试 / Immediate shifting attempts）
+
+- 游移雕像在全员移开视线时立即尝试安全换位，取消稳定等待、逐点联网确认和延迟重试；一次有上限的搜索会跳过可见候选继续寻找，失败留在原地，重新观察后才能再试。
+  The Shifting Idol attempts a safe relocation as soon as everyone looks away, without a stability delay, per-destination network round trips or delayed retries. A bounded search skips visible candidates; failure leaves it in place until it is observed again.
+
+## 0.2.82 — 2026-10-25（游移视野判定 / Shifting visibility）
+
+- 修复游移雕像将普通镜头屏幕外的对象误判为被观察，导致其他玩家静止时迟迟不换位；保留实际可见、未知视野及安全落点的限制。
+  Fixes offscreen idols being treated as observed in normal views, preventing relocation while other players stood still. Actual visibility, unknown-view pauses and safe-placement checks remain in effect.
+
+## 0.2.81 — 2026-10-25（游移响应 / Shifting response）
+
+- 游移雕像不再要求附近玩家与其命中同一房间触发体，继续检查实际安全可达性；缩短候选落点被视野否决后的等待。
+  The Shifting Idol no longer requires a nearby player to share its room trigger, while retaining safe-path checks. Shortens the delay before replacing a destination vetoed by a player's view.
+
+## 0.2.80 — 2026-10-25（游移雕像 / Shifting Idol）
+
+- 新增游移雕像：落地后先被玩家看见，所有玩家移开视线时尝试在同一房间的安全盲区换位一次，再次被看见才能再次触发；持有和大厅内停用，位移不能进入大厅。正常第三人称、怪相预览与死亡旁观参与观察，扫描／标记轮廓不算。
+  Adds the Shifting Idol: after being seen while dropped, it can relocate once to a safe blind spot in the same room when everyone looks away. A new observation is required for another move. Carrying and the lobby suspend it; destinations exclude the lobby. Normal third-person views, monster previews and death spectating count, while scan/ping outlines do not.
+- 眼睛平时黑色，大厅内变青色，全员共享；使用空白便签，中文箴言为“目不转睛，方能安心”。
+  Eyes are black outside the lobby and cyan inside, shared by all players. Uses a blank sticky note and localized advice.
+
 ## 0.2.79 — 2026-10-23（怪相预览照明 / Monster preview lighting）
 
 - 怪相本机第三人称预览及进出过渡期间，临时关闭原版辅助光，避免照亮怪物背部；保留正常第一人称与其他玩家看到的照明。
