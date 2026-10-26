@@ -194,7 +194,7 @@ flowchart LR
 | 像素雕像 | mosaic | 0x4D4900000000000D | 0x4D49000D | 3 | LocalPresentation |
 | 描边雕像 | outline | 0x4D4900000000000E | 0x4D49000E | 3 | LocalPresentation |
 | 大头雕像 | big_head_fisheye | 0x4D4900000000000F | 0x4D49000F | 3 | LocalPresentation |
-| 退行雕像 | backstep | 0x4D49000000000010 | 0x4D490010 | 2 | OwnerNativeGameplay |
+| 退行雕像 | backstep | 0x4D49000000000010 | 0x4D490010 | 3 | OwnerNativeGameplay |
 | 游移雕像 | quantum | 0x4D49000000000011 | 0x4D490011 | 8 | ServerGameplay |
 
 十六种均使用 Score 配置/外观模板 `7331884207844971565`，以 Slippery `13601636613369722279` 匹配自然池。基础属性继承模板，均未指定自定义初始权重。

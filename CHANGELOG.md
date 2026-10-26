@@ -2,6 +2,11 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.88 — 2026-10-26（退行手绘更新 / Backstep artwork update）
+
+- 更新退行雕像的手绘便签，以箭头与叉号替换原 WASD 提示。
+  Updates the Backstep Idol's hand-drawn note, replacing the WASD label with an arrow and cross.
+
 ## 0.2.87 — 2026-10-26（退行与游移手绘 / Backstep and Shifting artwork）
 
 - 退行雕像和游移雕像的空白便签替换为各自的正式手绘图案。

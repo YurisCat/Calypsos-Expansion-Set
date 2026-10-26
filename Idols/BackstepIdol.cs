@@ -15,7 +15,7 @@ internal sealed class BackstepIdol : HeldIdolEffect
         PoolTemplateId = 13601636613369722279UL,
         ShortDescription = "进亦是退，退亦是退",
         CreateVisuals = prefab => StickyNoteVisuals.Create(prefab, "handdrawn_backstep"),
-        ContentVersion = 2
+        ContentVersion = 3
     };
 
     private static BackstepIdol? _active;

@@ -5,7 +5,7 @@
     1024,
     1024
   ],
-  "source_sha256": "622719d3b31aba2508774612371963290e7830c0eb96aefece35914742981d6d",
+  "source_sha256": "f4be5d7fbf7c91a437e5997f095741e047e6522078eead674bb939ccea91eb0b",
   "base_sha256": "163b596530a68838c81f656fc49334d72eb942b1b5df4af0b4051ca859cc7824",
   "mesh_sha256": "0d6ba977712267abd6a67401b863e915c417a3d56cf1a049b26b521614e23ff7",
   "front_uv": [
@@ -18,7 +18,7 @@
   "runtime_format": "512x512 RGBA32; bottom-up rows; complete mip chain; opaque",
   "storage": "CSN1 v1; zlib-compressed XOR against shared paper.note",
   "paper_rgba_sha256": "a230389938871fdbbb1f028087406d55a06296e7093c7566a857745c0bafa98c",
-  "packed_sha256": "d5af387663aca72e1dd0c544bff36ed901f0631f5081eaf18ea451c7c39074e1",
-  "packed_bytes": 113115,
-  "rgba_sha256": "9f9ca27e848c5a2cb87522ffaec48679a4759e11c7ef08f618c945f6a905beab"
+  "packed_sha256": "96655d3e90c0256aa26c4ac76fca1d44b1c35ddb135e71b7b9b3241eaf7ba65d",
+  "packed_bytes": 114403,
+  "rgba_sha256": "342ff31e191e85ab3ee8a833f9a183cab5b088050c6ea9cccebe79c3225533c2"
 }
