@@ -16,13 +16,13 @@ internal sealed class QuantumIdol : HeldIdolEffect
         CreateVisuals = prefab =>
         {
             IdolEyeOverlay.Validate(prefab.GetComponent<ScoreTool>());
-            return StickyNoteVisuals.Create(prefab);
+            return StickyNoteVisuals.Create(prefab, "handdrawn_quantum");
         },
         CreateRuntime = () => new QuantumIdolRuntime(),
         SharedVisual = new IdolSharedVisualDefinition(IdolVisualAuthority.Server,
             idol => new IdolEyeProgressVisual(idol, "Calypso Quantum Eyes",
                 value => value >= 0.5f ? PlayerPresenceNames.InsideColor : Color.black)) { ShowWhenDropped = true },
-        ContentVersion = 7
+        ContentVersion = 8
     };
 
     // The content runtime owns observation while dropped; carrying suspends it.

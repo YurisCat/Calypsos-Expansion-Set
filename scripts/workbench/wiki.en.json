@@ -14,6 +14,8 @@
     "big_head_fisheye": "Teammates see your enlarged head, while your world and HUD gain a strong fisheye distortion. Menus remain normal.",
     "near_view": "Picking it up smoothly zooms your view in, bringing distant objects closer and narrowing your view. Dropping it smoothly restores your vision.",
     "voice": "Make a sound to move forward; go quiet to stop driving your movement. Voice replaces directional input, while looking and other actions remain available. Red eyes mean standby; blue means moving.",
-    "relay": "The longer one person holds it, the slower they move and the redder its eyes become. Dropping and picking it up does not reset fatigue; passing it to a teammate does. Fatigue builds more slowly when alone."
+    "relay": "The longer one person holds it, the slower they move and the redder its eyes become. Dropping and picking it up does not reset fatigue; passing it to a teammate does. Fatigue builds more slowly when alone.",
+    "backstep": "Forward and backward inputs both move you backward. Left and right stay normal, and you can sprint backward.",
+    "quantum": "After being seen while dropped, it tries to move once to a safe blind spot in the same room when everyone looks away. It must be seen again before another attempt. Carrying it or bringing it into the lobby stops it."
   }
 }

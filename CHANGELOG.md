@@ -2,6 +2,11 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.87 — 2026-10-26（退行与游移手绘 / Backstep and Shifting artwork）
+
+- 退行雕像和游移雕像的空白便签替换为各自的正式手绘图案。
+  Replaces the blank notes on the Backstep Idol and Shifting Idol with their own hand-drawn artwork.
+
 ## 0.2.86 — 2026-10-25（游移向下落点 / Shifting ground search）
 
 - 游移雕像可从桌面等高处寻找附近可达地面，只选向下检测首先遇到的实体表面，并复核导航贴合与安全空间；不穿过地板寻找下层平台，向上范围保持。
