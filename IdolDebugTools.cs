@@ -376,7 +376,7 @@ internal sealed class IdolDebugTools : IDisposable
             {
                 if (!ZoneManager.SrvTryGetPlayerSpawnPosition(player, out var position, out _))
                 { skipped++; continue; }
-                player.SrvResurrect(new Il2CppSystem.Nullable<Vector3>(position), new Il2CppSystem.Nullable<int>(player.MaxHealthSync));
+                player.SrvResurrect(new Il2CppSystem.Nullable<Vector3>(position), new Il2CppSystem.Nullable<int>(player.MaxHealthSync), reviver: null);
                 if (player.CurrentHealthSync <= 0) { skipped++; continue; }
                 revived++;
             }

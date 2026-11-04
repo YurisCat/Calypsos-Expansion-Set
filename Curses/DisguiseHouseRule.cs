@@ -238,9 +238,17 @@ internal static class DisguiseRuleGenerationPatch
 
 // Filter before random selection, even when a caller overrides the native solo
 // flag. Room membership includes dead players and players awaiting their bodies.
-[HarmonyPatch(typeof(HouseRuleManager.__c__DisplayClass51_0), "_SrvGenerateHouseRulesByBoardConfig_b__0")]
+[HarmonyPatch]
 internal static class DisguiseRuleCandidatePatch
 {
+    // Closure numbers change between game builds; resolve the verified predicate
+    // by its name and signature once while installing the patch.
+    private static MethodBase TargetMethod() => typeof(HouseRuleManager)
+        .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
+        .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+        .Single(method => method.Name == "_SrvGenerateHouseRulesByBoardConfig_b__0" && method.ReturnType == typeof(bool)
+            && method.GetParameters().Length == 1 && method.GetParameters()[0].ParameterType == typeof(HouseRule));
+
     private static void Postfix(HouseRule __0, ref bool __result)
     {
         if (__result && NetworkServer.active

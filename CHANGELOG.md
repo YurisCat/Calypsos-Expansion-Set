@@ -2,6 +2,11 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.89 — 2026-11-04（游戏更新兼容 / Game update compatibility）
+
+- 适配原版 0.44.15，修复房规筛选补丁导致的加载失败，并更新调试复活接口。
+  Supports game version 0.44.15, fixing a house-rule patch that prevented the plugin from loading and updating the debug revival call.
+
 ## 0.2.88 — 2026-10-26（退行手绘更新 / Backstep artwork update）
 
 - 更新退行雕像的手绘便签，以箭头与叉号替换原 WASD 提示。
