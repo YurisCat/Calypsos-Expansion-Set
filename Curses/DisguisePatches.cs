@@ -1,6 +1,5 @@
 using BoardGame.Elements;
 using EnhancedEditor;
-using Entities.Player;
 using HarmonyLib;
 using Items;
 using Mirror;
@@ -11,7 +10,7 @@ using _200_Dev.Utility.Runtime.NetworkManager;
 
 namespace CalypsoExpansionSet.Curses;
 
-// Restrict the private marker to the native dice effect which consumes it.
+// Restrict the private marker to the native dice selection which consumes it.
 [HarmonyPatch(typeof(SOFaceResultCellEffect), nameof(SOFaceResultCellEffect.SrvExecuteEffect))]
 internal static class DisguiseDiceScopePatch
 {
@@ -69,43 +68,38 @@ internal static class DisguiseDicePoolPatch
         return false;
     }
 
-    private static Exception? Finalizer(Exception? __exception, bool __result, EAlterationType alterationType)
+    private static Exception? Finalizer(Exception? __exception, ref bool __result, ref EAlterationType alterationType)
     {
         if (DisguiseDiceScopePatch.Active && __exception == null)
+        {
             DisguiseDiceDiagnostics.LogSelection(__result, alterationType);
+            if (__result && alterationType == DisguiseCurse.DiceMarker)
+            {
+                // IL2CPP inlines ApplyCursesToPlayers in the face effect. Consume
+                // the marker here, after all selection postfixes, before native code sees it.
+                __result = false;
+                alterationType = default;
+                ApplyDisguise();
+            }
+        }
         if (DisguiseDiceScopePatch.Active && DisguiseDiceDiagnostics.Enabled)
             DisguiseDiceDiagnostics.Write($"random selection returned: found={__result}, type={(int)alterationType}, "
                 + $"disguise={alterationType == DisguiseCurse.DiceMarker}, error={__exception?.ToString() ?? "none"}");
         return __exception;
     }
-}
-
-[HarmonyPatch(typeof(SOFaceResultCellEffect), nameof(SOFaceResultCellEffect.ApplyCursesToPlayers))]
-internal static class DisguiseDiceApplyPatch
-{
-    private static bool Prefix(CheatTool cheatTool, PlayerEntity toolOwner, EAlterationType alterationType)
+    private static void ApplyDisguise()
     {
-        if (NetworkServer.active && DisguiseDiceDiagnostics.Enabled)
-            DisguiseDiceDiagnostics.Write($"apply entered: dice={cheatTool.netId}, type={(int)alterationType}, "
-                + $"disguise={alterationType == DisguiseCurse.DiceMarker}");
-        if (alterationType != DisguiseCurse.DiceMarker) return true;
-        // The native caller still handles the face's audio/result. Complete the
-        // board turn using its no-pending-curse path; no unknown native enum escapes.
-        if (NetworkServer.active)
+        var plugin = CalypsoExpansionSetPlugin.Instance;
+        try
         {
-            var plugin = CalypsoExpansionSetPlugin.Instance;
-            try
-            {
-                var reason = "Disguise service is unavailable.";
-                if (plugin?.Disguises?.ApplyDice(out reason) != true)
-                    plugin?.Log.LogWarning($"[Disguise dice] Selected but could not apply: {reason}");
-            }
-            catch (Exception error) { plugin?.Fail(error); }
-            cheatTool.SrvTryEnqueueCheatTool(toolOwner, false);
-            DisguiseDiceDiagnostics.Write("disguise die enqueue returned; requesting next turn");
-            BoardGameManager.Instance?.BoardGameRulesEngine?.SrvNextTurn();
+            var reason = "Disguise service is unavailable.";
+            if (plugin?.Disguises?.ApplyDice(out reason) != true)
+                plugin?.Log.LogWarning($"[Disguise dice] Selected but could not apply: {reason}");
         }
-        return false;
+        catch (Exception error) { plugin?.Fail(error); }
+        // Returning 'no native curse' preserves the face's feedback and lets the
+        // original caller enqueue the die BEFORE requesting the next turn.
+        DisguiseDiceDiagnostics.Write("disguise selection consumed; native caller will enqueue die before next turn");
     }
 }
 

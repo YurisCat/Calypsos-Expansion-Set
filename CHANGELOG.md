@@ -2,6 +2,16 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.91 — 2026-11-08（伪装骰子修复 / Disguise dice fix）
+
+- 修复诅咒骰子抽中伪装后不生效、棋盘无法正常推进的问题，适配当前原版的骰面执行路径。
+  Fixes Disguise failing to activate and blocking board progression when rolled as a dice curse, adapting its integration to the current game's dice-effect path.
+
+## 0.2.90 — 2026-11-08（骰子测试工具 / Dice test tools，未发布）
+
+- F8 新增独立测试骰子页：选择点数和普通／祝福／诅咒，无需解锁即可生成；诅咒可指定抽中伪装，用于复现，原有施加逻辑暂不修复。
+  Adds an F8 test-dice page with a selected number and normal, blessed or cursed face, without unlocking dice. Curses can be forced to select Disguise for reproduction; its existing application flow remains unchanged.
+
 ## 0.2.89 — 2026-11-04（游戏更新兼容 / Game update compatibility）
 
 - 适配原版 0.44.15，修复房规筛选补丁导致的加载失败，并更新调试复活接口。

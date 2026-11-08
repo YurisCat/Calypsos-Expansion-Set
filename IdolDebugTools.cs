@@ -40,10 +40,11 @@ internal sealed class IdolDebugTools : IDisposable
     private Vector2 _resultScroll;
     private string[] _spawnLabels = Array.Empty<string>();
     private readonly Lobby.LobbyBoxEditor _boxEditor;
-    private enum DebugPage { Idols, Box, LocalMultiplayer }
+    private enum DebugPage { Idols, Dice, Box, LocalMultiplayer }
     private DebugPage _page;
     internal Testing.LocalMultiplayer LocalMultiplayer { get; }
     internal Testing.RunDebugCommands RunCommands { get; }
+    internal Testing.DebugDiceTools Dice { get; }
     internal bool Enabled => _enabled.Value;
     internal bool PanelOpen { get; private set; }
 
@@ -52,6 +53,7 @@ internal sealed class IdolDebugTools : IDisposable
         _plugin = plugin;
         LocalMultiplayer = new Testing.LocalMultiplayer(plugin, Close);
         RunCommands = new Testing.RunDebugCommands(plugin);
+        Dice = new Testing.DebugDiceTools(plugin, Close);
         _boxEditor = new Lobby.LobbyBoxEditor(plugin);
         Catalog = new IdolDebugCatalog(plugin);
         _monsters = new IdolDebugMonsters(plugin);
@@ -87,6 +89,7 @@ internal sealed class IdolDebugTools : IDisposable
         LocalMultiplayer.Tick();
         RunCommands.Tick();
         if (!Enabled) { Cancel(); return; }
+        Dice.Tick();
         _boxEditor.Tick();
         _monsters.Tick();
         if (_invulnerablePlayer is { } protectedPlayer
@@ -474,13 +477,20 @@ internal sealed class IdolDebugTools : IDisposable
         var y = _windowRect.y;
         var width = _windowRect.width;
         GUI.Box(_windowRect, $"Calypso's Expansion Set - Test console ({_windowKey} / Esc to close; drag title)");
-        var tabWidth = (width - 46f) / 3f;
+        var tabWidth = (width - 54f) / 4f;
         if (GUI.Button(new Rect(x + 15, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("雕像工具", "Idol tools")))
         { _boxEditor.CancelDrag(); _page = DebugPage.Idols; }
-        if (GUI.Button(new Rect(x + 23 + tabWidth, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("模型摆放", "Model placement")))
+        if (GUI.Button(new Rect(x + 23 + tabWidth, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("测试骰子", "Test dice")))
+        { _boxEditor.CancelDrag(); _page = DebugPage.Dice; }
+        if (GUI.Button(new Rect(x + 31 + tabWidth * 2, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("模型摆放", "Model placement")))
         { _boxEditor.CancelDrag(); _page = DebugPage.Box; }
-        if (GUI.Button(new Rect(x + 31 + tabWidth * 2, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("本机联机", "Local multiplayer")))
+        if (GUI.Button(new Rect(x + 39 + tabWidth * 3, y + 30, tabWidth, 25), Lobby.LobbyBoxText.Pick("本机联机", "Local multiplayer")))
         { _boxEditor.CancelDrag(); _page = DebugPage.LocalMultiplayer; }
+        if (_page == DebugPage.Dice)
+        {
+            Dice.Draw(new Rect(x + 15, y + 65, width - 30, _windowRect.height - 80));
+            return;
+        }
         if (_page == DebugPage.Box)
         {
             _boxEditor.Draw(new Rect(x + 15, y + 65, width - 30, _windowRect.height - 80));
@@ -586,6 +596,6 @@ internal sealed class IdolDebugTools : IDisposable
         _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
     }
 
-    internal void Cancel() { _pending = null; LocalMultiplayer.CancelRequest(); Close(); _monsters.Clear(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
+    internal void Cancel() { _pending = null; Dice.Clear(); LocalMultiplayer.CancelRequest(); Close(); _monsters.Clear(); RestoreInvulnerability(); _plugin.Teleports.Reset(); Testing.TestRoomAppearanceView.Stop(); }
     public void Dispose() { Cancel(); RunCommands.Dispose(); LocalMultiplayer.Dispose(); }
 }
