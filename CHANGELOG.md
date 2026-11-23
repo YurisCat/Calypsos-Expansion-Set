@@ -2,6 +2,14 @@
 
 本文件记录 0.2.7 起的开发版本变化。更早版本及详细研究、编译、模拟和游戏验收证据见 [DEVELOPMENT.md](DEVELOPMENT.md)；未完成事项见 [TODO.md](TODO.md)。
 
+## 0.2.92 — 2026-11-23（伪装开关与性能优化 / Disguise setting and performance）
+
+- 骰子诅咒和大师规则中的伪装默认关闭。房主可在拓展包设置中开启，激活时可能掉帧。
+  Disguise is off by default for dice curses and post-master rules. Hosts can enable it in Expansion settings. It may lower FPS while active.
+
+- 减少玩家互换外观时的骨骼同步开销。
+  Reduces the cost of updating character poses during Disguise.
+
 ## 0.2.91 — 2026-11-08（伪装骰子修复 / Disguise dice fix）
 
 - 修复诅咒骰子抽中伪装后不生效、棋盘无法正常推进的问题，适配当前原版的骰面执行路径。

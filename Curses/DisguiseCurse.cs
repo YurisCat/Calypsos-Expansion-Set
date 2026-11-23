@@ -1,3 +1,4 @@
+using BepInEx.Configuration;
 using CalypsoExpansionSet.Visuals;
 using CalypsoExpansionSet.Testing;
 using Entities.Player;
@@ -15,9 +16,11 @@ internal sealed class DisguiseCurse : IDisposable
     // Internal dice-selection marker only. Never sent to a vanilla alteration runner or SyncList.
     internal const EAlterationType DiceMarker = (EAlterationType)0x43455301;
     private const float SnapshotInterval = 0.5f, SnapshotLifetime = 3f;
+    private const string DisabledReason = "Enable Disguise in Expansion settings before hosting.";
     private sealed record Peer(IntPtr Connection, ulong Session);
     private readonly record struct DisplaySource(IntPtr Player, IntPtr Rig, IntPtr Body, int Character, IntPtr Held, IntPtr Flashlight);
     private readonly CalypsoExpansionSetPlugin _plugin;
+    private readonly ConfigEntry<bool> _enabled;
     private readonly NetworkMessageDelegate _handler;
     private readonly DisguiseStatusIcon _statusIcon;
     private readonly DisguiseArrivalEffects _arrivalEffects;
@@ -38,10 +41,14 @@ internal sealed class DisguiseCurse : IDisposable
     private bool _disposed, _receivedActive, _noticePending;
     internal DisguiseHouseRule HouseRule { get; }
     internal bool Active => _round.Active;
+    internal bool Enabled => _enabled.Value;
 
     internal DisguiseCurse(CalypsoExpansionSetPlugin plugin)
     {
         _plugin = plugin;
+        _enabled = plugin.Config.Bind("Gameplay", "DisguiseEnabled", false,
+            "启用骰子诅咒和大师规则中的伪装（仅房主）。激活时可能掉帧。\n"
+            + "/ Host setting for Disguise in dice curses and post-Master house rules. May lower FPS while active.");
         _statusIcon = new DisguiseStatusIcon(plugin);
         _arrivalEffects = new DisguiseArrivalEffects(this, plugin);
         HouseRule = new DisguiseHouseRule(this, plugin);
@@ -69,7 +76,7 @@ internal sealed class DisguiseCurse : IDisposable
         {
             if (_round.Active || _peers.Count != 0) ResetServer();
         }
-        else if (_plugin.Registry.Ready && Time.realtimeSinceStartup >= _nextSend)
+        else if (Enabled && _plugin.Registry.Ready && Time.realtimeSinceStartup >= _nextSend)
         {
             _nextSend = Time.realtimeSinceStartup + SnapshotInterval;
             GatherPlayers();
@@ -90,7 +97,7 @@ internal sealed class DisguiseCurse : IDisposable
 
     internal bool CanRoll()
     {
-        if (!ServerReady) return false;
+        if (!Enabled || !ServerReady) return false;
         GatherPlayers();
         return _players.Count is >= 2 and <= DisguiseRound.MaximumPlayers;
     }
@@ -101,7 +108,7 @@ internal sealed class DisguiseCurse : IDisposable
         reason = "";
         if (!CanRoll())
         {
-            reason = "Disguise needs at least two compatible, spawned players.";
+            reason = Enabled ? "Disguise needs at least two compatible, spawned players." : DisabledReason;
             return false;
         }
         // Vanilla may roll an existing rule's alteration, but refuses to add
@@ -117,7 +124,9 @@ internal sealed class DisguiseCurse : IDisposable
     internal bool Start(out string reason, bool playArrival = true)
     {
         reason = "";
-        if (!ServerReady)
+        if (!Enabled)
+            reason = DisabledReason;
+        else if (!ServerReady)
             reason = "Disguise is not ready: the host, content registry and all ready peers must be compatible.";
         else if (_round.Active)
             reason = "Disguise is already active. Use 'curse clear' before applying it again.";

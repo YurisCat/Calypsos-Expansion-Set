@@ -4,12 +4,12 @@ using Mirror;
 namespace CalypsoExpansionSet.UI;
 
 internal readonly record struct ExpansionSettingsValues(bool Names, bool Advice, bool NaturalSpawning, bool PermanentClock,
-    string PingMouseKeyboard, string PingGamepad);
+    bool Disguise, string PingMouseKeyboard, string PingGamepad);
 
 internal sealed class ExpansionSettings
 {
     private readonly ConfigFile _config;
-    private readonly ConfigEntry<bool> _names, _advice, _natural, _clock;
+    private readonly ConfigEntry<bool> _names, _advice, _natural, _clock, _disguise;
     private readonly ConfigEntry<string> _pingMouse, _pingGamepad;
 
     internal ExpansionSettings(ConfigFile config)
@@ -19,12 +19,13 @@ internal sealed class ExpansionSettings
         _advice = (ConfigEntry<bool>)config["UI", "ShowIdolAdvice"];
         _natural = (ConfigEntry<bool>)config["Gameplay", "NaturalSpawning"];
         _clock = (ConfigEntry<bool>)config["Gameplay", "PermanentOldClock"];
+        _disguise = (ConfigEntry<bool>)config["Gameplay", "DisguiseEnabled"];
         _pingMouse = (ConfigEntry<string>)config["QualityOfLife", "PingMouseKeyboard"];
         _pingGamepad = (ConfigEntry<string>)config["QualityOfLife", "PingGamepad"];
     }
 
     internal ExpansionSettingsValues Current => new(_names.Value, _advice.Value, _natural.Value, _clock.Value,
-        _pingMouse.Value, _pingGamepad.Value);
+        _disguise.Value, _pingMouse.Value, _pingGamepad.Value);
 
     internal void Apply(ExpansionSettingsValues values)
     {
@@ -52,6 +53,7 @@ internal sealed class ExpansionSettings
         _advice.Value = values.Advice;
         _natural.Value = values.NaturalSpawning;
         _clock.Value = values.PermanentClock;
+        _disguise.Value = values.Disguise;
         _pingMouse.Value = values.PingMouseKeyboard;
         _pingGamepad.Value = values.PingGamepad;
     }

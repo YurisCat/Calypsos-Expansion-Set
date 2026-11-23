@@ -245,8 +245,8 @@ internal sealed class RunDebugCommands : IDisposable
                 if (zone.ShopVisitCount < visit || zone.GameModeType != ZoneManager.EGameModeType.Endless)
                     throw new InvalidOperationException("Native endless shortcut did not prepare rule selection.");
                 _plugin.Log.LogInfo($"[Run debug] Prepared post-master rule selection: visit={zone.ShopVisitCount}.");
-                Report(Pick("已开放大师后的规则选关阶段，请正常开门去商店、选择棋盘；多人棋盘可能抽到伪装规则。",
-                    "Post-master rule selection prepared. Use the shop door and choose a board; multiplayer boards may include Disguise."));
+                Report(Pick("已开放大师后的规则选关阶段，请正常开门去商店、选择棋盘。开启伪装后，多人棋盘可能抽到该规则。",
+                    "Post-master rule selection prepared. Use the shop door and choose a board. Multiplayer boards may include Disguise when enabled."));
                 return;
             }
             Report(Pick("棋盘已完成，请正常开门前往商店；新选棋盘放上桌并开始后，再使用 finish。",

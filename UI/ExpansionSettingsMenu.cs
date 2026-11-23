@@ -30,8 +30,8 @@ internal sealed class ExpansionSettingsMenu : IDisposable
     private GameplayOptionsMenu? _page;
     private TMP_Text? _title, _hint;
     private TMP_Text? _entryLabel, _applyLabel, _backLabel, _reference;
-    private readonly Toggle[] _toggles = new Toggle[4];
-    private readonly TMP_Text[] _labels = new TMP_Text[4];
+    private readonly Toggle[] _toggles = new Toggle[5];
+    private readonly TMP_Text[] _labels = new TMP_Text[5];
     private NavButton? _bindingButton;
     private TMP_Text? _bindingLabel;
     private UnityAction? _openAction, _applyAction, _bindingAction;
@@ -89,15 +89,17 @@ internal sealed class ExpansionSettingsMenu : IDisposable
         var body = _root.transform.Find("Menu");
         if (_page.canvasGroup == null || _page.canvasGroup != body.GetComponent<CanvasGroup>())
             throw new InvalidOperationException("The copied settings CanvasGroup does not belong to its visual body.");
-        DisableLocalization(_root);
         var content = body.Find("Main_Panel/Variables/Scroll View/Viewport/Content");
         var rowNames = new[] { "ShowUI_NavToggleParameter", "ShowPlayersNicks_NavToggleParameter",
-            "ArachnophobeMode_NavToogleParameter", "Headbob_NavToggleParameter" };
+            "ArachnophobeMode_NavToogleParameter", "Headbob_NavToggleParameter", "Calypso Disguise Toggle" };
         for (var i = content.childCount - 1; i >= 0; i--)
         {
             var child = content.GetChild(i);
             if (Array.IndexOf(rowNames, child.name) < 0) RemoveClone(child);
         }
+        var disguiseRow = UObject.Instantiate(content.Find(rowNames[3]).gameObject, content, false);
+        disguiseRow.name = rowNames[4];
+        DisableLocalization(_root);
         for (var i = 0; i < rowNames.Length; i++)
         {
             var row = content.Find(rowNames[i]);
@@ -116,7 +118,7 @@ internal sealed class ExpansionSettingsMenu : IDisposable
             _labels[i].gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
             _labels[i].enableWordWrapping = false;
         }
-        foreach (var index in new[] { 2, 3, 0, 1 })
+        foreach (var index in new[] { 2, 3, 4, 0, 1 })
             content.Find(rowNames[index]).SetAsLastSibling();
         var bindingSource = MenuManager.Instance?.OptionsMenusHandler?.controlsMenu?.rebindButton
             ?? throw new InvalidOperationException("Native rebind button is unavailable.");
@@ -237,6 +239,7 @@ internal sealed class ExpansionSettingsMenu : IDisposable
             _toggles[1].SetIsOnWithoutNotify(values.Advice);
             _toggles[2].SetIsOnWithoutNotify(values.NaturalSpawning);
             _toggles[3].SetIsOnWithoutNotify(values.PermanentClock);
+            _toggles[4].SetIsOnWithoutNotify(values.Disguise);
             _bindings.Dispose();
             _bindings.MouseKeyboard = values.PingMouseKeyboard; _bindings.Gamepad = values.PingGamepad;
             _saveFailed = false;
@@ -262,7 +265,7 @@ internal sealed class ExpansionSettingsMenu : IDisposable
         try
         {
             _settings.Apply(new(_toggles[0].isOn, _toggles[1].isOn, _toggles[2].isOn, _toggles[3].isOn,
-                _bindings.MouseKeyboard, _bindings.Gamepad));
+                _toggles[4].isOn, _bindings.MouseKeyboard, _bindings.Gamepad));
         }
         catch (Exception error)
         {
@@ -307,6 +310,7 @@ internal sealed class ExpansionSettingsMenu : IDisposable
         SetLabel(_title!, text.PageTitle, reference);
         SetLabel(_labels[0], text.Names, reference, true); SetLabel(_labels[1], text.Advice, reference, true);
         SetLabel(_labels[2], text.Natural, reference, true); SetLabel(_labels[3], text.Clock, reference, true);
+        SetLabel(_labels[4], text.Disguise, reference, true);
         _bindingDevice = _bindings.Busy ? _bindings.DeviceIndex : InputsManager.Instance?.IsGamepad == true ? 1 : 0;
         SetLabel(_bindingLabel!, (_bindingDevice == 0 ? text.PingMouse : text.PingGamepad) + "  ["
             + (_bindings.IsRecording(_bindingDevice) ? "…" : _bindings.Display(_bindingDevice, text.Disabled)) + "]", reference, true);

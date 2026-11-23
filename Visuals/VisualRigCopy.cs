@@ -2,6 +2,7 @@ using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Entities.Player.Behaviours;
 using UnityEngine;
 using _200_Dev.EnvironmentElements.Player;
+using ManagedQuaternion = System.Numerics.Quaternion;
 using UObject = UnityEngine.Object;
 
 namespace CalypsoExpansionSet.Visuals;
@@ -13,7 +14,7 @@ internal sealed class VisualRigCopy : IDisposable
     private static readonly int ProximityDither = Shader.PropertyToID("_useProximityDither");
     private sealed record Pose(Transform Source, Transform Copy, bool WorldRelative = false);
     private sealed record Drawing(Renderer Source, Renderer Copy, bool PriorOff);
-    private sealed record Driver(Transform Bone, Quaternion RotationOffset, Vector3 RestPosition, bool RootMotion);
+    private sealed record Driver(Transform Bone, ManagedQuaternion RotationOffset, Vector3 RestPosition, bool RootMotion);
     private readonly List<Pose> _poses = new();
     private readonly List<Drawing> _drawings = new();
     private readonly Dictionary<IntPtr, Transform> _map = new();
@@ -178,7 +179,7 @@ internal sealed class VisualRigCopy : IDisposable
             if (pose.Source == _source || !names.TryGetValue(pose.Source.name, out var driver) || driver == null
                 || !rest.TryGetValue(pose.Source.name, out var bind) || bind == null) continue;
             var offset = Quaternion.Inverse(referenceRotation * bind.rotation) * sourceRotation * pose.Source.rotation;
-            drivers[pose.Source.Pointer] = new Driver(driver, offset, reference.InverseTransformPoint(bind.position),
+            drivers[pose.Source.Pointer] = new Driver(driver, ToManaged(offset), reference.InverseTransformPoint(bind.position),
                 pose.Source.name == "root.x");
         }
         // Face rigs differ across characters. Unmatched facial bones keep the
@@ -212,53 +213,54 @@ internal sealed class VisualRigCopy : IDisposable
     internal void SyncPose()
     {
         if (_root == null || _source == null) return;
-        var root = _driverRoot != null ? _driverRoot : _source;
-        foreach (var pose in _poses)
+        var driverRoot = _driverRoot != null ? _driverRoot : null;
+        var root = driverRoot ?? _source;
+        var copyRoot = Root;
+        var rootRotation = root.rotation;
+        copyRoot.SetPositionAndRotation(root.position, rootRotation);
+        copyRoot.localScale = Vector3.Scale(root.lossyScale, _stretch);
+
+        var drivers = driverRoot is null ? null : _drivers;
+        var retargetRotation = drivers is null ? default : ToManaged(copyRoot.rotation * Quaternion.Inverse(rootRotation));
+        // CopyTree records the root first, which is already synchronized above.
+        for (var index = 1; index < _poses.Count; index++)
         {
-            if (pose.Source == null || pose.Copy == null) continue;
+            var pose = _poses[index];
             var source = pose.Source;
-            if (pose.Source == _source)
+            var copy = pose.Copy;
+            if (source == null || copy == null) continue;
+            var isLargeBone = _largeBone is not null && source == _largeBone;
+            if (drivers is not null && drivers.TryGetValue(source.Pointer, out var driver))
             {
-                pose.Copy.SetPositionAndRotation(root.position, root.rotation);
-                pose.Copy.localScale = Vector3.Scale(root.lossyScale, _stretch);
+                // Preserve donor proportions and avoid crossing into IL2CPP for each quaternion product.
+                copy.localPosition = source.localPosition;
+                copy.localScale = source.localScale;
+                var rotation = retargetRotation * ToManaged(driver.Bone.rotation) * driver.RotationOffset;
+                copy.rotation = new Quaternion { x = rotation.X, y = rotation.Y, z = rotation.Z, w = rotation.W };
+                if (driver.RootMotion)
+                {
+                    var movement = root.InverseTransformPoint(driver.Bone.position) - driver.RestPosition;
+                    copy.position = copyRoot.TransformPoint(_source.InverseTransformPoint(source.position) + movement);
+                }
+            }
+            else if (pose.WorldRelative)
+            {
+                copy.localPosition = root.InverseTransformPoint(source.position);
+                copy.localRotation = Quaternion.Inverse(rootRotation) * source.rotation;
+                var size = source.lossyScale;
+                var origin = root.lossyScale;
+                if (Math.Abs(origin.x) < 0.00001f || Math.Abs(origin.y) < 0.00001f || Math.Abs(origin.z) < 0.00001f)
+                    throw new InvalidOperationException("Visible rig has a degenerate scale.");
+                copy.localScale = new Vector3(size.x / origin.x, size.y / origin.y, size.z / origin.z);
             }
             else
             {
-                if (_drivers != null && _driverRoot != null && _drivers.TryGetValue(source.Pointer, out var driver))
-                {
-                    // Retarget rotation deltas in rig space. Copying local bone
-                    // positions would deform a donor onto the wearer's anatomy.
-                    pose.Copy.localPosition = source.localPosition;
-                    pose.Copy.localScale = source.localScale;
-                    pose.Copy.rotation = Root.rotation * Quaternion.Inverse(_driverRoot.rotation) * driver.Bone.rotation * driver.RotationOffset;
-                    if (driver.RootMotion)
-                    {
-                        var movement = _driverRoot.InverseTransformPoint(driver.Bone.position) - driver.RestPosition;
-                        pose.Copy.position = Root.TransformPoint(_source.InverseTransformPoint(source.position) + movement);
-                    }
-                    if (source == _largeBone) pose.Copy.localScale *= _boneScale;
-                    pose.Copy.gameObject.SetActive(source.gameObject.activeSelf);
-                    continue;
-                }
-                if (pose.WorldRelative)
-                {
-                    pose.Copy.localPosition = root.InverseTransformPoint(source.position);
-                    pose.Copy.localRotation = Quaternion.Inverse(root.rotation) * source.rotation;
-                    var size = source.lossyScale;
-                    var origin = root.lossyScale;
-                    if (Math.Abs(origin.x) < 0.00001f || Math.Abs(origin.y) < 0.00001f || Math.Abs(origin.z) < 0.00001f)
-                        throw new InvalidOperationException("Visible rig has a degenerate scale.");
-                    pose.Copy.localScale = new Vector3(size.x / origin.x, size.y / origin.y, size.z / origin.z);
-                }
-                else
-                {
-                    pose.Copy.localPosition = source.localPosition;
-                    pose.Copy.localRotation = source.localRotation;
-                    pose.Copy.localScale = source.localScale;
-                }
-                if (pose.Source == _largeBone) pose.Copy.localScale *= _boneScale;
-                pose.Copy.gameObject.SetActive(pose.Source.gameObject.activeSelf);
+                copy.localPosition = source.localPosition;
+                copy.localRotation = source.localRotation;
+                copy.localScale = source.localScale;
             }
+            if (isLargeBone) copy.localScale *= _boneScale;
+            copy.gameObject.SetActive(source.gameObject.activeSelf);
         }
         SyncDrawing();
         _root.SetActive(root.gameObject.activeInHierarchy);
@@ -266,9 +268,11 @@ internal sealed class VisualRigCopy : IDisposable
         {
             _reportedVisible = true;
             var drawing = _drawings[0];
-            CalypsoExpansionSetPlugin.Instance.Log.LogInfo($"[Visual rig visible] source={_source.name}, scale={Root.lossyScale}, sourceBounds={drawing.Source.bounds.size}, copyBounds={drawing.Copy.bounds.size}, sourceEnabled={drawing.Source.enabled}, copyEnabled={drawing.Copy.enabled}, priorOff={drawing.PriorOff}.");
+            CalypsoExpansionSetPlugin.Instance.Log.LogInfo($"[Visual rig visible] source={_source.name}, scale={copyRoot.lossyScale}, sourceBounds={drawing.Source.bounds.size}, copyBounds={drawing.Copy.bounds.size}, sourceEnabled={drawing.Source.enabled}, copyEnabled={drawing.Copy.enabled}, priorOff={drawing.PriorOff}.");
         }
     }
+
+    private static ManagedQuaternion ToManaged(Quaternion rotation) => new(rotation.x, rotation.y, rotation.z, rotation.w);
 
     internal void ShowAt(Vector3 position, Quaternion rotation, Vector3 scale, bool visible, int layer)
     {
@@ -298,8 +302,11 @@ internal sealed class VisualRigCopy : IDisposable
             if (_hideSource) drawing.Source.forceRenderingOff = true;
             var skin = drawing.Source.TryCast<SkinnedMeshRenderer>();
             var target = drawing.Copy.TryCast<SkinnedMeshRenderer>();
-            if (skin == null || target == null || skin.sharedMesh == null) continue;
-            for (var index = 0; index < skin.sharedMesh.blendShapeCount; index++)
+            if (skin == null || target == null) continue;
+            var mesh = skin.sharedMesh;
+            if (mesh == null) continue;
+            var blendShapeCount = mesh.blendShapeCount;
+            for (var index = 0; index < blendShapeCount; index++)
                 target.SetBlendShapeWeight(index, skin.GetBlendShapeWeight(index));
         }
     }

@@ -84,7 +84,7 @@ internal sealed class DisguiseHouseRule : IDisposable
     {
         if (_disposed || !NetworkServer.active) return;
         EnsureRegistered(manager);
-        var active = manager.IsRuleActive(Id);
+        var active = _curse.Enabled && manager.IsRuleActive(Id);
         if (_active != active)
         {
             _active = active;
@@ -251,9 +251,10 @@ internal static class DisguiseRuleCandidatePatch
 
     private static void Postfix(HouseRule __0, ref bool __result)
     {
+        var curse = CalypsoExpansionSetPlugin.Instance?.Disguises;
         if (__result && NetworkServer.active
-            && CalypsoExpansionSetPlugin.Instance?.Disguises?.HouseRule.Owns(__0) == true
-            && (UserInstancesManager.Instance?.Count ?? 0) < 2)
+            && curse != null && curse.HouseRule.Owns(__0)
+            && (!curse.Enabled || (UserInstancesManager.Instance?.Count ?? 0) < 2))
             __result = false;
     }
 }

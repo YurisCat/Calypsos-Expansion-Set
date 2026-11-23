@@ -3,7 +3,8 @@ param(
     [ValidateRange(1, 3)]
     [int]$Count = 2,
     [switch]$SkipBuild,
-    [switch]$PrepareOnly
+    [switch]$PrepareOnly,
+    [switch]$IncludeInstalledMods
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -17,9 +18,11 @@ $taskGame = [IO.Path]::GetFullPath($InvokyrPath)
 foreach ($taskRequired in @('Invokyr.exe', 'winhttp.dll', 'Invokyr_Data\boot.config', 'dotnet\coreclr.dll', 'BepInEx\core\BepInEx.Unity.IL2CPP.dll', 'BepInEx\interop\vhs.dll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $taskGame $taskRequired) -PathType Leaf)) { throw "Missing game/BepInEx file: $taskRequired" }
 }
-if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'Build.ps1') -Configuration Release -InvokyrPath $taskGame }
-$taskDll = Join-Path $taskRoot 'bin\Release\net6.0\CalypsoExpansionSet.dll'
-if (-not (Test-Path -LiteralPath $taskDll -PathType Leaf)) { throw 'Build output is missing; run scripts/Build.ps1.' }
+if (-not $IncludeInstalledMods) {
+    if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'Build.ps1') -Configuration Release -InvokyrPath $taskGame }
+    $taskDll = Join-Path $taskRoot 'bin\Release\net6.0\CalypsoExpansionSet.dll'
+    if (-not (Test-Path -LiteralPath $taskDll -PathType Leaf)) { throw 'Build output is missing; run scripts/Build.ps1.' }
+}
 
 function Copy-TestTree([string]$Source, [string]$Destination) {
     $taskItem = Get-Item -LiteralPath $Source
@@ -68,20 +71,31 @@ for ($taskSlot = 1; $taskSlot -le $Count; $taskSlot++) {
     foreach ($taskTree in @('core', 'interop', 'unity-libs')) {
         Copy-TestTree (Join-Path $taskGame "BepInEx\$taskTree") (Join-Path $taskBep $taskTree)
     }
-    foreach ($taskConfigName in @('BepInEx.cfg', 'calypso.invokyr.expansionset.cfg')) {
-        $taskConfigSource = Join-Path $taskGame "BepInEx\config\$taskConfigName"
-        if (Test-Path -LiteralPath $taskConfigSource -PathType Leaf) { Copy-TestTree $taskConfigSource (Join-Path $taskBep "config\$taskConfigName") }
+    if ($IncludeInstalledMods) {
+        foreach ($taskTree in @('plugins', 'config', 'patchers')) {
+            $taskInstalledTree = Join-Path $taskGame "BepInEx\$taskTree"
+            if (Test-Path -LiteralPath $taskInstalledTree -PathType Container) {
+                Copy-TestTree $taskInstalledTree (Join-Path $taskBep $taskTree)
+            }
+        }
+    } else {
+        foreach ($taskConfigName in @('BepInEx.cfg', 'calypso.invokyr.expansionset.cfg')) {
+            $taskConfigSource = Join-Path $taskGame "BepInEx\config\$taskConfigName"
+            if (Test-Path -LiteralPath $taskConfigSource -PathType Leaf) { Copy-TestTree $taskConfigSource (Join-Path $taskBep "config\$taskConfigName") }
+        }
     }
     $taskBepConfig = Join-Path $taskBep 'config\BepInEx.cfg'
     # Game updates invalidate copied interop metadata; regenerate in each isolated
     # instance before loading plugins instead of invoking stale native methods.
     Set-TestConfig $taskBepConfig 'IL2CPP' 'UpdateInteropAssemblies' 'true'
     Set-TestConfig $taskBepConfig 'Logging.Console' 'Enabled' (($taskSlot -eq 1).ToString().ToLowerInvariant())
-    $taskModConfig = Join-Path $taskBep 'config\calypso.invokyr.expansionset.cfg'
-    Set-TestConfig $taskModConfig 'Debug' 'DebugMode' 'true'
-    Set-TestConfig $taskModConfig 'Debug' 'WindowKey' 'F8'
-    Set-TestConfig $taskModConfig 'Debug' 'TestRoomEnabled' 'false'
-    Copy-Item -LiteralPath $taskDll -Destination (Join-Path $taskBep 'plugins\CalypsoExpansionSet.dll')
+    if (-not $IncludeInstalledMods) {
+        $taskModConfig = Join-Path $taskBep 'config\calypso.invokyr.expansionset.cfg'
+        Set-TestConfig $taskModConfig 'Debug' 'DebugMode' 'true'
+        Set-TestConfig $taskModConfig 'Debug' 'WindowKey' 'F8'
+        Set-TestConfig $taskModConfig 'Debug' 'TestRoomEnabled' 'false'
+        Copy-Item -LiteralPath $taskDll -Destination (Join-Path $taskBep 'plugins\CalypsoExpansionSet.dll')
+    }
     # Steam's normal App ID hint; no Steam API replacement or game binary changes.
     [IO.File]::WriteAllText((Join-Path $taskInstance 'steam_appid.txt'), '3883570', [Text.Encoding]::ASCII)
     $taskBootConfig = Join-Path $taskInstance 'boot.config'
@@ -94,9 +108,10 @@ for ($taskSlot = 1; $taskSlot -le $Count; $taskSlot++) {
         '--doorstop-target-assembly', ('"{0}"' -f (Join-Path $taskBep 'core\BepInEx.Unity.IL2CPP.dll')),
         '--doorstop-clr-runtime-coreclr-path', ('"{0}"' -f (Join-Path $taskGame 'dotnet\coreclr.dll')),
         '--doorstop-clr-corlib-dir', ('"{0}"' -f (Join-Path $taskGame 'dotnet')),
-        '--ces-local-instance', "$taskSlot", '-screen-fullscreen', '0', '-screen-width', '960', '-screen-height', '600',
+        '-screen-fullscreen', '0', '-screen-width', '960', '-screen-height', '600',
         '-logFile', ('"{0}"' -f (Join-Path $taskInstance 'Player.log'))
     )
+    $taskArguments += @('--ces-local-instance', "$taskSlot")
     $taskInstances += [pscustomobject]@{ Slot = $taskSlot; Directory = $taskInstance; Arguments = $taskArguments -join ' '; ProcessId = $null }
 }
 
@@ -115,5 +130,9 @@ foreach ($taskInstance in $taskInstances) {
     Write-Output ("Local {0}: PID={1}, files={2}" -f $taskInstance.Slot, $taskInstance.ProcessId, $taskInstance.Directory)
 }
 $taskInstances | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $taskSession 'instances.json') -Encoding UTF8
-Write-Output 'After a game update, BepInEx may take longer to rebuild outdated interfaces in each test window before loading the MOD.'
-Write-Output 'In each window: F8 > Local multiplayer. Host in Local 1 for the native shop and 5000 shared funds, then join from the other windows before starting a board.'
+Write-Output 'After a game update, BepInEx may take longer to rebuild outdated interfaces in each test window before loading MODs.'
+if ($IncludeInstalledMods) {
+    Write-Output 'MODs and their configs come from the game installation. Use its available connection controls; this mode does not add the expansion set or its F8 local multiplayer tools.'
+} else {
+    Write-Output 'In each window: F8 > Local multiplayer. Host in Local 1 for the native shop and 5000 shared funds, then join from the other windows before starting a board.'
+}

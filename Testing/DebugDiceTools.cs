@@ -61,7 +61,7 @@ internal sealed class DebugDiceTools : IDisposable
         }
         if (_kind == FaceKind.Curse)
             _disguise = GUI.Toggle(new Rect(area.x, area.y + 184, area.width, 30), _disguise,
-                Pick("指定抽中伪装（至少两名玩家）；取消则随机抽取", "Force Disguise (2+ players); uncheck for a random curse"));
+                Pick("指定伪装（需开启伪装且至少两名玩家）", "Force Disguise (requires Disguise enabled and 2+ players)"));
         var enabled = GUI.enabled;
         try
         {
@@ -125,7 +125,7 @@ internal sealed class DebugDiceTools : IDisposable
         if (board == null || manager == null)
         { Report(Pick("请先进入正常对局。", "Enter a normal game session first."), true); return; }
         if (choice.Disguise && _plugin.Disguises?.CanRoll() != true)
-        { Report(Pick("指定伪装至少需要两名兼容、已生成的玩家。", "Forcing Disguise requires at least two compatible, spawned players."), true); return; }
+        { Report(Pick("指定伪装需开启伪装，并有至少两名兼容且已生成的玩家。", "Enable Disguise and have at least two compatible, spawned players to force it."), true); return; }
         var data = FindData(choice.Digit, choice.Kind, out var faceIndex);
         if (data == null)
         { Report(Pick("原版配置中找不到该骰面，请等待加载完成。", "No native die contains that face; wait for loading to finish."), true); return; }

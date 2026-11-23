@@ -58,7 +58,7 @@ Teleports to a nearby location when it leaves every player's view.
 
 [list]
 [*]Adds 16 fun and challenging new idols.[/*]
-[*]In multiplayer, dice can swap players' appearances and overhead names; post-master boards can also include this rule.[/*]
+[*]In multiplayer, dice curses and post-master rules can swap players' appearances and overhead names. Off by default.[/*]
 [*]Makes the Old Clock reusable (off by default; host setting only).[/*]
 [/list]
 
@@ -103,6 +103,9 @@ New idols enter natural spawn pools.
 
 [b]PermanentOldClock = false[/b]
 Makes the Old Clock reusable. Host setting only.
+
+[b]DisguiseEnabled = false[/b]
+Host setting for Disguise in dice curses and post-master rules. Set to true to enable. May lower FPS while active.
 
 [b]ShowIndividualIdolNames = false[/b]
 Shows individual idol names.
@@ -186,7 +189,7 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [list]
 [*]添加 16 种有趣又富有挑战性的新雕像。[/*]
-[*]多人时，骰子可能让玩家互换外观与头顶昵称；大师棋盘也有几率出现该规则。[/*]
+[*]多人时，骰子诅咒和大师规则都可能让玩家互换外观与头顶昵称。默认关闭。[/*]
 [*]老旧挂钟可反复使用（默认关闭，仅主机设置生效）。[/*]
 [/list]
 
@@ -231,6 +234,9 @@ Detailed setup, testing and limitations are on GitHub below.
 
 [b]PermanentOldClock = false[/b]
 老旧挂钟可反复使用，仅主机设置生效。
+
+[b]DisguiseEnabled = false[/b]
+房主设为 true 后启用骰子诅咒和大师规则中的伪装，激活时可能掉帧。
 
 [b]ShowIndividualIdolNames = false[/b]
 显示雕像的具体名称。
